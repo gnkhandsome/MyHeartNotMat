@@ -1,0 +1,248 @@
+.container {
+  min-height: 100vh;
+  padding: 24rpx;
+  padding-bottom: calc(36rpx + env(safe-area-inset-bottom));
+  position: relative;
+  transition: background-color 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.shred-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* 顶部导航栏 */
+.nav-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 100rpx;
+  padding: 0 26rpx;
+  border-radius: 24rpx;
+  margin-bottom: 18rpx;
+  z-index: 999;
+  transition:
+    background-color 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.nav-item {
+  font-size: 32rpx;
+  color: #666;
+}
+
+.nav-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+/* 沉浸式输入区域 */
+.input-container {
+  padding: 34rpx 30rpx;
+  min-height: 380rpx;
+  border-radius: 28rpx;
+  position: relative;
+  overflow: hidden;
+}
+
+.input {
+  width: 100%;
+  min-height: 300rpx;
+  font-size: 32rpx;
+  line-height: 1.68;
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+}
+
+/* 功能入口 */
+.action-buttons {
+  margin-top: 18rpx;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 20rpx 18rpx;
+  border-radius: 30rpx;
+  transition:
+    background-color 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.action-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10rpx;
+  padding: 12rpx 16rpx;
+  border-radius: 18rpx;
+  transition:
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.action-icon {
+  font-size: 40rpx;
+}
+
+.action-text {
+  font-size: 24rpx;
+  color: #7f7f88;
+}
+
+.list-section {
+  margin-top: 20rpx;
+  padding: 24rpx;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  margin-bottom: 16rpx;
+  color: #333;
+}
+
+.record-card {
+  padding: 20rpx;
+  border-radius: 18rpx;
+  background: rgba(255, 255, 255, 0.45);
+  margin-bottom: 14rpx;
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.32s ease;
+}
+
+.record-content {
+  font-size: 28rpx;
+  line-height: 1.65;
+}
+
+.record-footer {
+  margin-top: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.record-time {
+  font-size: 22rpx;
+  color: #8f8f98;
+}
+
+.card-shatter-btn {
+  padding: 8rpx 18rpx;
+  font-size: 20rpx;
+  line-height: 1;
+  border-radius: 999rpx;
+  color: #fff;
+  background: linear-gradient(135deg, #ff8a7a, #ff5c7a);
+  box-shadow: 0 8rpx 20rpx rgba(255, 92, 122, 0.28);
+}
+
+.record-card.shattering {
+  pointer-events: none;
+  transform-origin: center center;
+  animation: card-shatter 0.36s ease-out forwards;
+}
+
+.empty {
+  color: #9ca3af;
+  font-size: 24rpx;
+  padding: 8rpx 4rpx 16rpx;
+}
+
+.input-container.post-shattering .input {
+  animation: post-input-shake 0.28s ease-in-out 2;
+  opacity: 0.65;
+}
+
+/* 粒子动画容器 */
+.particle-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.particle {
+  position: absolute;
+}
+
+/* 粒子动画 */
+@keyframes petal-fall {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+@keyframes shatter {
+  0% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.1) rotate(180deg);
+    opacity: 0;
+  }
+}
+
+@keyframes card-shatter {
+  0% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+    filter: blur(0);
+  }
+  55% {
+    opacity: 0.72;
+    transform: scale(1.03) rotate(-1.2deg);
+    filter: blur(1.6rpx);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.82) translateY(-10rpx) rotate(4deg);
+    filter: blur(6rpx);
+  }
+}
+
+@keyframes post-input-shake {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-8rpx); }
+  50% { transform: translateX(6rpx); }
+  75% { transform: translateX(-4rpx); }
+  100% { transform: translateX(0); }
+}
+
+/* 响应式设计 */
+@media (max-width: 375px) {
+  .nav-bar {
+    padding: 0 20rpx;
+  }
+  
+  .input-container {
+    padding: 24rpx 20rpx;
+  }
+  
+  .input {
+    font-size: 28rpx;
+  }
+  
+  .action-icon {
+    font-size: 32rpx;
+  }
+  
+  .action-text {
+    font-size: 20rpx;
+  }
+}

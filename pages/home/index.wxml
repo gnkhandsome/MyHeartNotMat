@@ -1,0 +1,321 @@
+<view class="container {{isRainModeEnabled ? 'rain-mode-on' : ''}} {{rainPerfLevel === 'low' ? 'rain-perf-low' : ''}}" style="background-color: {{theme.bgColor}};">
+  <canvas
+    wx:if="{{isShredCanvasVisible}}"
+    id="homeShredCanvas"
+    type="2d"
+    class="shred-canvas"
+  ></canvas>
+
+  <view wx:if="{{isRainModeEnabled && currentPage === 0}}" class="rain-overlay" aria-hidden="true">
+    <view
+      wx:for="{{rainDrops}}"
+      wx:key="id"
+      class="rain-drop"
+      style="left: {{item.left}}%; height: {{item.height}}rpx; animation-duration: {{item.duration}}ms; animation-delay: {{item.delay}}ms; opacity: {{item.opacity}};"
+    ></view>
+  </view>
+
+  <!-- 页面容器 -->
+  <swiper class="page-swiper" current="{{currentPage}}" bindchange="onPageChange" duration="0">
+    <!-- 首页 -->
+    <swiper-item>
+      <view class="page-container">
+        <!-- 顶部自定义 Tab (Custom Header) -->
+        <view class="tab-container" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border-bottom: ' + theme.borderStyle : ''}};">
+          <view class="tab-item {{activeTab === 'my' ? 'active' : ''}}" bindtap="switchTab" data-tab="my" style="color: {{activeTab === 'my' ? theme.primaryColor : '#999'}};">
+            我的小屋
+          </view>
+          <view class="tab-item {{activeTab === 'square' ? 'active' : ''}}" bindtap="switchTab" data-tab="square" style="color: {{activeTab === 'square' ? theme.primaryColor : '#999'}};">
+            广场
+          </view>
+          <view class="tab-item {{activeTab === 'latest' ? 'active' : ''}}" bindtap="switchTab" data-tab="latest" style="color: {{activeTab === 'latest' ? theme.primaryColor : '#999'}};">
+            最新
+          </view>
+        </view>
+
+        <!-- 潮汐白噪音控制 -->
+        <view class="audio-control" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+          <view class="audio-main">
+            <view class="audio-btn" bindtap="toggleAudioPlay" style="background-color: {{isAudioPlaying ? theme.primaryColor : '#E5E7EB'}};">
+              <text class="audio-btn-icon">{{isAudioPlaying ? '⏸' : '▶'}}</text>
+            </view>
+            <view class="audio-meta">
+              <text class="audio-title">潮汐白噪音</text>
+              <text class="audio-status">{{isAudioPlaying ? '播放中' : '已暂停'}}</text>
+            </view>
+            <view class="audio-expand" bindtap="toggleAudioPanel">
+              <text class="audio-expand-icon">{{showAudioPanel ? '收起' : '音量'}}</text>
+            </view>
+          </view>
+
+          <view wx:if="{{showAudioPanel}}" class="audio-volume-row">
+            <text class="audio-volume-label">音量</text>
+            <slider
+              class="audio-slider"
+              min="0"
+              max="100"
+              step="5"
+              value="{{audioVolume}}"
+              activeColor="{{theme.primaryColor}}"
+              backgroundColor="#E5E7EB"
+              block-size="18"
+              bindchange="onAudioVolumeChange"
+            />
+            <text class="audio-volume-value">{{audioVolume}}%</text>
+          </view>
+
+          <view class="rain-mode-row">
+            <view class="rain-mode-meta">
+              <text class="rain-mode-title">雨天模式</text>
+              <text class="rain-mode-desc">轻量雨滴氛围，不影响滚动与点击</text>
+            </view>
+            <switch
+              checked="{{isRainModeEnabled}}"
+              color="{{theme.primaryColor}}"
+              bindchange="onRainModeChange"
+            />
+          </view>
+        </view>
+
+        <!-- 中间内容流 (Feed List) -->
+        <swiper class="content-swiper" current="{{currentTab}}" bindchange="onSwiperChange" duration="300">
+          <!-- 我的小屋内容 -->
+          <swiper-item>
+            <scroll-view class="content-container" scroll-y="true" scrollbar-hidden="true">
+              <view class="card-list">
+                <view wx:for="{{myDiaryList}}" wx:key="id" id="home-card-{{item.id}}" class="card fade-in {{shatteringCardIds.includes(item.id) ? 'shattering' : ''}}" style="border-radius: {{theme.borderRadius}}; box-shadow: {{theme.shadow}}; background-color: {{theme.cardColor}}; color: {{theme.textColor}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+                  <view class="card-content">{{item.content}}</view>
+                  <view class="card-footer">
+                    <text class="card-time">{{item.time}}</text>
+                    <view class="card-shatter-btn" bindtap="onShatterCard" data-id="{{item.id}}" data-tab="my">粉碎</view>
+                  </view>
+                </view>
+              </view>
+            </scroll-view>
+          </swiper-item>
+          
+          <!-- 广场内容 -->
+          <swiper-item>
+            <scroll-view class="content-container" scroll-y="true" scrollbar-hidden="true">
+              <view class="card-list">
+                <view wx:for="{{squarePostList}}" wx:key="id" id="home-card-{{item.id}}" class="card fade-in {{shatteringCardIds.includes(item.id) ? 'shattering' : ''}}" style="border-radius: {{theme.borderRadius}}; box-shadow: {{theme.shadow}}; background-color: {{theme.cardColor}}; color: {{theme.textColor}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+                  <view class="card-content">{{item.content}}</view>
+                  <view class="card-footer">
+                    <text class="card-time">{{item.time}}</text>
+                    <view class="card-shatter-btn" bindtap="onShatterCard" data-id="{{item.id}}" data-tab="square">粉碎</view>
+                  </view>
+                </view>
+              </view>
+            </scroll-view>
+          </swiper-item>
+          
+          <!-- 最新内容 -->
+          <swiper-item>
+            <scroll-view class="content-container" scroll-y="true" scrollbar-hidden="true">
+              <view class="card-list">
+                <view wx:for="{{latestPostList}}" wx:key="id" id="home-card-{{item.id}}" class="card fade-in {{shatteringCardIds.includes(item.id) ? 'shattering' : ''}}" style="border-radius: {{theme.borderRadius}}; box-shadow: {{theme.shadow}}; background-color: {{theme.cardColor}}; color: {{theme.textColor}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+                  <view class="card-content">{{item.content}}</view>
+                  <view class="card-footer">
+                    <text class="card-time">{{item.time}}</text>
+                    <view class="card-shatter-btn" bindtap="onShatterCard" data-id="{{item.id}}" data-tab="latest">粉碎</view>
+                  </view>
+                </view>
+              </view>
+            </scroll-view>
+          </swiper-item>
+        </swiper>
+      </view>
+    </swiper-item>
+    
+    <!-- 发布页面 -->
+    <swiper-item>
+      <view class="page-container">
+        <!-- 顶部导航栏 -->
+        <view class="nav-bar" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border-bottom: ' + theme.borderStyle : ''}};">
+          <view class="nav-item" bindtap="cancelPost" style="color: {{theme.primaryColor}};">
+            取消
+          </view>
+          <view class="nav-title">发布</view>
+          <view class="nav-item" bindtap="publishPost" style="color: {{theme.primaryColor}};">
+            发布
+          </view>
+        </view>
+
+        <!-- 沉浸式输入区域 -->
+        <view class="input-container {{isPostShattering ? 'post-shattering' : ''}}">
+          <textarea 
+            id="homePostInputField"
+            class="input" 
+            placeholder="写下你的心情..." 
+            placeholder-style="color: #999;" 
+            value="{{postContent}}" 
+            bindinput="onPostInput" 
+            style="color: {{theme.textColor}};"
+          ></textarea>
+        </view>
+
+        <!-- 功能入口 -->
+        <view class="action-buttons" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; border-radius: {{theme.borderRadius}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+          <view class="action-button" bindtap="shatter">
+            <text class="action-icon">💥</text>
+            <text class="action-text">粉碎</text>
+          </view>
+          <view class="action-button" bindtap="togglePrivacy">
+            <text class="action-icon">{{isAnonymous ? '🙈' : '👁️'}}</text>
+            <text class="action-text">{{isAnonymous ? '匿名' : '公开'}}</text>
+          </view>
+          <view class="action-button" bindtap="toggleLocation">
+            <text class="action-icon">{{showLocation ? '📍' : '🚫'}}</text>
+            <text class="action-text">{{showLocation ? '显示位置' : '隐藏位置'}}</text>
+          </view>
+        </view>
+      </view>
+    </swiper-item>
+    
+    <!-- 我的页面 -->
+    <swiper-item>
+      <view class="page-container">
+        <!-- 大留白用户信息区 -->
+        <view class="user-info" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+          <view class="avatar-container">
+            <view class="avatar" style="border: 4rpx solid {{theme.primaryColor}};">
+              <text class="avatar-text">{{userInfo.nickname.charAt(0)}}</text>
+            </view>
+          </view>
+          <view class="user-details">
+            <text class="nickname">{{userInfo.nickname}}</text>
+            <text class="mood">{{userInfo.mood}}</text>
+          </view>
+        </view>
+
+        <!-- 情绪调色盘 -->
+        <view class="mood-palette" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; border-radius: {{theme.borderRadius}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+          <view class="section-title">情绪调色盘</view>
+          <view class="mood-calendar">
+            <view class="mood-day" wx:for="{{moodData}}" wx:key="index" style="background-color: {{item.color}}; border-radius: {{theme.borderRadius}};" bindtap="previewTheme" data-index="{{index}}">
+              <text class="mood-date">{{item.date}}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 内容列表区 -->
+        <view class="content-list" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; border-radius: {{theme.borderRadius}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+          <view class="section-title">我的内容</view>
+          <view class="content-item" bindtap="goToMyPosts">
+            <text class="content-icon">📝</text>
+            <text class="content-text">我的发布</text>
+            <text class="content-arrow">›</text>
+          </view>
+          <view class="content-item" bindtap="goToMyFavorites">
+            <text class="content-icon">⭐</text>
+            <text class="content-text">我的收藏</text>
+            <text class="content-arrow">›</text>
+          </view>
+          <view class="content-item" bindtap="goToReliefRecords">
+            <text class="content-icon">📚</text>
+            <text class="content-text">解忧记录</text>
+            <text class="content-arrow">›</text>
+          </view>
+        </view>
+
+        <!-- 解忧盲盒入口 -->
+        <view class="blind-box" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; border-radius: {{theme.borderRadius}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+          <view class="section-title">解忧盲盒</view>
+          <view class="blind-box-content" bindtap="openBlindBox">
+            <view class="blind-box-card {{isFlipping ? 'flipping' : ''}}">
+              <view class="blind-box-front" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+                <text class="blind-box-icon">🎁</text>
+                <text class="blind-box-text">点击抽取治愈文案</text>
+              </view>
+              <view class="blind-box-back" wx:if="{{showQuote}}" style="background-color: {{theme.primaryColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+                <text class="blind-box-quote">{{currentQuote}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <!-- 主题设置 -->
+        <view class="theme-setting" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; border-radius: {{theme.borderRadius}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+          <view class="section-title">主题设置</view>
+          <view class="theme-tabs">
+            <view class="theme-tab {{activeThemeType === themeStyleTypes.FEMALE ? 'active' : ''}}" bindtap="switchThemeType" data-type="{{themeStyleTypes.FEMALE}}">
+              柔美感性
+            </view>
+            <view class="theme-tab {{activeThemeType === themeStyleTypes.MALE ? 'active' : ''}}" bindtap="switchThemeType" data-type="{{themeStyleTypes.MALE}}">
+              理性深邃
+            </view>
+          </view>
+          <view class="theme-list">
+            <view class="theme-item" wx:for="{{filteredThemes}}" wx:key="item.id" style="border-radius: {{theme.borderRadius}};" bindtap="selectTheme" data-theme="{{item}}">
+              <view class="theme-color" style="background-color: {{item.primaryColor}};"></view>
+              <text class="theme-name">{{item.name}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </swiper-item>
+  </swiper>
+
+  <view wx:if="{{isBreathingActive}}" class="breathing-guide-panel" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+    <text class="breathing-guide-title">呼吸岛屿 · 第{{breathingDisplayRound}}轮</text>
+    <text class="breathing-guide-phase">{{breathingGuideText}}</text>
+    <text class="breathing-guide-tip">长按发布按钮保持引导，松手即可结束</text>
+  </view>
+
+  <view class="companion-trail-layer" aria-hidden="true">
+    <view
+      wx:for="{{companionTrailParticles}}"
+      wx:key="id"
+      class="companion-trail-dot"
+      style="left: {{item.x}}px; top: {{item.y}}px; width: {{item.size}}rpx; height: {{item.size}}rpx; opacity: {{item.opacity}};"
+    ></view>
+  </view>
+
+  <!-- 自定义底部导航栏 -->
+  <view class="custom-tabbar" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border-top: ' + theme.borderStyle : ''}};">
+    <view class="tabbar-item {{currentPage === 0 ? 'active' : ''}}" bindtap="switchPage" data-page="0">
+      <text class="tabbar-icon" style="color: {{currentPage === 0 ? theme.primaryColor : '#666'}};">🏠</text>
+      <text class="tabbar-text" style="color: {{currentPage === 0 ? theme.primaryColor : '#666'}};">首页</text>
+    </view>
+    <view class="tabbar-item tabbar-publish tabbar-publish-placeholder" aria-hidden="true">
+      <view class="publish-button placeholder"></view>
+    </view>
+    <view class="tabbar-item {{currentPage === 2 ? 'active' : ''}}" bindtap="switchPage" data-page="2">
+      <text class="tabbar-icon" style="color: {{currentPage === 2 ? theme.primaryColor : '#666'}};">👤</text>
+      <text class="tabbar-text" style="color: {{currentPage === 2 ? theme.primaryColor : '#666'}};">我的</text>
+    </view>
+  </view>
+
+  <movable-area class="fab-movable-area">
+    <movable-view
+      class="fab-movable-view"
+      direction="all"
+      inertia="true"
+      damping="28"
+      friction="2"
+      x="{{fabX}}"
+      y="{{fabY}}"
+      bindchange="onFabDragChange"
+    >
+      <view class="tabbar-item tabbar-publish" bindtap="onPublishTap" bindtouchstart="onPublishTouchStart" bindtouchend="onPublishTouchEnd" bindtouchcancel="onPublishTouchCancel">
+        <view
+          class="companion-wrapper"
+          catchtap="onCompanionTap"
+          catchtouchstart="onCompanionTouchStart"
+          catchtouchend="onCompanionTouchEnd"
+          catchtouchcancel="onCompanionTouchCancel"
+        >
+          <view class="companion-sprite {{companionVisualType}} state-{{companionState}} drag-level-{{companionDragLevel}} {{companionIsShy ? 'is-shy' : ''}}">
+            <view class="companion-eye left"></view>
+            <view class="companion-eye right"></view>
+          </view>
+          <view wx:if="{{showCompanionBubble}}" class="companion-bubble">{{companionBubbleText}}</view>
+        </view>
+
+        <view class="publish-button {{isBreathingActive ? 'breathing-active phase-' + breathingPhase : ''}} {{breathingPerfLevel === 'low' ? 'perf-low' : ''}}" style="background-color: {{theme.primaryColor}}; border-radius: 50%; box-shadow: {{theme.shadow}};">
+          <text class="publish-icon">+</text>
+        </view>
+      </view>
+    </movable-view>
+  </movable-area>
+</view>

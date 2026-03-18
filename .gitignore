@@ -1,0 +1,9 @@
+# macOS
+.DS_Store
+__MACOSX/
+
+# node
+node_modules/
+
+# local config
+*.log
