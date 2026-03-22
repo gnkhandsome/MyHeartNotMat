@@ -6,44 +6,97 @@
     class="shred-canvas"
   ></canvas>
 
-  <view class="nav-bar" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border-bottom: ' + theme.borderStyle : ''}};">
-    <view class="nav-item" bindtap="cancelPost" style="color: {{theme.primaryColor}};">清空</view>
-    <view class="nav-title" style="color: {{theme.textColor}};">发布</view>
-    <view class="nav-item" bindtap="publishPost" style="color: {{theme.primaryColor}};">发布</view>
+  <view class="writing-ambient-panel" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+    <text class="writing-ambient-title">把此刻写成一段可安放的心情</text>
+    <text class="writing-ambient-subtitle">先封装，再决定仅自己珍藏，或公开分享给世界。</text>
   </view>
+
+  <scroll-view class="post-type-scroll" scroll-x="true" enhanced="true" show-scrollbar="false">
+    <view class="post-type-row">
+      <view
+        wx:for="{{postTypes}}"
+        wx:key="key"
+        class="post-type-chip {{activePostType === item.key ? 'active' : ''}}"
+        bindtap="switchPostType"
+        data-type="{{item.key}}"
+      >
+        <text class="post-type-chip-icon">{{item.icon}}</text>
+        <text class="post-type-chip-label">{{item.label}}</text>
+      </view>
+    </view>
+  </scroll-view>
 
   <view class="input-container {{isPostShattering ? 'post-shattering' : ''}}" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; border-radius: {{theme.borderRadius}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
     <textarea
       id="postInputField"
-      class="input"
-      placeholder="写点不想留存的心事..."
+      class="input input-{{activePostType}}"
+      placeholder="{{postPlaceholder}}"
       placeholder-style="color: #999;"
       value="{{postContent}}"
       bindinput="onPostInput"
       style="color: {{theme.textColor}};"
     ></textarea>
+
+    <view class="immersive-form-panel">
+      <view wx:if="{{activePostType === 'letter'}}" class="immersive-form-row">
+        <input class="immersive-input" placeholder="称呼（如：亲爱的自己）" value="{{letterSalutation}}" bindinput="onLetterSalutationInput" />
+        <input class="immersive-input" placeholder="落款（如：—— 深夜里的你）" value="{{letterSignature}}" bindinput="onLetterSignatureInput" />
+      </view>
+
+      <view wx:if="{{activePostType === 'postcard'}}" class="immersive-form-row">
+        <input class="immersive-input" placeholder="地点戳（如：杭州 · 西湖边）" value="{{postcardLocation}}" bindinput="onPostcardLocationInput" />
+      </view>
+
+      <view wx:if="{{activePostType === 'diary'}}" class="immersive-form-row">
+        <input class="immersive-input" placeholder="天气（如：小雨 / 晴天）" value="{{diaryWeather}}" bindinput="onDiaryWeatherInput" />
+        <view class="mood-score-row">
+          <text class="mood-score-label">心情分</text>
+          <slider min="1" max="10" step="1" value="{{diaryMoodScore}}" activeColor="#34D399" backgroundColor="#E5E7EB" block-size="16" bindchange="onDiaryMoodScoreChange" />
+          <text class="mood-score-value">{{diaryMoodScore}}/10</text>
+        </view>
+      </view>
+
+      <view wx:if="{{activePostType === 'vlog'}}" class="immersive-form-row">
+        <textarea class="immersive-script-input" auto-height="true" placeholder="镜头脚本模板（每行一个镜头）" value="{{vlogScriptTemplate}}" bindinput="onVlogScriptTemplateInput" />
+      </view>
+    </view>
   </view>
 
   <view class="action-buttons" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; border-radius: {{theme.borderRadius}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
-    <view class="action-button" bindtap="shatter">
+    <view class="action-button publish-btn" bindtap="onPackagePost">
+      <text class="action-icon">📝</text>
+      <text class="action-text">{{packageActionLabel}}</text>
+    </view>
+    <view class="action-button secondary-btn" bindtap="shatter">
       <text class="action-icon">&#x1F4A5;</text>
       <text class="action-text">粉碎</text>
     </view>
-    <view class="action-button" bindtap="togglePrivacy">
-      <text class="action-icon">{{isAnonymous ? '🙈' : '👁️'}}</text>
-      <text class="action-text">{{isAnonymous ? '匿名' : '公开'}}</text>
-    </view>
-    <view class="action-button" bindtap="toggleLocation">
-      <text class="action-icon">{{showLocation ? '📍' : '🚫'}}</text>
-      <text class="action-text">{{showLocation ? '显示位置' : '隐藏位置'}}</text>
-    </view>
   </view>
+  <view class="package-flow-tip">封装完成后，再选择：仅自己可见 或 公开到广场</view>
 
   <view class="list-section" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; border-radius: {{theme.borderRadius}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
     <view class="section-title">已发布内容</view>
     <view wx:if="{{myPostList.length === 0}}" class="empty">暂无内容</view>
-    <view wx:for="{{myPostList}}" wx:key="id" id="post-card-{{item.id}}" class="record-card {{shatteringCardIds.includes(item.id) ? 'shattering' : ''}}">
+    <view wx:for="{{myPostList}}" wx:key="id" id="post-card-{{item.id}}" class="record-card type-{{item.type || 'diary'}} {{shatteringCardIds.includes(item.id) ? 'shattering' : ''}}">
+      <view class="record-type-row">
+        <text class="record-type-pill">{{item.typeIcon || '📔'}} {{item.typeLabel || '日记'}}</text>
+        <text wx:if="{{item.type === 'vlog' && item.vlogDuration}}" class="record-vlog-duration">{{item.vlogDuration}}</text>
+      </view>
       <view class="record-content" style="color: {{theme.textColor}};">{{item.content}}</view>
+      <view wx:if="{{item.type === 'letter'}}" class="record-immersive-meta">
+        <text wx:if="{{item.letterSalutation}}" class="record-letter-salutation">{{item.letterSalutation}}：</text>
+        <text wx:if="{{item.letterSignature}}" class="record-letter-signature">{{item.letterSignature}}</text>
+      </view>
+      <view wx:if="{{item.type === 'postcard' && item.postcardLocation}}" class="record-immersive-meta">
+        <text class="record-meta-pill">📍 {{item.postcardLocation}}</text>
+      </view>
+      <view wx:if="{{item.type === 'diary'}}" class="record-immersive-meta">
+        <text wx:if="{{item.diaryWeather}}" class="record-meta-pill">☁️ {{item.diaryWeather}}</text>
+        <text wx:if="{{item.diaryMoodScore}}" class="record-meta-pill">💚 心情 {{item.diaryMoodScore}}/10</text>
+      </view>
+      <view wx:if="{{item.type === 'vlog' && item.vlogShots && item.vlogShots.length}}" class="record-immersive-meta vlog-shots">
+        <text wx:for="{{item.vlogShots}}" wx:key="index" class="record-shot-line">• {{item}}</text>
+      </view>
       <view class="record-footer">
         <text class="record-time">{{item.time}}</text>
         <view class="card-shatter-btn" bindtap="onShatterCard" data-id="{{item.id}}" data-type="post">粉碎</view>
@@ -54,8 +107,26 @@
   <view class="list-section" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; border-radius: {{theme.borderRadius}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
     <view class="section-title">心情日记</view>
     <view wx:if="{{diaryList.length === 0}}" class="empty">暂无日记</view>
-    <view wx:for="{{diaryList}}" wx:key="id" id="post-card-{{item.id}}" class="record-card {{shatteringCardIds.includes(item.id) ? 'shattering' : ''}}">
+    <view wx:for="{{diaryList}}" wx:key="id" id="post-card-{{item.id}}" class="record-card type-{{item.type || 'diary'}} {{shatteringCardIds.includes(item.id) ? 'shattering' : ''}}">
+      <view class="record-type-row">
+        <text class="record-type-pill">{{item.typeIcon || '📔'}} {{item.typeLabel || '日记'}}</text>
+        <text wx:if="{{item.type === 'vlog' && item.vlogDuration}}" class="record-vlog-duration">{{item.vlogDuration}}</text>
+      </view>
       <view class="record-content" style="color: {{theme.textColor}};">{{item.content}}</view>
+      <view wx:if="{{item.type === 'letter'}}" class="record-immersive-meta">
+        <text wx:if="{{item.letterSalutation}}" class="record-letter-salutation">{{item.letterSalutation}}：</text>
+        <text wx:if="{{item.letterSignature}}" class="record-letter-signature">{{item.letterSignature}}</text>
+      </view>
+      <view wx:if="{{item.type === 'postcard' && item.postcardLocation}}" class="record-immersive-meta">
+        <text class="record-meta-pill">📍 {{item.postcardLocation}}</text>
+      </view>
+      <view wx:if="{{item.type === 'diary'}}" class="record-immersive-meta">
+        <text wx:if="{{item.diaryWeather}}" class="record-meta-pill">☁️ {{item.diaryWeather}}</text>
+        <text wx:if="{{item.diaryMoodScore}}" class="record-meta-pill">💚 心情 {{item.diaryMoodScore}}/10</text>
+      </view>
+      <view wx:if="{{item.type === 'vlog' && item.vlogShots && item.vlogShots.length}}" class="record-immersive-meta vlog-shots">
+        <text wx:for="{{item.vlogShots}}" wx:key="index" class="record-shot-line">• {{item}}</text>
+      </view>
       <view class="record-footer">
         <text class="record-time">{{item.time}}</text>
         <view class="card-shatter-btn" bindtap="onShatterCard" data-id="{{item.id}}" data-type="diary">粉碎</view>

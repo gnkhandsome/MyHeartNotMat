@@ -7,12 +7,46 @@ const postShredHelper = createPageShredHelper({
   canvasSelector: '#postShredCanvas'
 });
 
+const POST_TYPE_META = {
+  letter: { label: '写信', icon: '✉️', placeholder: '把想说的话写成一封信，慢慢寄给自己。' },
+  postcard: { label: '明信片', icon: '🖼️', placeholder: '写下此刻风景与心情，寄出一张明信片。' },
+  diary: { label: '日记', icon: '📔', placeholder: '今天发生了什么？写进你的日记页。' },
+  vlog: { label: 'Vlog', icon: '🎬', placeholder: '用镜头语言记录今天，像在写生活旁白。' }
+};
+
+const POST_ACTION_META = {
+  letter: { cta: '封装信笺', done: '信笺已封装好' },
+  postcard: { cta: '寄出明信片', done: '明信片已写好' },
+  diary: { cta: '收进日记页', done: '日记已收好' },
+  vlog: { cta: '发出片段', done: '片段已整理好' }
+};
+
+const POST_TYPES = Object.keys(POST_TYPE_META).map((key) => ({
+  key,
+  ...POST_TYPE_META[key]
+}));
+
+const DEFAULT_VLOG_SCRIPT_TEMPLATE = [
+  '镜头1｜环境：3秒氛围空镜（天空/街道/窗边）',
+  '镜头2｜主叙事：10秒记录当下动作与感受',
+  '镜头3｜收束：5秒总结一句今天的话'
+].join('\n');
+
 Page({
   data: {
     theme: THEMES[0],
     postContent: '',
+    activePostType: 'letter',
+    postTypes: POST_TYPES,
+    postPlaceholder: POST_TYPE_META.letter.placeholder,
+    packageActionLabel: POST_ACTION_META.letter.cta,
+    letterSalutation: '亲爱的自己',
+    letterSignature: '—— 今天也在慢慢变好的我',
+    postcardLocation: '上海 · 黄昏街角',
+    diaryWeather: '多云',
+    diaryMoodScore: 7,
+    vlogScriptTemplate: DEFAULT_VLOG_SCRIPT_TEMPLATE,
     isAnonymous: true,
-    showLocation: false,
     isPostShattering: false,
     isShredCanvasVisible: false,
     shatteringCardIds: [],
@@ -52,20 +86,136 @@ Page({
 
   getInitialMyPostList() {
     return [
-      { id: 'post-1', content: '今天尝试把焦虑写出来，果然轻松了很多。', time: '今天 09:16' },
-      { id: 'post-2', content: '雨声真的很治愈，像给脑袋按了暂停键。', time: '昨天 22:41' }
+      this.createTypedPostItem({
+        id: 'post-1',
+        type: 'letter',
+        content: '今天尝试把焦虑写出来，果然轻松了很多。',
+        time: '今天 09:16',
+        letterSalutation: '亲爱的你',
+        letterSignature: '—— 来自今天更坦诚的我'
+      }),
+      this.createTypedPostItem({
+        id: 'post-2',
+        type: 'vlog',
+        content: '雨声真的很治愈，像给脑袋按了暂停键。',
+        time: '昨天 22:41',
+        vlogScriptTemplate: '镜头1｜窗外雨滴特写\n镜头2｜手捧热茶和旁白\n镜头3｜拉远到夜色与路灯'
+      })
     ];
   },
 
   getInitialDiaryList() {
     return [
-      { id: 'diary-1', content: '把“非做不可”换成“我可以慢慢来”。', time: '3天前' },
-      { id: 'diary-2', content: '今天的我也值得被夸奖一下。', time: '5天前' }
+      this.createTypedPostItem({
+        id: 'diary-1',
+        type: 'diary',
+        content: '把“非做不可”换成“我可以慢慢来”。',
+        time: '3天前',
+        diaryWeather: '小雨',
+        diaryMoodScore: 6
+      }),
+      this.createTypedPostItem({
+        id: 'diary-2',
+        type: 'postcard',
+        content: '今天的我也值得被夸奖一下。',
+        time: '5天前',
+        postcardLocation: '杭州 · 西湖边'
+      })
     ];
+  },
+
+  getPostTypeMeta(type = 'diary') {
+    return POST_TYPE_META[type] || POST_TYPE_META.diary;
+  },
+
+  getPostActionMeta(type = 'letter') {
+    return POST_ACTION_META[type] || POST_ACTION_META.letter;
+  },
+
+  buildVlogShots(template = '') {
+    return String(template || '')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .slice(0, 4);
+  },
+
+  createTypedPostItem({
+    id,
+    type = 'diary',
+    content = '',
+    time = '刚刚',
+    letterSalutation = '',
+    letterSignature = '',
+    postcardLocation = '',
+    diaryWeather = '',
+    diaryMoodScore,
+    vlogScriptTemplate = '',
+    visibility = 'private'
+  } = {}) {
+    const meta = this.getPostTypeMeta(type);
+    const safeMood = Number(diaryMoodScore);
+    const moodScore = Number.isFinite(safeMood) ? Math.max(1, Math.min(10, Math.round(safeMood))) : null;
+    const safeScriptTemplate = (vlogScriptTemplate || DEFAULT_VLOG_SCRIPT_TEMPLATE).trim();
+
+    return {
+      id: id || `post-${Date.now()}`,
+      type,
+      typeLabel: meta.label,
+      typeIcon: meta.icon,
+      vlogDuration: type === 'vlog' ? `0${Math.floor(Math.random() * 3) + 1}:${Math.floor(Math.random() * 50 + 10)}` : '',
+      letterSalutation: type === 'letter' ? (letterSalutation || '亲爱的你') : '',
+      letterSignature: type === 'letter' ? (letterSignature || '—— 今晚的你') : '',
+      postcardLocation: type === 'postcard' ? (postcardLocation || '未署名地点') : '',
+      diaryWeather: type === 'diary' ? (diaryWeather || '天气未记录') : '',
+      diaryMoodScore: type === 'diary' ? moodScore : null,
+      vlogScriptTemplate: type === 'vlog' ? safeScriptTemplate : '',
+      vlogShots: type === 'vlog' ? this.buildVlogShots(safeScriptTemplate) : [],
+      visibility,
+      content,
+      time
+    };
+  },
+
+  switchPostType(e) {
+    const type = e.currentTarget.dataset.type;
+    if (!POST_TYPE_META[type] || type === this.data.activePostType) {
+      return;
+    }
+    this.setData({
+      activePostType: type,
+      postPlaceholder: this.getPostTypeMeta(type).placeholder,
+      packageActionLabel: this.getPostActionMeta(type).cta
+    });
   },
 
   onPostInput(e) {
     this.setData({ postContent: e.detail.value });
+  },
+
+  onLetterSalutationInput(e) {
+    this.setData({ letterSalutation: e.detail.value });
+  },
+
+  onLetterSignatureInput(e) {
+    this.setData({ letterSignature: e.detail.value });
+  },
+
+  onPostcardLocationInput(e) {
+    this.setData({ postcardLocation: e.detail.value });
+  },
+
+  onDiaryWeatherInput(e) {
+    this.setData({ diaryWeather: e.detail.value });
+  },
+
+  onDiaryMoodScoreChange(e) {
+    const value = Number(e.detail.value);
+    this.setData({ diaryMoodScore: Number.isFinite(value) ? value : 5 });
+  },
+
+  onVlogScriptTemplateInput(e) {
+    this.setData({ vlogScriptTemplate: e.detail.value });
   },
 
   cancelPost() {
@@ -76,8 +226,38 @@ Page({
     });
   },
 
-  publishPost() {
-    const { postContent, myPostList } = this.data;
+  onPackagePost() {
+    if (!this.data.postContent.trim()) {
+      wx.showToast({
+        title: '先写点内容再封装吧',
+        icon: 'none'
+      });
+      return;
+    }
+
+    wx.showActionSheet({
+      itemList: ['仅自己可见（本地私密）', '发布到广场（公开）'],
+      success: (res) => {
+        const visibility = res.tapIndex === 1 ? 'public' : 'private';
+        this.publishPost({ visibility });
+      }
+    });
+  },
+
+  publishPost(options = {}) {
+    const { visibility = 'private' } = options;
+    const {
+      postContent,
+      myPostList,
+      diaryList,
+      activePostType,
+      letterSalutation,
+      letterSignature,
+      postcardLocation,
+      diaryWeather,
+      diaryMoodScore,
+      vlogScriptTemplate
+    } = this.data;
     if (!postContent.trim()) {
       wx.showToast({
         title: '请输入内容',
@@ -86,32 +266,37 @@ Page({
       return;
     }
 
-    const newItem = {
+    const newItem = this.createTypedPostItem({
       id: `post-${Date.now()}`,
+      type: activePostType,
       content: postContent.trim(),
-      time: '刚刚'
-    };
+      time: '刚刚',
+      visibility,
+      letterSalutation,
+      letterSignature,
+      postcardLocation,
+      diaryWeather,
+      diaryMoodScore,
+      vlogScriptTemplate
+    });
 
     this.setData({
       postContent: '',
-      myPostList: [newItem, ...myPostList]
+      myPostList: activePostType === 'diary' ? myPostList : [newItem, ...myPostList],
+      diaryList: activePostType === 'diary' ? [newItem, ...diaryList] : diaryList
     });
 
+    const actionMeta = this.getPostActionMeta(activePostType);
+    const visibilityText = visibility === 'public' ? '并标记为公开' : '仅自己可见';
     wx.showToast({
-      title: '发布成功',
-      icon: 'success'
+      title: `${actionMeta.done}，${visibilityText}`,
+      icon: 'none'
     });
   },
 
   togglePrivacy() {
     this.setData({
       isAnonymous: !this.data.isAnonymous
-    });
-  },
-
-  toggleLocation() {
-    this.setData({
-      showLocation: !this.data.showLocation
     });
   },
 

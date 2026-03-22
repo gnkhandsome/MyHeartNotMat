@@ -1,6 +1,45 @@
 // app.js
 import { getThemeById, getThemeTypeById, THEME_STYLE_TYPES } from './theme.config.js';
 
+const SCENE_SOUND_PROFILES = {
+  sunny: {
+    tracks: [
+      { src: '/static/aud 打开io/morning_birds.mp3', weight: 0.62 },
+      { src: '/static/audio/soft_wind.mp3', weight: 0.38 }
+    ]
+  },
+  cloudy: {
+    tracks: [
+      { src: '/static/audio/soft_wind.mp3', weight: 0.72 },
+      { src: '/static/audio/obsidian_hum.mp3', weight: 0.28 }
+    ]
+  },
+  rainy: {
+    tracks: [
+      { src: '/static/audio/thunder_rain.mp3', weight: 0.78 },
+      { src: '/static/audio/rain_leaf.mp3', weight: 0.34 }
+    ]
+  },
+  windy: {
+    tracks: [
+      { src: '/static/audio/autumn_leaves.mp3', weight: 0.66 },
+      { src: '/static/audio/aurora_wind.mp3', weight: 0.38 }
+    ]
+  },
+  snowy: {
+    tracks: [
+      { src: '/static/audio/ice_wind.mp3', weight: 0.66 },
+      { src: '/static/audio/night_signal.mp3', weight: 0.3 }
+    ]
+  },
+  stream: {
+    tracks: [
+      { src: '/static/audio/sea_waves.mp3', weight: 0.62 },
+      { src: '/static/audio/morning_birds.mp3', weight: 0.36 }
+    ]
+  }
+};
+
 App({
   onLaunch() {
     // 小程序启动时执行
@@ -9,6 +48,7 @@ App({
     this.initTheme();
     // 初始化音频管理
     this.initAudioManager();
+    this.initSceneAudioManager();
   },
   
   onShow() {
@@ -63,6 +103,14 @@ App({
       isAudioPlaying: !!this.globalData.isAudioPlaying,
       audioVolume: Number(this.globalData.audioVolume ?? 0.5),
       currentAudioSrc: this.globalData.currentAudioSrc || this.getResolvedAudioSrc()
+    };
+  },
+
+  getSceneAudioState() {
+    return {
+      sceneKey: this.globalData.sceneAudioProfileKey || 'rainy',
+      sceneIntensity: Number(this.globalData.sceneAudioIntensity ?? 0.65),
+      sceneEnabled: this.globalData.sceneAudioEnabled !== false
     };
   },
 
@@ -176,6 +224,121 @@ App({
     return '/raining.mp3';
   },
 
+  getSceneProfile(sceneKey = 'rainy') {
+    return SCENE_SOUND_PROFILES[sceneKey] || SCENE_SOUND_PROFILES.rainy;
+  },
+
+  initSceneAudioManager() {
+    const contexts = [];
+    for (let i = 0; i < 2; i += 1) {
+      const ctx = wx.createInnerAudioContext();
+      ctx.loop = true;
+      ctx.autoplay = false;
+      ctx.obeyMuteSwitch = true;
+      ctx.volume = 0;
+      ctx.__trackIndex = i;
+      ctx.__fallbackApplied = false;
+      ctx.onError(() => {
+        if (!ctx.__fallbackApplied) {
+          ctx.__fallbackApplied = true;
+          ctx.src = '/raining.mp3';
+          if (this.globalData.isAudioPlaying && this.globalData.sceneAudioEnabled !== false) {
+            ctx.play();
+          }
+        }
+      });
+      contexts.push(ctx);
+    }
+
+    this.globalData.sceneAudioContexts = contexts;
+    this.globalData.sceneAudioProfileKey = 'rainy';
+    const storedIntensity = Number(wx.getStorageSync('homeSceneIntensity'));
+    this.globalData.sceneAudioIntensity = Number.isFinite(storedIntensity)
+      ? Math.min(1, Math.max(0.2, storedIntensity / 100))
+      : 0.65;
+    this.globalData.sceneAudioEnabled = true;
+
+    this.setSceneSoundscape('rainy', {
+      intensity: this.globalData.sceneAudioIntensity,
+      autoPlay: false
+    });
+  },
+
+  setSceneIntensity(intensity = 0.65, options = {}) {
+    const { persist = true } = options;
+    const safe = Math.min(1, Math.max(0.2, Number(intensity) || 0.65));
+    this.globalData.sceneAudioIntensity = safe;
+    this.applySceneAudioVolumes();
+    if (persist) {
+      wx.setStorageSync('homeSceneIntensity', Math.round(safe * 100));
+    }
+    return safe;
+  },
+
+  applySceneAudioVolumes() {
+    const contexts = this.globalData.sceneAudioContexts || [];
+    if (!contexts.length) return;
+
+    const profile = this.getSceneProfile(this.globalData.sceneAudioProfileKey);
+    const baseVolume = (Number(this.globalData.audioVolume) || 0.5) * (Number(this.globalData.sceneAudioIntensity) || 0.65);
+    const enabled = this.globalData.sceneAudioEnabled !== false;
+
+    contexts.forEach((ctx, index) => {
+      const weight = Number((profile.tracks[index] && profile.tracks[index].weight) || 0);
+      const target = enabled ? Math.min(1, Math.max(0, baseVolume * weight)) : 0;
+      ctx.volume = target;
+    });
+  },
+
+  setSceneSoundscape(sceneKey = 'rainy', options = {}) {
+    const {
+      intensity,
+      autoPlay = true,
+      enabled = true
+    } = options;
+
+    const profileKey = SCENE_SOUND_PROFILES[sceneKey] ? sceneKey : 'rainy';
+    const profile = this.getSceneProfile(profileKey);
+    const contexts = this.globalData.sceneAudioContexts || [];
+    if (!contexts.length) return;
+
+    this.globalData.sceneAudioProfileKey = profileKey;
+    this.globalData.sceneAudioEnabled = enabled;
+    if (typeof intensity === 'number') {
+      this.setSceneIntensity(intensity, { persist: true });
+    }
+
+    contexts.forEach((ctx, index) => {
+      const track = profile.tracks[index];
+      if (!track) {
+        ctx.stop();
+        return;
+      }
+      if (ctx.src !== track.src) {
+        ctx.__fallbackApplied = false;
+        ctx.src = track.src;
+      }
+    });
+
+    this.applySceneAudioVolumes();
+
+    if (this.globalData.isAudioPlaying && autoPlay && enabled) {
+      contexts.forEach((ctx) => ctx.play());
+    }
+  },
+
+  pauseSceneAudio() {
+    const contexts = this.globalData.sceneAudioContexts || [];
+    contexts.forEach((ctx) => ctx.pause());
+  },
+
+  resumeSceneAudio() {
+    const contexts = this.globalData.sceneAudioContexts || [];
+    if (!contexts.length || this.globalData.sceneAudioEnabled === false) return;
+    this.applySceneAudioVolumes();
+    contexts.forEach((ctx) => ctx.play());
+  },
+
   persistAudioState() {
     wx.setStorageSync('audioVolume', this.globalData.audioVolume);
     wx.setStorageSync('audioPlaying', this.globalData.isAudioPlaying);
@@ -194,6 +357,8 @@ App({
     if (this.globalData.audioContext) {
       this.globalData.audioContext.volume = safeVolume;
     }
+
+    this.applySceneAudioVolumes();
 
     if (persist) {
       this.persistAudioState();
@@ -316,6 +481,7 @@ App({
       this.globalData.audioContext.pause();
       this.setAudioPlayingState(false);
     }
+    this.pauseSceneAudio();
   },
   
   // 恢复音频
@@ -330,6 +496,7 @@ App({
       this.globalData.audioContext.play();
       this.setAudioPlayingState(true);
     }
+    this.resumeSceneAudio();
   },
 
   // 播放/暂停切换
@@ -386,6 +553,10 @@ App({
     isAudioPlaying: false,
     fadeOutTimer: null,
     fadeInTimer: null,
-    shatterAudioContext: null
+    shatterAudioContext: null,
+    sceneAudioContexts: [],
+    sceneAudioProfileKey: 'rainy',
+    sceneAudioIntensity: 0.65,
+    sceneAudioEnabled: true
   }
 });

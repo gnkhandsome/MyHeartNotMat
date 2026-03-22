@@ -15,6 +15,139 @@ const COMPANION_EMOTION_KEYWORDS = {
   happy: ['开心', '快乐', '放松', '治愈', '轻松', '幸福', '期待', '喜欢', '顺利', '满足']
 };
 
+const POST_TYPE_META = {
+  letter: {
+    label: '写信',
+    icon: '✉️',
+    placeholder: '慢慢写一封信，寄给此刻最需要被安慰的你。',
+    tagline: '把心事写成会被认真阅读的信'
+  },
+  postcard: {
+    label: '明信片',
+    icon: '🖼️',
+    placeholder: '写下一帧风景与心情，像寄出一张明信片。',
+    tagline: '一段风景，一句问候'
+  },
+  diary: {
+    label: '日记',
+    icon: '📔',
+    placeholder: '记录今天的细节，允许情绪自然流动。',
+    tagline: '把一天写进页角'
+  },
+  vlog: {
+    label: 'Vlog',
+    icon: '🎬',
+    placeholder: '用镜头感描述今天，像在给生活做旁白。',
+    tagline: '镜头语气，生活片段'
+  }
+};
+
+const POST_ACTION_META = {
+  letter: {
+    cta: '封装信笺',
+    done: '信笺已封装好'
+  },
+  postcard: {
+    cta: '寄出明信片',
+    done: '明信片已写好'
+  },
+  diary: {
+    cta: '收进日记页',
+    done: '日记已收好'
+  },
+  vlog: {
+    cta: '发出片段',
+    done: '片段已整理好'
+  }
+};
+
+const POST_TYPES = Object.keys(POST_TYPE_META).map((key) => ({
+  key,
+  ...POST_TYPE_META[key]
+}));
+
+const DEFAULT_VLOG_SCRIPT_TEMPLATE = [
+  '镜头1｜环境：3秒氛围空镜（天空/街道/窗边）',
+  '镜头2｜主叙事：10秒记录当下动作与感受',
+  '镜头3｜收束：5秒总结一句今天的话'
+].join('\n');
+
+const IMMERSIVE_SCENE_META = {
+  sunny: {
+    label: '晴天',
+    icon: '☀️',
+    desc: '阳光洒在肩上，空气轻盈而温暖。',
+    soundLabel: '轻风 + 鸟鸣'
+  },
+  cloudy: {
+    label: '阴天',
+    icon: '☁️',
+    desc: '云层缓缓漂移，世界柔和而安静。',
+    soundLabel: '低频风声'
+  },
+  rainy: {
+    label: '下雨',
+    icon: '🌧️',
+    desc: '雨滴敲打窗沿，思绪慢慢沉下来。',
+    soundLabel: '雨声 + 远雷'
+  },
+  windy: {
+    label: '有风',
+    icon: '🍃',
+    desc: '风穿过草地，带走胸口的闷。',
+    soundLabel: '风拂草叶'
+  },
+  snowy: {
+    label: '大雪',
+    icon: '❄️',
+    desc: '雪落无声，时间像被放慢。',
+    soundLabel: '雪落 + 轻回响'
+  },
+  stream: {
+    label: '水流',
+    icon: '💧',
+    desc: '溪流和鸟鸣在耳边，像走进林间。',
+    soundLabel: '溪流 + 鸟鸣'
+  }
+};
+
+const IMMERSIVE_SCENES = Object.keys(IMMERSIVE_SCENE_META).map((key) => ({
+  key,
+  ...IMMERSIVE_SCENE_META[key]
+}));
+
+const HANGING_ORNAMENT_META = {
+  knot: {
+    label: '祈愿结',
+    symbol: '结'
+  },
+  bell: {
+    label: '铃铛',
+    symbol: '铃'
+  },
+  leaf: {
+    label: '银杏叶',
+    symbol: '叶'
+  },
+  feather: {
+    label: '羽穗',
+    symbol: '羽'
+  }
+};
+
+const HANGING_ORNAMENT_KEYS = Object.keys(HANGING_ORNAMENT_META);
+const HANGING_ORNAMENT_OPTIONS = HANGING_ORNAMENT_KEYS.map((key) => ({
+  key,
+  ...HANGING_ORNAMENT_META[key]
+}));
+
+const LOW_PERF_BENCHMARK_THRESHOLD = 20;
+
+function resolvePerfLevelByBenchmark(benchmarkLevel) {
+  const level = Number(benchmarkLevel || 0);
+  return level > 0 && level <= LOW_PERF_BENCHMARK_THRESHOLD ? 'low' : 'normal';
+}
+
 function resolveCompanionStateByText(text = '') {
   const value = String(text || '').toLowerCase();
   if (!value.trim()) return 'idle';
@@ -33,16 +166,25 @@ function resolveCompanionStateByText(text = '') {
 Page({
   data: {
     // 页面相关
-    currentPage: 0, // 当前页面索引：0-首页，1-发布，2-我的
+    currentPage: 0, // 当前页面索引：0-首页，1-我的
     
     // 首页顶部 Tab 相关
-    activeTab: 'my',
-    currentTab: 0, // swiper 当前索引
+    activeTab: 'writing',
+    currentTab: 0, // 首页内部 tab：0-写作场景，1-推荐
     
     // 发布页面相关
     postContent: '',
+    activePostType: 'letter',
+    postTypes: POST_TYPES,
+    postPlaceholder: POST_TYPE_META.letter.placeholder,
+    packageActionLabel: POST_ACTION_META.letter.cta,
+    letterSalutation: '亲爱的自己',
+    letterSignature: '—— 今天也在慢慢变好的我',
+    postcardLocation: '上海 · 黄昏街角',
+    diaryWeather: '多云',
+    diaryMoodScore: 7,
+    vlogScriptTemplate: DEFAULT_VLOG_SCRIPT_TEMPLATE,
     isAnonymous: true,
-    showLocation: false,
     
     // 我的页面相关
     userInfo: {
@@ -53,22 +195,43 @@ Page({
     themeStyleTypes: THEME_STYLE_TYPES,
     themes: THEMES,
     filteredThemes: getThemesByType(THEME_STYLE_TYPES.FEMALE),
-    moodData: [],
     isFlipping: false,
     showQuote: false,
     currentQuote: '',
     myDiaryList: [],
     squarePostList: [],
-    latestPostList: [],
     shatteringCardIds: [],
     isPostShattering: false,
     isShredCanvasVisible: false,
     isAudioPlaying: false,
     audioVolume: 50,
     showAudioPanel: false,
+    isAmbientControlExpanded: false,
     isRainModeEnabled: false,
     rainDrops: [],
     rainPerfLevel: 'normal',
+    activeScene: 'rainy',
+    sceneLabel: IMMERSIVE_SCENE_META.rainy.label,
+    sceneOptions: IMMERSIVE_SCENES,
+    sceneParticles: [],
+    sceneDescription: IMMERSIVE_SCENE_META.rainy.desc,
+    sceneSoundLabel: IMMERSIVE_SCENE_META.rainy.soundLabel,
+    selectedHangingOrnament: 'knot',
+    hangingOrnamentOptions: HANGING_ORNAMENT_OPTIONS,
+    hangingOrnamentLabel: HANGING_ORNAMENT_META.knot.label,
+    hangingOrnamentSymbol: HANGING_ORNAMENT_META.knot.symbol,
+    showToolPanel: false,
+    activeToolPanel: '',
+    ornamentSwayDeg: 5,
+    tasselSwingDeg: 14,
+    ornamentSwayDuration: 2.8,
+    sceneIntensity: 65,
+    isSceneAutoMode: true,
+    scenePerfLevel: 'normal',
+    isSceneEntering: true,
+    showSceneRestoreHint: false,
+    sceneRestoreHintText: '',
+    sceneRestoreHintScene: 'rainy',
     companionState: 'idle',
     companionVisualType: 'cloud',
     companionBubbleText: '',
@@ -86,6 +249,7 @@ Page({
     breathingCycleCount: 0,
     breathingDisplayRound: 1,
     breathingPerfLevel: 'normal',
+    isWritingFocused: false,
     
     // 主题相关
     theme: THEMES[0] // 默认使用第一个主题
@@ -93,19 +257,28 @@ Page({
 
   onLoad() {
     this.shouldSuppressNextPublishTap = false;
-    const moodData = this.generateMoodData();
     this.setData({
-      moodData,
       myDiaryList: this.getInitialMyDiaryList(),
-      squarePostList: this.getInitialSquarePostList(),
-      latestPostList: this.getInitialLatestPostList()
+      squarePostList: this.getInitialSquarePostList()
     });
     this.initRainPerfProfile();
     this.initRainModeState();
+    this.initScenePerfProfile();
+    this.initImmersiveSceneState();
     this.initBreathingPerfProfile();
     this.initMovableFab();
     this.syncThemeFromGlobal();
     this.syncAudioFromGlobal();
+    this.startSceneEntranceTransition();
+    this.updateOrnamentWindMotion(this.data.sceneIntensity);
+  },
+
+  startSceneEntranceTransition(duration = 2400) {
+    this.setData({ isSceneEntering: true });
+    clearTimeout(this.sceneEnterTimer);
+    this.sceneEnterTimer = setTimeout(() => {
+      this.setData({ isSceneEntering: false });
+    }, duration);
   },
 
   initMovableFab() {
@@ -126,8 +299,7 @@ Page({
   initRainPerfProfile() {
     try {
       const info = wx.getSystemInfoSync ? wx.getSystemInfoSync() : {};
-      const benchmarkLevel = Number(info.benchmarkLevel || 0);
-      const rainPerfLevel = benchmarkLevel > 0 && benchmarkLevel <= 20 ? 'low' : 'normal';
+      const rainPerfLevel = resolvePerfLevelByBenchmark(info.benchmarkLevel);
       this.setData({ rainPerfLevel });
     } catch (e) {
       this.setData({ rainPerfLevel: 'normal' });
@@ -148,9 +320,172 @@ Page({
     });
   },
 
+  initScenePerfProfile() {
+    try {
+      const info = wx.getSystemInfoSync ? wx.getSystemInfoSync() : {};
+      const scenePerfLevel = resolvePerfLevelByBenchmark(info.benchmarkLevel);
+      this.setData({ scenePerfLevel });
+    } catch (e) {
+      this.setData({ scenePerfLevel: 'normal' });
+    }
+  },
+
+  resolveAutoSceneByTime() {
+    const hour = new Date().getHours();
+    if (hour >= 6 && hour < 11) return 'sunny';
+    if (hour >= 11 && hour < 16) return 'windy';
+    if (hour >= 16 && hour < 19) return 'cloudy';
+    if (hour >= 19 && hour < 23) return 'rainy';
+    return 'snowy';
+  },
+
+  initImmersiveSceneState() {
+    let activeScene = 'rainy';
+    let isSceneAutoMode = true;
+    let sceneIntensity = 65;
+    try {
+      const storedScene = wx.getStorageSync('homeActiveScene');
+      const storedAutoMode = wx.getStorageSync('homeSceneAutoMode');
+      const storedIntensity = Number(wx.getStorageSync('homeSceneIntensity'));
+      if (IMMERSIVE_SCENE_META[storedScene]) {
+        activeScene = storedScene;
+      }
+      if (typeof storedAutoMode === 'boolean') {
+        isSceneAutoMode = storedAutoMode;
+      }
+      if (Number.isFinite(storedIntensity)) {
+        sceneIntensity = Math.max(20, Math.min(100, Math.round(storedIntensity)));
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    this.setData({ sceneIntensity });
+
+    if (isSceneAutoMode) {
+      activeScene = this.resolveAutoSceneByTime();
+    }
+
+    this.applyImmersiveScene(activeScene, {
+      persist: true,
+      silent: true,
+      updateAutoMode: isSceneAutoMode
+    });
+  },
+
+  buildSceneParticles(sceneKey = 'rainy') {
+    const isLowPerf = this.data.scenePerfLevel === 'low';
+    const intensityFactor = Math.max(0.2, Math.min(1, Number(this.data.sceneIntensity || 65) / 100));
+    const baseCount = isLowPerf ? 10 : 20;
+    const count = Math.max(6, Math.round(baseCount * (0.62 + intensityFactor * 0.88)));
+    const kindMap = {
+      sunny: 'sun',
+      cloudy: 'cloud',
+      rainy: 'rain',
+      windy: 'wind',
+      snowy: 'snow',
+      stream: 'leaf'
+    };
+    const kind = kindMap[sceneKey] || 'rain';
+
+    return Array.from({ length: count }, (_, idx) => ({
+      id: `scene-${sceneKey}-${idx}`,
+      kind,
+      left: Math.round(Math.random() * 100),
+      top: Math.round(Math.random() * 100),
+      size: Math.round((isLowPerf ? 10 : 12) + Math.random() * (isLowPerf ? 10 : 16)),
+      opacity: Number((0.2 + Math.random() * 0.5).toFixed(2)),
+      duration: Math.round((isLowPerf ? 5400 : 4200) + Math.random() * 2200),
+      delay: Math.round(Math.random() * 1800),
+      driftX: Math.round((Math.random() - 0.5) * 60),
+      driftY: Math.round(40 + Math.random() * 80)
+    }));
+  },
+
+  applyImmersiveScene(sceneKey = 'rainy', options = {}) {
+    const { persist = true, silent = false, updateAutoMode } = options;
+    const key = IMMERSIVE_SCENE_META[sceneKey] ? sceneKey : 'rainy';
+    const meta = IMMERSIVE_SCENE_META[key];
+    const nextAutoMode = typeof updateAutoMode === 'boolean' ? updateAutoMode : this.data.isSceneAutoMode;
+
+    this.setData({
+      activeScene: key,
+      sceneLabel: meta.label,
+      sceneDescription: meta.desc,
+      sceneSoundLabel: meta.soundLabel,
+      sceneParticles: this.buildSceneParticles(key),
+      isRainModeEnabled: key === 'rainy',
+      rainDrops: key === 'rainy' ? this.buildRainDrops() : [],
+      isSceneAutoMode: nextAutoMode
+    });
+
+    try {
+      const app = getApp();
+      if (app.setSceneSoundscape) {
+        app.setSceneSoundscape(key, {
+          intensity: Number(this.data.sceneIntensity || 65) / 100,
+          autoPlay: true,
+          enabled: true
+        });
+      }
+    } catch (e) {
+      console.error('同步场景分轨音频失败:', e);
+    }
+
+    if (persist) {
+      try {
+        wx.setStorageSync('homeActiveScene', key);
+        wx.setStorageSync('homeSceneAutoMode', nextAutoMode);
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    if (!silent) {
+      this.triggerCompanionMoment({
+        state: 'happy',
+        text: `切到${meta.label}场景：${meta.desc}`,
+        duration: 1600
+      });
+    }
+  },
+
+  onSceneChange(e) {
+    const scene = e.currentTarget.dataset.scene;
+    if (!IMMERSIVE_SCENE_META[scene]) {
+      return;
+    }
+    this.applyImmersiveScene(scene, {
+      persist: true,
+      silent: false,
+      updateAutoMode: false
+    });
+  },
+
+  onSceneAutoModeChange(e) {
+    const enabled = !!(e && e.detail && e.detail.value);
+    if (enabled) {
+      this.applyImmersiveScene(this.resolveAutoSceneByTime(), {
+        persist: true,
+        silent: false,
+        updateAutoMode: true
+      });
+      return;
+    }
+
+    this.setData({ isSceneAutoMode: false });
+    try {
+      wx.setStorageSync('homeSceneAutoMode', false);
+    } catch (e) {
+      // ignore
+    }
+  },
+
   buildRainDrops() {
     const isLowPerf = this.data.rainPerfLevel === 'low';
-    const count = isLowPerf ? 10 : 20;
+    const intensityFactor = Math.max(0.2, Math.min(1, Number(this.data.sceneIntensity || 65) / 100));
+    const baseCount = isLowPerf ? 10 : 20;
+    const count = Math.max(6, Math.round(baseCount * (0.58 + intensityFactor * 0.9)));
     return Array.from({ length: count }, (_, idx) => ({
       id: `rain-${idx}`,
       left: Math.round(Math.random() * 100),
@@ -164,8 +499,7 @@ Page({
   initBreathingPerfProfile() {
     try {
       const info = wx.getSystemInfoSync ? wx.getSystemInfoSync() : {};
-      const benchmarkLevel = Number(info.benchmarkLevel || 0);
-      const breathingPerfLevel = benchmarkLevel > 0 && benchmarkLevel <= 20 ? 'low' : 'normal';
+      const breathingPerfLevel = resolvePerfLevelByBenchmark(info.benchmarkLevel);
       this.setData({ breathingPerfLevel });
     } catch (e) {
       this.setData({ breathingPerfLevel: 'normal' });
@@ -174,35 +508,254 @@ Page({
 
   getInitialMyDiaryList() {
     return [
-      { id: 'my-1', content: '欢迎来到我的小屋！这里是我心灵的港湾。', time: '今天' },
-      { id: 'my-2', content: '记录我的心情变化，留下美好回忆。', time: '昨天' },
-      { id: 'my-3', content: '在这里，我可以自由表达自己的想法和感受。', time: '3天前' }
+      this.createTypedPostItem({
+        id: 'my-1',
+        type: 'letter',
+        content: '亲爱的自己：今天也许不完美，但你已经很努力了。',
+        time: '今天',
+        letterSalutation: '亲爱的自己',
+        letterSignature: '—— 来自今天的你'
+      }),
+      this.createTypedPostItem({
+        id: 'my-2',
+        type: 'diary',
+        content: '记录我的心情变化，留下美好回忆。',
+        time: '昨天',
+        diaryWeather: '阴天',
+        diaryMoodScore: 7
+      }),
+      this.createTypedPostItem({
+        id: 'my-3',
+        type: 'postcard',
+        content: '窗外晚霞很温柔，想把这份平静寄给你。',
+        time: '3天前',
+        postcardLocation: '南京 · 玄武湖'
+      })
     ];
   },
 
   getInitialSquarePostList() {
     return [
-      { id: 'square-1', content: '今天心情有点低落，希望明天会更好。', time: '10分钟前' },
-      { id: 'square-2', content: '分享一首喜欢的歌，希望大家都能感受到快乐。', time: '30分钟前' },
-      { id: 'square-3', content: '今天天气很好，出去散步了，感觉心情舒畅了很多。', time: '1小时前' },
-      { id: 'square-4', content: '今天和朋友一起吃饭，聊了很多，感觉很开心。', time: '2小时前' },
-      { id: 'square-5', content: '工作上遇到了一些挑战，但是我相信自己可以克服。', time: '3小时前' }
+      this.createTypedPostItem({ id: 'square-1', type: 'diary', content: '今天心情有点低落，希望明天会更好。', time: '10分钟前', diaryWeather: '小雨', diaryMoodScore: 4 }),
+      this.createTypedPostItem({ id: 'square-2', type: 'postcard', content: '分享一首喜欢的歌，希望大家都能感受到快乐。', time: '30分钟前', postcardLocation: '成都 · 春熙路' }),
+      this.createTypedPostItem({ id: 'square-3', type: 'vlog', content: '今天天气很好，出去散步了，感觉心情舒畅了很多。', time: '1小时前', vlogScriptTemplate: '镜头1｜公园树影\n镜头2｜步伐与呼吸\n镜头3｜抬头看天收尾' }),
+      this.createTypedPostItem({ id: 'square-4', type: 'letter', content: '今天和朋友一起吃饭，聊了很多，感觉很开心。', time: '2小时前', letterSalutation: '亲爱的你', letterSignature: '—— 今晚很满足的我' }),
+      this.createTypedPostItem({ id: 'square-5', type: 'vlog', content: '工作上遇到了一些挑战，但是我相信自己可以克服。', time: '3小时前', vlogScriptTemplate: '镜头1｜工位与文件\n镜头2｜难点拆解过程\n镜头3｜完成后微笑' })
     ];
   },
 
-  getInitialLatestPostList() {
-    return [
-      { id: 'latest-1', content: '刚发布的内容，新鲜出炉！', time: '1分钟前' },
-      { id: 'latest-2', content: '今天的心情不错，分享一下！', time: '5分钟前' },
-      { id: 'latest-3', content: '最近压力有点大，希望能找到缓解的方法。', time: '15分钟前' },
-      { id: 'latest-4', content: '推荐一部好看的电影，大家可以去看看。', time: '25分钟前' },
-      { id: 'latest-5', content: '今天学到了一个新技能，很开心！', time: '35分钟前' }
-    ];
+  getPostTypeMeta(type = 'diary') {
+    return POST_TYPE_META[type] || POST_TYPE_META.diary;
+  },
+
+  getPostActionMeta(type = 'letter') {
+    return POST_ACTION_META[type] || POST_ACTION_META.letter;
+  },
+
+  buildVlogShots(template = '') {
+    return String(template || '')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .slice(0, 4);
+  },
+
+  createTypedPostItem({
+    id,
+    type = 'diary',
+    content = '',
+    time = '刚刚',
+    letterSalutation = '',
+    letterSignature = '',
+    postcardLocation = '',
+    diaryWeather = '',
+    diaryMoodScore,
+    vlogScriptTemplate = '',
+    scenePackage = null
+  } = {}) {
+    const meta = this.getPostTypeMeta(type);
+    const safeMood = Number(diaryMoodScore);
+    const moodScore = Number.isFinite(safeMood) ? Math.max(1, Math.min(10, Math.round(safeMood))) : null;
+    const safeScriptTemplate = (vlogScriptTemplate || DEFAULT_VLOG_SCRIPT_TEMPLATE).trim();
+
+    return {
+      id: id || `post-${Date.now()}`,
+      type,
+      typeLabel: meta.label,
+      typeIcon: meta.icon,
+      typeTagline: meta.tagline,
+      vlogDuration: type === 'vlog' ? `0${Math.floor(Math.random() * 3) + 1}:${Math.floor(Math.random() * 50 + 10)}` : '',
+      letterSalutation: type === 'letter' ? (letterSalutation || '亲爱的你') : '',
+      letterSignature: type === 'letter' ? (letterSignature || '—— 今晚的你') : '',
+      postcardLocation: type === 'postcard' ? (postcardLocation || '未署名地点') : '',
+      diaryWeather: type === 'diary' ? (diaryWeather || '天气未记录') : '',
+      diaryMoodScore: type === 'diary' ? moodScore : null,
+      vlogScriptTemplate: type === 'vlog' ? safeScriptTemplate : '',
+      vlogShots: type === 'vlog' ? this.buildVlogShots(safeScriptTemplate) : [],
+      scenePackage,
+      content,
+      time
+    };
+  },
+
+  buildScenePackageSnapshot() {
+    const {
+      activeScene,
+      sceneIntensity,
+      theme,
+      activeThemeType
+    } = this.data;
+
+    const safeIntensity = Math.max(20, Math.min(100, Number(sceneIntensity) || 65));
+
+    return {
+      sceneKey: activeScene || 'rainy',
+      sceneIntensity: safeIntensity,
+      themeId: Number(theme && theme.id),
+      activeThemeType,
+      capturedAt: Date.now()
+    };
+  },
+
+  restoreScenePackage(scenePackage = {}) {
+    const sceneKey = IMMERSIVE_SCENE_META[scenePackage.sceneKey] ? scenePackage.sceneKey : 'rainy';
+    const intensity = Math.max(20, Math.min(100, Number(scenePackage.sceneIntensity) || 65));
+    const themeId = Number(scenePackage.themeId);
+
+    if (Number.isFinite(themeId)) {
+      try {
+        const app = getApp();
+        const nextThemeState = app.switchTheme ? app.switchTheme(themeId) : null;
+        if (nextThemeState) {
+          this.applyThemeState(nextThemeState);
+        }
+      } catch (e) {
+        console.error('还原主题失败:', e);
+      }
+    }
+
+    this.setData({ sceneIntensity: intensity });
+
+    this.applyImmersiveScene(sceneKey, {
+      persist: true,
+      silent: true,
+      updateAutoMode: false
+    });
+
+    try {
+      const app = getApp();
+      if (app.setSceneSoundscape) {
+        app.setSceneSoundscape(sceneKey, {
+          intensity: intensity / 100,
+          autoPlay: true,
+          enabled: true
+        });
+      }
+      wx.setStorageSync('homeSceneIntensity', intensity);
+    } catch (e) {
+      console.error('还原场景包失败:', e);
+    }
+
+    return {
+      sceneKey,
+      intensity
+    };
+  },
+
+  switchPostType(e) {
+    const type = e.currentTarget.dataset.type;
+    if (!POST_TYPE_META[type] || type === this.data.activePostType) {
+      return;
+    }
+
+    this.setData({
+      activePostType: type,
+      postPlaceholder: this.getPostTypeMeta(type).placeholder,
+      packageActionLabel: this.getPostActionMeta(type).cta
+    });
+  },
+
+  getHangingOrnamentMeta(key = 'knot') {
+    return HANGING_ORNAMENT_META[key] || HANGING_ORNAMENT_META.knot;
+  },
+
+  openToolPanel(panel = '') {
+    this.setData({
+      showToolPanel: true,
+      activeToolPanel: panel
+    });
+  },
+
+  closeToolPanel() {
+    this.setData({
+      showToolPanel: false,
+      activeToolPanel: ''
+    });
+  },
+
+  onTapToolPanelBody() {},
+
+  onTapToolTheme() {
+    this.openToolPanel('theme');
+  },
+
+  onTapToolAmbience() {
+    this.openToolPanel('ambience');
+  },
+
+  updateOrnamentWindMotion(intensity = 65) {
+    const safe = Math.max(20, Math.min(100, Number(intensity) || 65));
+    const ratio = (safe - 20) / 80;
+    this.setData({
+      ornamentSwayDeg: Number((3 + ratio * 8).toFixed(1)),
+      tasselSwingDeg: Number((10 + ratio * 14).toFixed(1)),
+      ornamentSwayDuration: Number((3.4 - ratio * 1.5).toFixed(2))
+    });
+  },
+
+  onSelectHangingOrnament() {
+    this.openToolPanel('ornament');
+  },
+
+  onChooseHangingOrnament(e) {
+    const key = e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.key;
+    if (!HANGING_ORNAMENT_META[key]) {
+      return;
+    }
+    const meta = this.getHangingOrnamentMeta(key);
+    this.setData({
+      selectedHangingOrnament: key,
+      hangingOrnamentLabel: meta.label,
+      hangingOrnamentSymbol: meta.symbol,
+      showToolPanel: false,
+      activeToolPanel: ''
+    });
+    this.triggerCompanionMoment({
+      state: 'happy',
+      text: `挂上了${meta.label}，风也变温柔了。`,
+      duration: 1400
+    });
+  },
+
+  onTapToolBlindBox() {
+    this.openToolPanel('blindbox');
+  },
+
+  onOpenBlindBoxFromPanel() {
+    this.closeToolPanel();
+    this.openBlindBox();
   },
 
   onShow() {
     this.syncThemeFromGlobal();
     this.syncAudioFromGlobal();
+    if (this.data.isSceneAutoMode) {
+      this.applyImmersiveScene(this.resolveAutoSceneByTime(), {
+        persist: true,
+        silent: true,
+        updateAutoMode: true
+      });
+    }
     this.maybeTriggerCompanionWhisper();
   },
 
@@ -214,6 +767,8 @@ Page({
     this.isFabDragging = false;
     this.prevFabDragPoint = null;
     this.persistCompanionLastActiveAt();
+    clearTimeout(this.sceneEnterTimer);
+    clearTimeout(this.sceneRestoreHintTimer);
   },
 
   onUnload() {
@@ -224,6 +779,8 @@ Page({
     this.isFabDragging = false;
     this.prevFabDragPoint = null;
     this.persistCompanionLastActiveAt();
+    clearTimeout(this.sceneEnterTimer);
+    clearTimeout(this.sceneRestoreHintTimer);
   },
 
   persistCompanionLastActiveAt() {
@@ -264,9 +821,14 @@ Page({
             audioVolume: 0.5
           };
 
+      const sceneAudioState = app.getSceneAudioState
+        ? app.getSceneAudioState()
+        : { sceneIntensity: Number(wx.getStorageSync('homeSceneIntensity') || 65) / 100 };
+
       this.setData({
         isAudioPlaying: !!audioState.isAudioPlaying,
-        audioVolume: Math.round((Number(audioState.audioVolume) || 0.5) * 100)
+        audioVolume: Math.round((Number(audioState.audioVolume) || 0.5) * 100),
+        sceneIntensity: Math.round((Number(sceneAudioState.sceneIntensity) || 0.65) * 100)
       });
     } catch (e) {
       console.error('同步全局音频状态失败:', e);
@@ -311,52 +873,36 @@ Page({
     }
   },
 
-  // 生成情绪调色盘数据
-  generateMoodData() {
-    const moodData = [];
-    const today = new Date();
-    
-    // 生成过去30天的数据
-    for (let i = 29; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      
-      // 随机生成情绪颜色
-      const colors = ['#A3B18A', '#E5989B', '#BDB2FF', '#CB997E', '#84DCC6', '#FFB4A2', '#212529', '#003566'];
-      const randomColor = colors[Math.floor(Math.random() * colors.length)];
-      
-      moodData.push({
-        date: date.getDate(),
-        color: randomColor
-      });
-    }
-    
-    return moodData;
-  },
-
   // 切换顶部 Tab
   switchTab(e) {
     const tab = e.currentTarget.dataset.tab;
     const tabMap = {
-      'my': 0,
-      'square': 1,
-      'latest': 2
+      writing: 0,
+      recommend: 1
     };
+
+    if (typeof tabMap[tab] !== 'number') {
+      return;
+    }
     
-    this.setData({ 
+    this.setData({
       activeTab: tab,
-      currentTab: tabMap[tab]
+      currentTab: tabMap[tab],
+      isAmbientControlExpanded: false,
+      showAudioPanel: false
     });
   },
 
   // 处理首页顶部 swiper 滑动事件
   onSwiperChange(e) {
     const current = e.detail.current;
-    const tabMap = ['my', 'square', 'latest'];
+    const tabMap = ['writing', 'recommend'];
     
     this.setData({
       currentTab: current,
-      activeTab: tabMap[current]
+      activeTab: tabMap[current],
+      isAmbientControlExpanded: false,
+      showAudioPanel: false
     });
   },
 
@@ -381,7 +927,13 @@ Page({
     if (this.data.isBreathingActive || this.data.isBreathingLongPressTriggered) {
       return;
     }
-    this.setData({ currentPage: 1 });
+    this.setData({
+      currentPage: 0,
+      activeTab: 'writing',
+      currentTab: 0,
+      isAmbientControlExpanded: false,
+      showAudioPanel: false
+    });
   },
 
   onPublishTouchStart() {
@@ -535,9 +1087,43 @@ Page({
     this.restoreCompanionStateByInput();
   },
 
+  onPackagePost() {
+    if (!this.data.postContent.trim()) {
+      wx.showToast({
+        title: '先写点内容再封装吧',
+        icon: 'none'
+      });
+      return;
+    }
+
+    wx.showActionSheet({
+      itemList: ['仅自己可见（本地私密）', '发布到广场（公开）'],
+      success: (res) => {
+        const visibility = res.tapIndex === 1 ? 'public' : 'private';
+        this.publishPost({ visibility });
+      }
+    });
+  },
+
   // 发布内容
-  publishPost() {
-    const { postContent } = this.data;
+  publishPost(options = {}) {
+    const { visibility = 'private' } = options;
+    const {
+      postContent,
+      activePostType,
+      myDiaryList,
+      squarePostList,
+      letterSalutation,
+      letterSignature,
+      postcardLocation,
+      diaryWeather,
+      diaryMoodScore,
+      vlogScriptTemplate,
+      activeScene,
+      sceneIntensity,
+      theme,
+      activeThemeType
+    } = this.data;
     
     if (!postContent.trim()) {
       wx.showToast({
@@ -547,18 +1133,57 @@ Page({
       return;
     }
     
-    // 这里可以实现发布逻辑，暂时模拟发布成功
+    const newItem = this.createTypedPostItem({
+      id: `my-${Date.now()}`,
+      type: activePostType,
+      content: postContent.trim(),
+      time: '刚刚',
+      letterSalutation,
+      letterSignature,
+      postcardLocation,
+      diaryWeather,
+      diaryMoodScore,
+      vlogScriptTemplate,
+      scenePackage: {
+        ...this.buildScenePackageSnapshot(),
+        sceneKey: activeScene,
+        sceneIntensity,
+        themeId: Number(theme && theme.id),
+        activeThemeType
+      }
+    });
+
+    const nextData = {
+      postContent: '',
+      currentPage: 0,
+      activeTab: 'writing',
+      currentTab: 0,
+      isAmbientControlExpanded: false,
+      showAudioPanel: false,
+      isAnonymous: visibility !== 'public',
+      myDiaryList: [newItem, ...myDiaryList]
+    };
+
+    if (visibility === 'public') {
+      nextData.squarePostList = [newItem, ...squarePostList];
+    }
+
+    const actionMeta = this.getPostActionMeta(activePostType);
+    const visibilityText = visibility === 'public' ? '并已公开到推荐' : '仅自己可见';
+
     wx.showToast({
-      title: '发布成功',
-      icon: 'success'
+      title: `${actionMeta.done}，${visibilityText}`,
+      icon: 'none'
     });
     
-    // 清空内容并返回首页
-    this.setData({ 
-      postContent: '',
-      currentPage: 0
-    });
+    this.setData(nextData);
     this.restoreCompanionStateByInput();
+
+    this.triggerCompanionMoment({
+      state: 'happy',
+      text: `${actionMeta.done}。${visibility === 'public' ? '大家也能看见这份心情了。' : '我会替你把它悄悄收好。'}`,
+      duration: 1500
+    });
   },
 
   // 处理输入事件
@@ -566,6 +1191,39 @@ Page({
     const postContent = e.detail.value;
     this.setData({ postContent });
     this.updateCompanionEmotionByInput(postContent);
+  },
+
+  onPostFocus() {
+    this.setData({ isWritingFocused: true });
+  },
+
+  onPostBlur() {
+    this.setData({ isWritingFocused: false });
+  },
+
+  onLetterSalutationInput(e) {
+    this.setData({ letterSalutation: e.detail.value });
+  },
+
+  onLetterSignatureInput(e) {
+    this.setData({ letterSignature: e.detail.value });
+  },
+
+  onPostcardLocationInput(e) {
+    this.setData({ postcardLocation: e.detail.value });
+  },
+
+  onDiaryWeatherInput(e) {
+    this.setData({ diaryWeather: e.detail.value });
+  },
+
+  onDiaryMoodScoreChange(e) {
+    const value = Number(e.detail.value);
+    this.setData({ diaryMoodScore: Number.isFinite(value) ? value : 5 });
+  },
+
+  onVlogScriptTemplateInput(e) {
+    this.setData({ vlogScriptTemplate: e.detail.value });
   },
 
   updateCompanionEmotionByInput(content = '') {
@@ -841,9 +1499,10 @@ Page({
 
   getListKeyByTab(tab) {
     const map = {
+      writing: 'myDiaryList',
+      recommend: 'squarePostList',
       my: 'myDiaryList',
-      square: 'squarePostList',
-      latest: 'latestPostList'
+      square: 'squarePostList'
     };
     return map[tab] || 'myDiaryList';
   },
@@ -881,14 +1540,55 @@ Page({
     }, 360);
   },
 
+  onRestoreSceneFromPost(e) {
+    const { id, tab } = e.currentTarget.dataset;
+    if (!id) {
+      return;
+    }
+
+    const listKey = this.getListKeyByTab(tab);
+    const target = (this.data[listKey] || []).find((item) => item.id === id);
+
+    if (!target || !target.scenePackage) {
+      wx.showToast({
+        title: '该内容暂无场景包',
+        icon: 'none'
+      });
+      return;
+    }
+
+    const restored = this.restoreScenePackage(target.scenePackage);
+
+    this.setData({
+      currentPage: 0,
+      activeTab: 'writing',
+      currentTab: 0,
+      isAmbientControlExpanded: false,
+      showAudioPanel: false
+    });
+
+    const sceneMeta = IMMERSIVE_SCENE_META[restored.sceneKey] || IMMERSIVE_SCENE_META.rainy;
+    clearTimeout(this.sceneRestoreHintTimer);
+    this.setData({
+      showSceneRestoreHint: true,
+      sceneRestoreHintText: `已回到 ${sceneMeta.label} · 强度 ${restored.intensity}%`,
+      sceneRestoreHintScene: restored.sceneKey
+    });
+    this.startSceneEntranceTransition(1200);
+    this.sceneRestoreHintTimer = setTimeout(() => {
+      this.setData({ showSceneRestoreHint: false });
+    }, 1800);
+
+    this.triggerCompanionMoment({
+      state: 'happy',
+      text: `已切回「${sceneMeta.label}」氛围。`,
+      duration: 1500
+    });
+  },
+
   // 切换隐私设置
   togglePrivacy() {
     this.setData({ isAnonymous: !this.data.isAnonymous });
-  },
-
-  // 切换位置显示
-  toggleLocation() {
-    this.setData({ showLocation: !this.data.showLocation });
   },
 
   // 我的页面相关方法
@@ -927,6 +1627,14 @@ Page({
     this.setData({ showAudioPanel: !this.data.showAudioPanel });
   },
 
+  toggleAmbientControlPanel() {
+    const next = !this.data.isAmbientControlExpanded;
+    this.setData({
+      isAmbientControlExpanded: next,
+      showAudioPanel: next ? this.data.showAudioPanel : false
+    });
+  },
+
   onRainModeChange(e) {
     const next = !!(e && e.detail && e.detail.value);
     this.setRainMode(next);
@@ -961,28 +1669,45 @@ Page({
     });
   },
 
+  onSceneIntensityChange(e) {
+    const value = Number(e.detail.value);
+    const safe = Number.isFinite(value) ? Math.max(20, Math.min(100, value)) : 65;
+    const activeScene = this.data.activeScene || 'rainy';
+
+    this.setData({
+      sceneIntensity: safe,
+      sceneParticles: this.buildSceneParticles(activeScene),
+      rainDrops: activeScene === 'rainy' ? this.buildRainDrops() : []
+    });
+    this.updateOrnamentWindMotion(safe);
+
+    try {
+      wx.setStorageSync('homeSceneIntensity', safe);
+    } catch (e) {
+      // ignore
+    }
+
+    try {
+      const app = getApp();
+      if (app.setSceneSoundscape) {
+        app.setSceneSoundscape(activeScene, {
+          intensity: safe / 100,
+          autoPlay: true,
+          enabled: true
+        });
+      } else if (app.setSceneIntensity) {
+        app.setSceneIntensity(safe / 100, { persist: true });
+      }
+    } catch (e) {
+      console.error('更新场景强度失败:', e);
+    }
+  },
+
   onAudioVolumeChange(e) {
     const value = Number(e.detail.value);
     const app = getApp();
     app.setAudioVolume(value / 100);
     this.setData({ audioVolume: value });
-  },
-
-  // 情绪调色盘点击事件 - 预览主题
-  previewTheme(e) {
-    const index = e.currentTarget.dataset.index;
-    // 根据点击的日期索引选择对应的主题
-    const themeIndex = index % THEMES.length;
-    const theme = THEMES[themeIndex];
-    
-    // 预览主题（临时切换）
-    this.setData({ theme });
-    
-    // 显示预览提示
-    wx.showToast({
-      title: `预览主题：${theme.name}`,
-      icon: 'none'
-    });
   },
 
   // 跳转到我的发布
