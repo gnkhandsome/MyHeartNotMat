@@ -223,10 +223,11 @@
 
 /* 页面容器 */
 .page-swiper {
-  flex: none;
+  flex: 1;
   width: 100%;
-  height: calc(100vh - 100rpx - env(safe-area-inset-bottom));
+  min-height: 0;
   position: relative;
+  height: calc(100vh - 100rpx);
 }
 
 .page-container {
@@ -235,7 +236,6 @@
   height: 100%;
   min-height: 0;
   position: relative;
-  padding-bottom: calc(18rpx + env(safe-area-inset-bottom));
 }
 
 /* 顶部自定义 Tab (Custom Header) */
@@ -544,15 +544,14 @@
 .content-swiper {
   flex: 1;
   width: 100%;
-  height: 100%;
   min-height: 0;
 }
 
 .writing-workspace {
-  height: 100%;
+  height: calc(100% - 220rpx);
   display: flex;
   gap: 10rpx;
-  padding: 12rpx 10rpx 16rpx;
+  padding: 12rpx 10rpx 20rpx;
   box-sizing: border-box;
 }
 
@@ -703,7 +702,7 @@
 
 .content-container {
   height: 100%;
-  padding: 20rpx 0 26rpx;
+  padding: 20rpx 0 20rpx;
   /* 隐藏滚动条 */
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -716,9 +715,11 @@
 .card-list {
   display: flex;
   flex-direction: column;
-  padding: 0 20rpx;
+  padding: 0 20rpx calc(160rpx + env(safe-area-inset-bottom));
   gap: 20rpx;
   width: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 .card {
@@ -869,6 +870,16 @@
   color: #fff;
   background: linear-gradient(135deg, #ff8a7a, #ff5c7a);
   box-shadow: 0 8rpx 20rpx rgba(255, 92, 122, 0.28);
+}
+
+.card-private-btn {
+  padding: 8rpx 18rpx;
+  font-size: 20rpx;
+  line-height: 1;
+  border-radius: 999rpx;
+  color: #0f766e;
+  background: linear-gradient(135deg, rgba(153, 246, 228, 0.86), rgba(167, 243, 208, 0.92));
+  box-shadow: 0 8rpx 20rpx rgba(20, 184, 166, 0.22);
 }
 
 .card-restore-btn {
@@ -1344,6 +1355,102 @@
   border: 1rpx solid rgba(148, 163, 184, 0.16);
 }
 
+/* 广场页面样式 */
+.square-header {
+  padding: 30rpx 20rpx;
+  margin: 20rpx;
+  border-radius: 20rpx;
+  text-align: center;
+}
+
+.square-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10rpx;
+}
+
+.square-subtitle {
+  font-size: 22rpx;
+  color: #666;
+  line-height: 1.5;
+}
+
+.square-post-list {
+  flex: 1;
+  padding: 0 20rpx calc(160rpx + env(safe-area-inset-bottom));
+}
+
+.post-card {
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+  border-radius: 20rpx;
+}
+
+.post-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.post-type-badge {
+  font-size: 20rpx;
+  color: #4b5563;
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 999rpx;
+  padding: 6rpx 14rpx;
+}
+
+.post-time {
+  font-size: 18rpx;
+  color: #9ca3af;
+}
+
+.post-card-content {
+  margin-bottom: 20rpx;
+}
+
+.post-text {
+  font-size: 32rpx;
+  line-height: 1.68;
+}
+
+.post-card-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.post-action {
+  padding: 8rpx 18rpx;
+  font-size: 20rpx;
+  line-height: 1;
+  border-radius: 999rpx;
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+}
+
+.post-action.private-btn {
+  color: #0f766e;
+  background: linear-gradient(135deg, rgba(153, 246, 228, 0.86), rgba(167, 243, 208, 0.92));
+  box-shadow: 0 8rpx 20rpx rgba(20, 184, 166, 0.22);
+}
+
+.post-action.shatter-btn {
+  color: #fff;
+  background: linear-gradient(135deg, #ff8a7a, #ff5c7a);
+  box-shadow: 0 8rpx 20rpx rgba(255, 92, 122, 0.28);
+}
+
+.post-action.restore-btn {
+  color: #0f766e;
+  background: linear-gradient(135deg, rgba(153, 246, 228, 0.86), rgba(167, 243, 208, 0.92));
+  box-shadow: 0 8rpx 20rpx rgba(20, 184, 166, 0.22);
+}
+
 /* 我的页面样式 */
 .user-info {
   display: flex;
@@ -1675,30 +1782,9 @@
 }
 
 .fab-movable-view {
-  width: 136rpx;
-  height: 136rpx;
+  width: 80rpx;
+  height: 80rpx;
   pointer-events: auto;
-}
-
-.tabbar-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4rpx;
-  padding: 10rpx;
-  min-width: 120rpx;
-  transition:
-    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
-    color 0.3s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.tabbar-publish-placeholder {
-  pointer-events: none;
-}
-
-.publish-button.placeholder {
-  opacity: 0;
 }
 
 .companion-trail-layer {
@@ -1722,7 +1808,8 @@
 }
 
 .tabbar-icon {
-  font-size: 40rpx;
+  font-size: 32rpx;
+  display: block;
 }
 
 .tabbar-text {
@@ -1764,21 +1851,12 @@
   color: #9ca3af;
 }
 
-/* 发布按钮 */
-.tabbar-publish {
-  position: relative;
-  top: -20rpx;
-  overflow: visible;
-}
-
 .companion-wrapper {
-  position: absolute;
-  right: -18rpx;
-  top: -34rpx;
-  z-index: 3;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
+  height: 100%;
 }
 
 .companion-sprite {
@@ -1791,7 +1869,12 @@
   justify-content: center;
   box-shadow: 0 10rpx 26rpx rgba(59, 130, 246, 0.2);
   animation: companion-float 2.8s ease-in-out infinite;
-  transition: transform 0.22s ease, filter 0.28s ease;
+  transition: none;
+}
+
+.companion-sprite.dragging {
+  animation: none;
+  transition: none;
 }
 
 .companion-sprite.cloud {
@@ -1889,52 +1972,6 @@
   border-left: 10rpx solid rgba(255, 255, 255, 0.96);
 }
 
-.publish-button {
-  width: 80rpx;
-  height: 80rpx;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transition:
-    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.45s cubic-bezier(0.22, 1, 0.36, 1),
-    background-color 0.45s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.publish-button.breathing-active.phase-inhale {
-  animation: breathing-inhale 4s ease-out forwards;
-}
-
-.publish-button.breathing-active.phase-hold {
-  animation: breathing-hold 7s ease-in-out forwards;
-}
-
-.publish-button.breathing-active.phase-exhale {
-  animation: breathing-exhale 8s ease-in forwards;
-}
-
-.publish-button.breathing-active.perf-low.phase-inhale,
-.publish-button.breathing-active.perf-low.phase-hold,
-.publish-button.breathing-active.perf-low.phase-exhale {
-  animation-duration: 2.2s;
-}
-
-@keyframes breathing-inhale {
-  0% { transform: scale(1); filter: brightness(1); }
-  100% { transform: scale(1.24); filter: brightness(1.1); }
-}
-
-@keyframes breathing-hold {
-  0% { transform: scale(1.24); filter: brightness(1.1); }
-  50% { transform: scale(1.26); filter: brightness(1.16); }
-  100% { transform: scale(1.24); filter: brightness(1.1); }
-}
-
-@keyframes breathing-exhale {
-  0% { transform: scale(1.24); filter: brightness(1.1); }
-  100% { transform: scale(1); filter: brightness(1); }
-}
-
 @keyframes companion-float {
   0%,
   100% { margin-top: 0; }
@@ -1967,12 +2004,6 @@
     opacity: 0;
     transform: translate(-50%, -50%) scale(0.4);
   }
-}
-
-.publish-icon {
-  font-size: 48rpx;
-  color: white;
-  font-weight: bold;
 }
 
 /* 响应式设计 */

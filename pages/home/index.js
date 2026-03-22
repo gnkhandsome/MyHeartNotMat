@@ -166,11 +166,7 @@ function resolveCompanionStateByText(text = '') {
 Page({
   data: {
     // 页面相关
-    currentPage: 0, // 当前页面索引：0-首页，1-我的
-    
-    // 首页顶部 Tab 相关
-    activeTab: 'writing',
-    currentTab: 0, // 首页内部 tab：0-写作场景，1-推荐
+    currentPage: 0, // 当前页面索引：0-心语，1-广场，2-我的
     
     // 发布页面相关
     postContent: '',
@@ -252,11 +248,13 @@ Page({
     isWritingFocused: false,
     
     // 主题相关
-    theme: THEMES[0] // 默认使用第一个主题
+    theme: THEMES[0], // 默认使用第一个主题
+    
+    // 小精灵拖动状态
+    isCompanionDragging: false
   },
 
   onLoad() {
-    this.shouldSuppressNextPublishTap = false;
     this.setData({
       myDiaryList: this.getInitialMyDiaryList(),
       squarePostList: this.getInitialSquarePostList()
@@ -269,6 +267,7 @@ Page({
     this.initMovableFab();
     this.syncThemeFromGlobal();
     this.syncAudioFromGlobal();
+    this.updateNavigationBarColor();
     this.startSceneEntranceTransition();
     this.updateOrnamentWindMotion(this.data.sceneIntensity);
   },
@@ -287,12 +286,13 @@ Page({
       const width = Number(info.windowWidth || 375);
       const height = Number(info.windowHeight || 667);
 
-      const fabX = Math.max(0, Math.round(width / 2 - 28));
-      const fabY = Math.max(0, Math.round(height - 156));
+      // 设置在页面底部左侧位置，紧贴底部导航栏
+      const fabX = Math.max(0, Math.round(100)); // 左侧位置，距离左边100rpx
+      const fabY = Math.max(0, Math.round(height - 60)); // 页面底部上方60rpx位置，紧贴底部导航栏
 
       this.setData({ fabX, fabY });
     } catch (e) {
-      this.setData({ fabX: 160, fabY: 520 });
+      this.setData({ fabX: 100, fabY: 640 });
     }
   },
 
@@ -764,8 +764,6 @@ Page({
     this.clearCompanionBubbleTimer();
     this.clearCompanionLongPressTimer();
     this.clearCompanionDragSettleTimer();
-    this.isFabDragging = false;
-    this.prevFabDragPoint = null;
     this.persistCompanionLastActiveAt();
     clearTimeout(this.sceneEnterTimer);
     clearTimeout(this.sceneRestoreHintTimer);
@@ -776,8 +774,6 @@ Page({
     this.clearCompanionBubbleTimer();
     this.clearCompanionLongPressTimer();
     this.clearCompanionDragSettleTimer();
-    this.isFabDragging = false;
-    this.prevFabDragPoint = null;
     this.persistCompanionLastActiveAt();
     clearTimeout(this.sceneEnterTimer);
     clearTimeout(this.sceneRestoreHintTimer);
@@ -851,6 +847,8 @@ Page({
       filteredThemes: getThemesByType(resolvedType),
       companionVisualType: resolvedType === THEME_STYLE_TYPES.MALE ? 'core' : 'cloud'
     });
+
+    this.updateNavigationBarColor();
   },
 
   syncThemeFromGlobal() {
@@ -873,38 +871,17 @@ Page({
     }
   },
 
-  // 切换顶部 Tab
-  switchTab(e) {
-    const tab = e.currentTarget.dataset.tab;
-    const tabMap = {
-      writing: 0,
-      recommend: 1
-    };
-
-    if (typeof tabMap[tab] !== 'number') {
-      return;
+  updateNavigationBarColor() {
+    const { theme } = this.data;
+    if (theme && theme.bgColor) {
+      wx.setNavigationBarColor({
+        frontColor: '#000000',
+        backgroundColor: theme.bgColor
+      });
     }
-    
-    this.setData({
-      activeTab: tab,
-      currentTab: tabMap[tab],
-      isAmbientControlExpanded: false,
-      showAudioPanel: false
-    });
   },
 
-  // 处理首页顶部 swiper 滑动事件
-  onSwiperChange(e) {
-    const current = e.detail.current;
-    const tabMap = ['writing', 'recommend'];
-    
-    this.setData({
-      currentTab: current,
-      activeTab: tabMap[current],
-      isAmbientControlExpanded: false,
-      showAudioPanel: false
-    });
-  },
+
 
   // 处理页面滑动事件
   onPageChange(e) {
@@ -918,66 +895,7 @@ Page({
     this.setData({ currentPage: page });
   },
 
-  onPublishTap() {
-    if (this.shouldSuppressNextPublishTap) {
-      this.shouldSuppressNextPublishTap = false;
-      return;
-    }
 
-    if (this.data.isBreathingActive || this.data.isBreathingLongPressTriggered) {
-      return;
-    }
-    this.setData({
-      currentPage: 0,
-      activeTab: 'writing',
-      currentTab: 0,
-      isAmbientControlExpanded: false,
-      showAudioPanel: false
-    });
-  },
-
-  onPublishTouchStart() {
-    this.clearBreathingLongPressTimer();
-    this.shouldSuppressNextPublishTap = false;
-    this.isFabDragging = false;
-    this.prevFabDragPoint = null;
-    this.setData({ isBreathingLongPressTriggered: false });
-
-    this.breathingLongPressTimer = setTimeout(() => {
-      this.shouldSuppressNextPublishTap = true;
-      this.setData({ isBreathingLongPressTriggered: true });
-      this.startBreathingGuide();
-    }, 380);
-  },
-
-  onPublishTouchEnd() {
-    this.clearBreathingLongPressTimer();
-
-    if (this.isFabDragging) {
-      this.shouldSuppressNextPublishTap = true;
-      this.isFabDragging = false;
-      this.setData({ isBreathingLongPressTriggered: false });
-      return;
-    }
-
-    if (this.data.isBreathingLongPressTriggered) {
-      this.shouldSuppressNextPublishTap = true;
-      this.stopBreathingGuide();
-      setTimeout(() => {
-        this.setData({ isBreathingLongPressTriggered: false });
-      }, 50);
-      return;
-    }
-    this.setData({ isBreathingLongPressTriggered: false });
-  },
-
-  onPublishTouchCancel() {
-    this.clearBreathingLongPressTimer();
-    this.isFabDragging = false;
-    this.shouldSuppressNextPublishTap = true;
-    this.stopBreathingGuide({ silent: true });
-    this.setData({ isBreathingLongPressTriggered: false });
-  },
 
   clearBreathingLongPressTimer() {
     if (this.breathingLongPressTimer) {
@@ -1156,8 +1074,6 @@ Page({
     const nextData = {
       postContent: '',
       currentPage: 0,
-      activeTab: 'writing',
-      currentTab: 0,
       isAmbientControlExpanded: false,
       showAudioPanel: false,
       isAnonymous: visibility !== 'public',
@@ -1345,16 +1261,10 @@ Page({
     }
 
     this.isFabDragging = true;
-    this.shouldSuppressNextPublishTap = true;
-    this.clearBreathingLongPressTimer();
     this.clearCompanionLongPressTimer();
 
     if (this.data.isBreathingActive) {
       this.stopBreathingGuide({ silent: true });
-    }
-
-    if (this.data.isBreathingLongPressTriggered) {
-      this.setData({ isBreathingLongPressTriggered: false });
     }
 
     if (this.data.isCompanionLongPressTriggered) {
@@ -1380,14 +1290,18 @@ Page({
     this.setData({
       fabX: x,
       fabY: y,
-      companionDragLevel
+      companionDragLevel,
+      isCompanionDragging: true
     });
 
     this.emitCompanionTrailParticle(x, y, speed);
 
     this.clearCompanionDragSettleTimer();
     this.companionDragSettleTimer = setTimeout(() => {
-      this.setData({ companionDragLevel: 0 });
+      this.setData({ 
+        companionDragLevel: 0,
+        isCompanionDragging: false
+      });
       this.companionDragSettleTimer = null;
     }, 120);
   },
@@ -1540,6 +1454,33 @@ Page({
     }, 360);
   },
 
+  async onSetPrivate(e) {
+    const { id, tab } = e.currentTarget.dataset;
+    if (!id) {
+      return;
+    }
+
+    const app = getApp();
+
+    // 从广场列表中移除该内容
+    const nextSquareList = (this.data.squarePostList || []).filter((item) => item.id !== id);
+    
+    this.setData({
+      squarePostList: nextSquareList
+    });
+
+    wx.showToast({
+      title: '已设置为私密',
+      icon: 'success'
+    });
+
+    this.triggerCompanionMoment({
+      state: 'happy',
+      text: '已将内容设为私密，仅自己可见。',
+      duration: 1500
+    });
+  },
+
   onRestoreSceneFromPost(e) {
     const { id, tab } = e.currentTarget.dataset;
     if (!id) {
@@ -1561,8 +1502,6 @@ Page({
 
     this.setData({
       currentPage: 0,
-      activeTab: 'writing',
-      currentTab: 0,
       isAmbientControlExpanded: false,
       showAudioPanel: false
     });
