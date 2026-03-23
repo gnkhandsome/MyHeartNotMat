@@ -1,0 +1,159 @@
+<view class="container scene-{{activeScene}}" style="background-color: {{theme.bgColor}};">
+  <view class="immersive-scene-overlay" aria-hidden="true">
+    <view
+      wx:for="{{sceneParticles}}"
+      wx:key="id"
+      class="scene-particle kind-{{item.kind}}"
+      style="left: {{item.left}}%; top: {{item.top}}%; width: {{item.size}}rpx; height: {{item.size}}rpx; opacity: {{item.opacity}}; animation-duration: {{item.duration}}ms; animation-delay: {{item.delay}}ms;"
+    ></view>
+  </view>
+
+  <view wx:if="{{activeScene === 'rainy'}}" class="rain-overlay" aria-hidden="true">
+    <view
+      wx:for="{{rainDrops}}"
+      wx:key="id"
+      class="rain-drop"
+      style="left: {{item.left}}%; height: {{item.height}}rpx; animation-duration: {{item.duration}}ms; animation-delay: {{item.delay}}ms; opacity: {{item.opacity}};"
+    ></view>
+  </view>
+
+  <scroll-view class="detail-scroll" scroll-y="true" scrollbar-hidden="true">
+    <view class="scene-head" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+      <text class="scene-title" style="color: {{textPalette.title}};">{{sceneLabel}} · {{sceneIntensity}}%</text>
+      <text class="scene-desc" style="color: {{textPalette.subtitle}};">{{sceneDescription}}</text>
+    </view>
+
+    <view wx:if="{{isOwnerPost}}" class="owner-toolbar" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+      <view class="owner-toolbar-head">
+        <text class="owner-toolbar-title" style="color: {{textPalette.title}};">我的内容工具栏</text>
+        <view class="owner-toolbar-actions">
+          <text class="owner-toolbar-btn" bindtap="onToggleEditMode" style="color: {{theme.primaryColor}};">{{isEditing ? '取消编辑' : '编辑内容'}}</text>
+          <text wx:if="{{isEditing}}" class="owner-toolbar-btn primary" bindtap="onSavePostEdit">保存</text>
+        </view>
+      </view>
+
+      <view wx:if="{{isEditing}}" class="owner-scene-panel">
+        <text class="owner-scene-label" style="color: {{textPalette.subtitle}};">场景</text>
+        <view class="owner-scene-chip-group">
+          <view
+            wx:for="{{sceneOptions}}"
+            wx:key="key"
+            class="owner-scene-chip {{activeScene === item.key ? 'active' : ''}}"
+            data-scene="{{item.key}}"
+            bindtap="onSceneChange"
+          >
+            {{item.label}}
+          </view>
+        </view>
+
+        <view class="owner-scene-intensity-row">
+          <text class="owner-scene-label" style="color: {{textPalette.subtitle}};">场景强度 {{sceneIntensity}}%</text>
+          <slider
+            min="20"
+            max="100"
+            step="5"
+            value="{{sceneIntensity}}"
+            activeColor="{{theme.primaryColor}}"
+            backgroundColor="#E5E7EB"
+            block-size="16"
+            bindchanging="onSceneIntensityChange"
+            bindchange="onSceneIntensityChange"
+          />
+        </view>
+      </view>
+    </view>
+
+    <view class="detail-card" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+      <view class="detail-card-head">
+        <text class="detail-type-pill" style="color: {{textPalette.body}};">{{post.typeIcon}} {{post.typeLabel}}</text>
+        <text class="detail-time" style="color: {{textPalette.tertiary}};">{{post.time}}</text>
+      </view>
+
+      <textarea
+        wx:if="{{isOwnerPost && isEditing}}"
+        class="detail-content-input"
+        auto-height="true"
+        maxlength="-1"
+        value="{{post.content}}"
+        bindinput="onPostContentInput"
+        style="color: {{textPalette.body}};"
+      />
+      <text wx:else class="detail-content" style="color: {{textPalette.body}};">{{post.content}}</text>
+
+      <view wx:if="{{post.type === 'letter'}}" class="detail-meta-group letter-edit-group">
+        <block wx:if="{{isOwnerPost && isEditing}}">
+          <input
+            class="detail-meta-input"
+            value="{{post.letterSalutation}}"
+            placeholder="称呼"
+            bindinput="onLetterSalutationInput"
+          />
+          <input
+            class="detail-meta-input"
+            value="{{post.letterSignature}}"
+            placeholder="落款"
+            bindinput="onLetterSignatureInput"
+          />
+        </block>
+        <block wx:else>
+          <text class="detail-meta" style="color: {{textPalette.subtitle}};">{{post.letterSalutation || '亲爱的你'}}：</text>
+          <text class="detail-meta" style="color: {{textPalette.subtitle}};">{{post.letterSignature || '—— 今晚的你'}}</text>
+        </block>
+      </view>
+
+      <view wx:if="{{post.type === 'postcard'}}" class="detail-meta-group">
+        <input
+          wx:if="{{isOwnerPost && isEditing}}"
+          class="detail-meta-input"
+          value="{{post.postcardLocation}}"
+          placeholder="地点"
+          bindinput="onPostcardLocationInput"
+        />
+        <text wx:elif="{{post.postcardLocation}}" class="detail-meta-pill" style="color: {{textPalette.subtitle}};">📍 {{post.postcardLocation}}</text>
+      </view>
+
+      <view wx:if="{{post.type === 'diary'}}" class="detail-meta-group">
+        <block wx:if="{{isOwnerPost && isEditing}}">
+          <input
+            class="detail-meta-input"
+            value="{{post.diaryWeather}}"
+            placeholder="天气"
+            bindinput="onDiaryWeatherInput"
+          />
+          <view class="owner-scene-intensity-row">
+            <text class="owner-scene-label" style="color: {{textPalette.subtitle}};">心情 {{post.diaryMoodScore || 5}}/10</text>
+            <slider
+              min="1"
+              max="10"
+              step="1"
+              value="{{post.diaryMoodScore || 5}}"
+              activeColor="{{theme.primaryColor}}"
+              backgroundColor="#E5E7EB"
+              block-size="16"
+              bindchange="onDiaryMoodScoreChange"
+            />
+          </view>
+        </block>
+        <block wx:else>
+          <text wx:if="{{post.diaryWeather}}" class="detail-meta-pill" style="color: {{textPalette.subtitle}};">☁️ {{post.diaryWeather}}</text>
+          <text wx:if="{{post.diaryMoodScore}}" class="detail-meta-pill" style="color: {{textPalette.subtitle}};">💚 心情 {{post.diaryMoodScore}}/10</text>
+        </block>
+      </view>
+
+      <view wx:if="{{post.type === 'vlog' && post.vlogShots && post.vlogShots.length}}" class="detail-meta-group vlog-shot-list">
+        <text wx:for="{{post.vlogShots}}" wx:key="index" class="detail-shot-line" style="color: {{textPalette.subtitle}};">• {{item}}</text>
+      </view>
+    </view>
+
+    <view class="comment-section" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+      <text class="comment-title" style="color: {{textPalette.title}};">评论 {{comments.length}}</text>
+      <view wx:for="{{comments}}" wx:key="id" class="comment-item">
+        <view class="comment-head">
+          <text class="comment-user" style="color: {{textPalette.body}};">{{item.nickname}}</text>
+          <text class="comment-time" style="color: {{textPalette.tertiary}};">{{item.time}}</text>
+        </view>
+        <text class="comment-content" style="color: {{textPalette.subtitle}};">{{item.content}}</text>
+      </view>
+    </view>
+  </scroll-view>
+</view>

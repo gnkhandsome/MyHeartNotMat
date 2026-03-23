@@ -76,8 +76,15 @@
 
   <view class="list-section" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; border-radius: {{theme.borderRadius}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
     <view class="section-title">已发布内容</view>
-    <view wx:if="{{myPostList.length === 0}}" class="empty">暂无内容</view>
-    <view wx:for="{{myPostList}}" wx:key="id" id="post-card-{{item.id}}" class="record-card type-{{item.type || 'diary'}} {{shatteringCardIds.includes(item.id) ? 'shattering' : ''}}">
+    <view class="my-publish-tabs">
+      <view class="my-publish-tab {{myPublishTab === 'public' ? 'active' : ''}}" data-tab="public" bindtap="switchMyPublishTab">公开</view>
+      <view class="my-publish-tab {{myPublishTab === 'private' ? 'active' : ''}}" data-tab="private" bindtap="switchMyPublishTab">私密</view>
+    </view>
+
+    <view wx:if="{{myPublishTab === 'public' && publicPostList.length === 0}}" class="empty">暂无公开内容</view>
+    <view wx:if="{{myPublishTab === 'private' && privatePostList.length === 0}}" class="empty">暂无私密内容</view>
+
+    <view wx:if="{{myPublishTab === 'public'}}" wx:for="{{publicPostList}}" wx:key="id" id="post-card-{{item.id}}" class="record-card type-{{item.type || 'diary'}} {{shatteringCardIds.includes(item.id) ? 'shattering' : ''}}" bindtap="onOpenPostDetail" data-id="{{item.id}}" data-type="{{item.sourceType || 'post'}}">
       <view class="record-type-row">
         <text class="record-type-pill">{{item.typeIcon || '📔'}} {{item.typeLabel || '日记'}}</text>
         <text wx:if="{{item.type === 'vlog' && item.vlogDuration}}" class="record-vlog-duration">{{item.vlogDuration}}</text>
@@ -99,15 +106,11 @@
       </view>
       <view class="record-footer">
         <text class="record-time">{{item.time}}</text>
-        <view class="card-shatter-btn" bindtap="onShatterCard" data-id="{{item.id}}" data-type="post">粉碎</view>
+        <view class="card-private-btn" catchtap="onSetPrivate" data-id="{{item.id}}" data-type="{{item.sourceType || 'post'}}">撤回私密</view>
       </view>
     </view>
-  </view>
 
-  <view class="list-section" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; border-radius: {{theme.borderRadius}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
-    <view class="section-title">心情日记</view>
-    <view wx:if="{{diaryList.length === 0}}" class="empty">暂无日记</view>
-    <view wx:for="{{diaryList}}" wx:key="id" id="post-card-{{item.id}}" class="record-card type-{{item.type || 'diary'}} {{shatteringCardIds.includes(item.id) ? 'shattering' : ''}}">
+    <view wx:if="{{myPublishTab === 'private'}}" wx:for="{{privatePostList}}" wx:key="id" id="post-card-{{item.id}}" class="record-card type-{{item.type || 'diary'}} {{shatteringCardIds.includes(item.id) ? 'shattering' : ''}}" bindtap="onOpenPostDetail" data-id="{{item.id}}" data-type="{{item.sourceType || 'post'}}">
       <view class="record-type-row">
         <text class="record-type-pill">{{item.typeIcon || '📔'}} {{item.typeLabel || '日记'}}</text>
         <text wx:if="{{item.type === 'vlog' && item.vlogDuration}}" class="record-vlog-duration">{{item.vlogDuration}}</text>
@@ -129,7 +132,7 @@
       </view>
       <view class="record-footer">
         <text class="record-time">{{item.time}}</text>
-        <view class="card-shatter-btn" bindtap="onShatterCard" data-id="{{item.id}}" data-type="diary">粉碎</view>
+        <view class="card-shatter-btn" catchtap="onShatterCard" data-id="{{item.id}}" data-type="{{item.sourceType || 'post'}}">粉碎</view>
       </view>
     </view>
   </view>

@@ -4,41 +4,58 @@ import { getThemeById, getThemeTypeById, THEME_STYLE_TYPES } from './theme.confi
 const SCENE_SOUND_PROFILES = {
   sunny: {
     tracks: [
-      { src: '/static/aud 打开io/morning_birds.mp3', weight: 0.62 },
-      { src: '/static/audio/soft_wind.mp3', weight: 0.38 }
+      { src: '/static/audio/morning_birds.mp3', weight: 0.62, role: 'accent' },
+      { src: '/static/audio/soft_wind.mp3', weight: 0.38, role: 'bed' }
     ]
   },
   cloudy: {
     tracks: [
-      { src: '/static/audio/soft_wind.mp3', weight: 0.72 },
-      { src: '/static/audio/obsidian_hum.mp3', weight: 0.28 }
+      { src: '/static/audio/soft_wind.mp3', weight: 0.72, role: 'bed' },
+      { src: '/static/audio/obsidian_hum.mp3', weight: 0.28, role: 'accent' }
     ]
   },
   rainy: {
     tracks: [
-      { src: '/static/audio/thunder_rain.mp3', weight: 0.78 },
-      { src: '/static/audio/rain_leaf.mp3', weight: 0.34 }
+      { src: '/static/audio/thunder_rain.mp3', weight: 0.78, role: 'bed' },
+      { src: '/static/audio/rain_leaf.mp3', weight: 0.34, role: 'accent' }
     ]
   },
   windy: {
     tracks: [
-      { src: '/static/audio/autumn_leaves.mp3', weight: 0.66 },
-      { src: '/static/audio/aurora_wind.mp3', weight: 0.38 }
+      { src: '/static/audio/autumn_leaves.mp3', weight: 0.66, role: 'bed' },
+      { src: '/static/audio/aurora_wind.mp3', weight: 0.38, role: 'accent' }
     ]
   },
   snowy: {
     tracks: [
-      { src: '/static/audio/ice_wind.mp3', weight: 0.66 },
-      { src: '/static/audio/night_signal.mp3', weight: 0.3 }
+      { src: '/static/audio/ice_wind.mp3', weight: 0.66, role: 'bed' },
+      { src: '/static/audio/night_signal.mp3', weight: 0.3, role: 'accent' }
     ]
   },
   stream: {
     tracks: [
-      { src: '/static/audio/sea_waves.mp3', weight: 0.62 },
-      { src: '/static/audio/morning_birds.mp3', weight: 0.36 }
+      { src: '/static/audio/sea_waves.mp3', weight: 0.62, role: 'bed' },
+      { src: '/static/audio/morning_birds.mp3', weight: 0.36, role: 'accent' }
     ]
   }
 };
+
+function resolveSceneTrackRoleGain(track = {}, intensity = 0.65) {
+  const safeIntensity = Math.min(1, Math.max(0.2, Number(intensity) || 0.65));
+  const role = track.role || 'balanced';
+
+  if (role === 'bed') {
+    // 底噪在低强度下也要可感知，高强度时温和拉升
+    return 0.55 + safeIntensity * 0.45;
+  }
+
+  if (role === 'accent') {
+    // 点缀声在低强度更克制，高强度明显抬升层次
+    return 0.12 + Math.pow(safeIntensity, 1.35) * 0.88;
+  }
+
+  return 0.35 + safeIntensity * 0.65;
+}
 
 App({
   onLaunch() {
@@ -280,12 +297,15 @@ App({
     if (!contexts.length) return;
 
     const profile = this.getSceneProfile(this.globalData.sceneAudioProfileKey);
-    const baseVolume = (Number(this.globalData.audioVolume) || 0.5) * (Number(this.globalData.sceneAudioIntensity) || 0.65);
+    const sceneIntensity = Number(this.globalData.sceneAudioIntensity) || 0.65;
+    const baseVolume = (Number(this.globalData.audioVolume) || 0.5) * sceneIntensity;
     const enabled = this.globalData.sceneAudioEnabled !== false;
 
     contexts.forEach((ctx, index) => {
-      const weight = Number((profile.tracks[index] && profile.tracks[index].weight) || 0);
-      const target = enabled ? Math.min(1, Math.max(0, baseVolume * weight)) : 0;
+      const track = (profile.tracks && profile.tracks[index]) || {};
+      const weight = Number(track.weight || 0);
+      const roleGain = resolveSceneTrackRoleGain(track, sceneIntensity);
+      const target = enabled ? Math.min(1, Math.max(0, baseVolume * weight * roleGain)) : 0;
       ctx.volume = target;
     });
   },

@@ -12,7 +12,7 @@ export const THEME_STYLE_RANGE = {
   [THEME_STYLE_TYPES.MALE]: { start: 12, end: 23 }
 };
 
-export const THEMES = [
+const BASE_THEMES = [
   // --- 感性愈系系列 (Female-Friendly: 柔和、通透、高留白) ---
   {
     id: 0,
@@ -381,6 +381,59 @@ export const THEMES = [
     vibe: "aurora"
   }
 ];
+
+function parseColorToRgb(color = '') {
+  const value = String(color || '').trim();
+  if (!value) return null;
+
+  if (value.startsWith('#')) {
+    const hex = value.slice(1);
+    if (hex.length === 3) {
+      const r = parseInt(hex[0] + hex[0], 16);
+      const g = parseInt(hex[1] + hex[1], 16);
+      const b = parseInt(hex[2] + hex[2], 16);
+      return { r, g, b };
+    }
+    if (hex.length >= 6) {
+      const r = parseInt(hex.slice(0, 2), 16);
+      const g = parseInt(hex.slice(2, 4), 16);
+      const b = parseInt(hex.slice(4, 6), 16);
+      return { r, g, b };
+    }
+    return null;
+  }
+
+  const rgbMatch = value.match(/rgba?\(([^)]+)\)/i);
+  if (!rgbMatch) return null;
+  const [r, g, b] = rgbMatch[1].split(',').map((item) => Number(item.trim()));
+  if (![r, g, b].every(Number.isFinite)) return null;
+  return { r, g, b };
+}
+
+function isDarkColor(color = '') {
+  const rgb = parseColorToRgb(color);
+  if (!rgb) return false;
+  const { r, g, b } = rgb;
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance < 0.52;
+}
+
+function withSemanticTextPalette(theme = {}) {
+  const darkBg = isDarkColor(theme.bgColor);
+  const fallbackBody = darkBg ? '#E5E7EB' : '#334155';
+  const bodyTextColor = theme.bodyTextColor || theme.textColor || fallbackBody;
+
+  return {
+    ...theme,
+    bodyTextColor,
+    titleTextColor: theme.titleTextColor || (darkBg ? '#F8FAFC' : '#1F2937'),
+    subtitleTextColor: theme.subtitleTextColor || (darkBg ? '#CBD5E1' : '#64748B'),
+    tertiaryTextColor: theme.tertiaryTextColor || (darkBg ? '#94A3B8' : '#94A3B8'),
+    inverseTextColor: theme.inverseTextColor || (darkBg ? '#0F172A' : '#FFFFFF')
+  };
+}
+
+export const THEMES = BASE_THEMES.map((theme) => withSemanticTextPalette(theme));
 
 export const getThemeTypeById = (id) => {
   const numericId = Number(id);

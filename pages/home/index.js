@@ -141,7 +141,64 @@ const HANGING_ORNAMENT_OPTIONS = HANGING_ORNAMENT_KEYS.map((key) => ({
   ...HANGING_ORNAMENT_META[key]
 }));
 
+const COMPANION_SCENE_RANDOM_LINES = {
+  sunny: ['阳光正好，写一句让自己发光的话吧。', '今天的风里有好心情，我陪你记录下来。'],
+  cloudy: ['阴天也没关系，我们慢慢写。', '云很轻，心也可以轻一点。'],
+  rainy: ['雨声很适合把情绪写完整。', '下雨的时候，想说的话更容易被听见。'],
+  windy: ['有风的时候，烦恼也会被吹散一点。', '把今天的心事交给风，我帮你记着。'],
+  snowy: ['雪落得很安静，文字也会变温柔。', '慢一点没关系，雪天就该慢慢来。'],
+  stream: ['像溪流一样，把堵住的话慢慢写出来。', '今天的灵感像水流，顺着写就好。']
+};
+
+const COMPANION_TIME_RANDOM_LINES = {
+  morning: ['早安，今天也值得被认真记录。', '新的一天开始啦，我先陪你写第一句。'],
+  noon: ['中午也要记得照顾自己呀。', '先停一下，和我一起做个深呼吸。'],
+  evening: ['傍晚的心事，最适合慢慢写。', '天色变柔和了，我们也轻一点。'],
+  night: ['夜深了，我还在，慢慢写不着急。', '把今天放进文字里，然后安心休息。']
+};
+
+const COMPANION_ACTION_RANDOM_LINES = {
+  switchPostType: ['这个表达方式很适合现在的你。', '换一种写法，说不定会更顺。'],
+  focusInput: ['我在旁边守着你，放心写。', '开始啦，我会认真听你写的每一句。'],
+  blurInput: ['先歇一下也很好。', '写到这里已经很棒了。'],
+  theme: ['新主题真好看，像你的心情滤镜。', '这个配色很有你现在的感觉。'],
+  sceneIntensity: ['这个强度刚刚好。', '我感觉到氛围在慢慢变化啦。'],
+  volume: ['声音我帮你盯着，舒服最重要。', '音量调得很贴心，耳朵会感谢你的。'],
+  generic: ['我一直在，随时都能接住你。', '继续吧，你已经做得很好了。']
+};
+
+const WRITING_AMBIENT_INPUT_HINTS = {
+  sad: [
+    '情绪可以慢一点，我会在这陪你写完。',
+    '先把难受写出来，心会轻一点。'
+  ],
+  happy: [
+    '把这份好心情记下来，未来会感谢现在的你。',
+    '这段开心很珍贵，慢慢写给未来看。'
+  ],
+  idle: [
+    '你可以按自己的节奏来，不急。',
+    '写下当下的呼吸和心跳，就很好。'
+  ]
+};
+
+const WRITING_LIGHT_COLOR_META = {
+  warm: {
+    label: '暖黄灯',
+    beamCore: '255, 220, 158',
+    beamEdge: '255, 183, 77',
+    glow: '255, 214, 153'
+  },
+  white: {
+    label: '白炙灯',
+    beamCore: '232, 243, 255',
+    beamEdge: '184, 214, 255',
+    glow: '214, 234, 255'
+  }
+};
+
 const LOW_PERF_BENCHMARK_THRESHOLD = 20;
+const HOME_TOOLBAR_SETTINGS_KEY = 'homeToolbarSettings';
 
 function resolvePerfLevelByBenchmark(benchmarkLevel) {
   const level = Number(benchmarkLevel || 0);
@@ -163,6 +220,22 @@ function resolveCompanionStateByText(text = '') {
   return 'idle';
 }
 
+function resolveSemanticTextPalette(theme = {}) {
+  const body = theme.bodyTextColor || theme.textColor || '#334155';
+  return {
+    title: theme.titleTextColor || '#1F2937',
+    body,
+    subtitle: theme.subtitleTextColor || '#64748B',
+    tertiary: theme.tertiaryTextColor || '#94A3B8',
+    inverse: theme.inverseTextColor || '#FFFFFF'
+  };
+}
+
+function pickRandom(list = []) {
+  if (!Array.isArray(list) || !list.length) return '';
+  return list[Math.floor(Math.random() * list.length)] || '';
+}
+
 Page({
   data: {
     // 页面相关
@@ -170,16 +243,17 @@ Page({
     
     // 发布页面相关
     postContent: '',
-    activePostType: 'letter',
+    activePostType: 'diary',
     postTypes: POST_TYPES,
-    postPlaceholder: POST_TYPE_META.letter.placeholder,
-    packageActionLabel: POST_ACTION_META.letter.cta,
+    postPlaceholder: POST_TYPE_META.diary.placeholder,
+    packageActionLabel: POST_ACTION_META.diary.cta,
     letterSalutation: '亲爱的自己',
     letterSignature: '—— 今天也在慢慢变好的我',
     postcardLocation: '上海 · 黄昏街角',
     diaryWeather: '多云',
     diaryMoodScore: 7,
     vlogScriptTemplate: DEFAULT_VLOG_SCRIPT_TEMPLATE,
+    writingDateText: '',
     isAnonymous: true,
     
     // 我的页面相关
@@ -213,11 +287,22 @@ Page({
     sceneDescription: IMMERSIVE_SCENE_META.rainy.desc,
     sceneSoundLabel: IMMERSIVE_SCENE_META.rainy.soundLabel,
     selectedHangingOrnament: 'knot',
+    pendingHangingOrnament: 'knot',
     hangingOrnamentOptions: HANGING_ORNAMENT_OPTIONS,
     hangingOrnamentLabel: HANGING_ORNAMENT_META.knot.label,
     hangingOrnamentSymbol: HANGING_ORNAMENT_META.knot.symbol,
+    isOrnamentHookHighlighted: false,
+    isOrnamentDragging: false,
+    ornamentDragStyle: '',
+    ornamentDraggingKey: '',
+    ornamentDraggingSymbol: '',
     showToolPanel: false,
     activeToolPanel: '',
+    showPackageConfirmDialog: false,
+    showPackagePublishDialog: false,
+    showPackagingAnimation: false,
+    pendingPackageType: 'letter',
+    pendingPackageLabel: POST_TYPE_META.letter.label,
     ornamentSwayDeg: 5,
     tasselSwingDeg: 14,
     ornamentSwayDuration: 2.8,
@@ -228,11 +313,23 @@ Page({
     showSceneRestoreHint: false,
     sceneRestoreHintText: '',
     sceneRestoreHintScene: 'rainy',
+    ambientTimeSlot: 'morning',
+    writingLightColorMode: 'warm',
+    writingLightFromSide: 'right',
+    writingLightIntensity: 72,
+    writingLightAngle: 26,
+    writingLightFocus: 64,
+    writingLightBeamStyle: '',
+    writingLightGlowStyle: '',
+    writingLightShadowStyle: '',
     companionState: 'idle',
     companionVisualType: 'cloud',
     companionBubbleText: '',
     showCompanionBubble: false,
+    companionBubbleSide: 'right',
+    companionBubbleVertical: 'middle',
     companionIsShy: false,
+    companionTapFeedback: false,
     isCompanionLongPressTriggered: false,
     fabX: 0,
     fabY: 0,
@@ -246,9 +343,16 @@ Page({
     breathingDisplayRound: 1,
     breathingPerfLevel: 'normal',
     isWritingFocused: false,
+    writingAmbientSubtitle: '慢慢写，不必着急。先把心放下来，再把话写出来。',
+    isAmbientSubtitleAnimating: false,
+    showBlindBoxCenterFx: false,
+    blindBoxCenterQuote: '',
+    blindBoxCenterRevealed: false,
+    blindBoxEntryShaking: false,
     
     // 主题相关
     theme: THEMES[0], // 默认使用第一个主题
+    textPalette: resolveSemanticTextPalette(THEMES[0]),
     
     // 小精灵拖动状态
     isCompanionDragging: false
@@ -263,6 +367,7 @@ Page({
     this.initRainModeState();
     this.initScenePerfProfile();
     this.initImmersiveSceneState();
+    this.restoreToolbarSettingsFromStorage();
     this.initBreathingPerfProfile();
     this.initMovableFab();
     this.syncThemeFromGlobal();
@@ -270,6 +375,142 @@ Page({
     this.updateNavigationBarColor();
     this.startSceneEntranceTransition();
     this.updateOrnamentWindMotion(this.data.sceneIntensity);
+    this.setData({ writingDateText: this.getCurrentWritingDateText() });
+    this.updateAmbientTimeSlot();
+    this.updateWritingLightFxStyles();
+
+    if (wx.onWindowResize) {
+      this.handleWindowResize = () => {
+        this.initMovableFab({ keepPosition: true });
+      };
+      wx.onWindowResize(this.handleWindowResize);
+    }
+  },
+
+  getCurrentWritingDateText() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year} 年 ${month} 月 ${day} 日`;
+  },
+
+  getToolbarSettingsSnapshot() {
+    const {
+      activePostType,
+      writingLightColorMode,
+      writingLightFromSide,
+      writingLightIntensity,
+      writingLightAngle,
+      writingLightFocus,
+      selectedHangingOrnament
+    } = this.data;
+
+    return {
+      activePostType,
+      writingLightColorMode,
+      writingLightFromSide,
+      writingLightIntensity,
+      writingLightAngle,
+      writingLightFocus,
+      selectedHangingOrnament
+    };
+  },
+
+  persistToolbarSettings(patch = {}) {
+    try {
+      const next = {
+        ...this.getToolbarSettingsSnapshot(),
+        ...(patch || {})
+      };
+      wx.setStorageSync(HOME_TOOLBAR_SETTINGS_KEY, next);
+    } catch (e) {
+      console.error('保存工具栏设置失败:', e);
+    }
+  },
+
+  restoreToolbarSettingsFromStorage() {
+    try {
+      const stored = wx.getStorageSync(HOME_TOOLBAR_SETTINGS_KEY) || {};
+      if (!stored || typeof stored !== 'object') {
+        return;
+      }
+
+      const nextData = {};
+
+      if (POST_TYPE_META[stored.activePostType]) {
+        nextData.activePostType = stored.activePostType;
+        nextData.postPlaceholder = this.getPostTypeMeta(stored.activePostType).placeholder;
+        nextData.packageActionLabel = this.getPostActionMeta(stored.activePostType).cta;
+      }
+
+      if (WRITING_LIGHT_COLOR_META[stored.writingLightColorMode]) {
+        nextData.writingLightColorMode = stored.writingLightColorMode;
+      }
+
+      if (stored.writingLightFromSide === 'left' || stored.writingLightFromSide === 'right') {
+        nextData.writingLightFromSide = stored.writingLightFromSide;
+      }
+
+      const safeIntensity = Number(stored.writingLightIntensity);
+      if (Number.isFinite(safeIntensity)) {
+        nextData.writingLightIntensity = Math.max(0, Math.min(100, Math.round(safeIntensity)));
+      }
+
+      const safeAngle = Number(stored.writingLightAngle);
+      if (Number.isFinite(safeAngle)) {
+        nextData.writingLightAngle = Math.max(0, Math.min(65, Math.round(safeAngle)));
+      }
+
+      const safeFocus = Number(stored.writingLightFocus);
+      if (Number.isFinite(safeFocus)) {
+        nextData.writingLightFocus = Math.max(20, Math.min(100, Math.round(safeFocus)));
+      }
+
+      if (HANGING_ORNAMENT_META[stored.selectedHangingOrnament]) {
+        const meta = this.getHangingOrnamentMeta(stored.selectedHangingOrnament);
+        nextData.selectedHangingOrnament = stored.selectedHangingOrnament;
+        nextData.pendingHangingOrnament = stored.selectedHangingOrnament;
+        nextData.hangingOrnamentLabel = meta.label;
+        nextData.hangingOrnamentSymbol = meta.symbol;
+      }
+
+      if (Object.keys(nextData).length) {
+        this.setData(nextData, () => {
+          this.updateWritingLightFxStyles();
+        });
+      }
+    } catch (e) {
+      console.error('恢复工具栏设置失败:', e);
+    }
+  },
+
+  resolveAmbientTimeSlot() {
+    const hour = new Date().getHours();
+    if (hour >= 6 && hour < 12) return 'morning';
+    if (hour >= 16 && hour < 20) return 'dusk';
+    return 'night';
+  },
+
+  updateAmbientTimeSlot() {
+    const ambientTimeSlot = this.resolveAmbientTimeSlot();
+    if (ambientTimeSlot !== this.data.ambientTimeSlot) {
+      this.setData({ ambientTimeSlot });
+    }
+  },
+
+  startAmbientTimeSlotLoop(interval = 60000) {
+    this.stopAmbientTimeSlotLoop();
+    this.ambientTimeSlotTimer = setInterval(() => {
+      this.updateAmbientTimeSlot();
+    }, interval);
+  },
+
+  stopAmbientTimeSlotLoop() {
+    if (this.ambientTimeSlotTimer) {
+      clearInterval(this.ambientTimeSlotTimer);
+      this.ambientTimeSlotTimer = null;
+    }
   },
 
   startSceneEntranceTransition(duration = 2400) {
@@ -280,19 +521,72 @@ Page({
     }, duration);
   },
 
-  initMovableFab() {
+  initMovableFab(options = {}) {
+    const { keepPosition = false } = options;
     try {
       const info = wx.getSystemInfoSync ? wx.getSystemInfoSync() : {};
       const width = Number(info.windowWidth || 375);
       const height = Number(info.windowHeight || 667);
+      const rpxToPx = width / 750;
+      const fabSize = Math.round((width <= 360 ? 128 : 92) * rpxToPx);
+      const bottomReserve = Math.round(120 * rpxToPx);
+      const yMax = Math.max(0, height - fabSize - bottomReserve);
 
-      // 设置在页面底部左侧位置，紧贴底部导航栏
-      const fabX = Math.max(0, Math.round(100)); // 左侧位置，距离左边100rpx
-      const fabY = Math.max(0, Math.round(height - 60)); // 页面底部上方60rpx位置，紧贴底部导航栏
+      this.viewportInfo = {
+        width,
+        height,
+        fabSize,
+        yMax
+      };
+
+      const defaultX = Math.max(0, Math.round(100 * rpxToPx));
+      const defaultY = Math.max(0, Math.round(yMax));
+      const nextX = keepPosition ? Number(this.data.fabX) : defaultX;
+      const nextY = keepPosition ? Number(this.data.fabY) : defaultY;
+      const { x: fabX, y: fabY } = this.clampFabPosition(nextX, nextY);
 
       this.setData({ fabX, fabY });
+      this.updateCompanionBubbleLayout(fabX, fabY);
     } catch (e) {
       this.setData({ fabX: 100, fabY: 640 });
+    }
+  },
+
+  clampFabPosition(x = 0, y = 0) {
+    const viewport = this.viewportInfo || {};
+    const width = Number(viewport.width || 375);
+    const height = Number(viewport.height || 667);
+    const fabSize = Number(viewport.fabSize || Math.round((width / 750) * 92));
+    const maxX = Math.max(0, width - fabSize);
+    const maxY = Number.isFinite(viewport.yMax)
+      ? Math.max(0, viewport.yMax)
+      : Math.max(0, height - fabSize - Math.round((width / 750) * 120));
+
+    return {
+      x: Math.max(0, Math.min(maxX, Math.round(Number(x) || 0))),
+      y: Math.max(0, Math.min(maxY, Math.round(Number(y) || 0)))
+    };
+  },
+
+  updateCompanionBubbleLayout(x = this.data.fabX, y = this.data.fabY) {
+    const viewport = this.viewportInfo || {};
+    const width = Number(viewport.width || 375);
+    const height = Number(viewport.height || 667);
+    const side = Number(x) > width * 0.58 ? 'left' : 'right';
+    const vertical = Number(y) < height * 0.22
+      ? 'bottom'
+      : Number(y) > height * 0.68
+        ? 'top'
+        : 'middle';
+
+    if (
+      side !== this.data.companionBubbleSide ||
+      vertical !== this.data.companionBubbleVertical
+    ) {
+      this.setData({
+        companionBubbleSide: side,
+        companionBubbleVertical: vertical
+      });
     }
   },
 
@@ -673,6 +967,9 @@ Page({
       postPlaceholder: this.getPostTypeMeta(type).placeholder,
       packageActionLabel: this.getPostActionMeta(type).cta
     });
+    this.persistToolbarSettings({ activePostType: type });
+
+    this.maybeTriggerCompanionActionInteraction('switchPostType');
   },
 
   getHangingOrnamentMeta(key = 'knot') {
@@ -680,13 +977,23 @@ Page({
   },
 
   openToolPanel(panel = '') {
+    if (panel === 'theme') {
+      this.setData({
+        showToolPanel: true,
+        activeToolPanel: panel
+      });
+      return;
+    }
+
+    const isSameMiniPanel = this.data.activeToolPanel === panel && !this.data.showToolPanel;
     this.setData({
-      showToolPanel: true,
-      activeToolPanel: panel
+      showToolPanel: false,
+      activeToolPanel: isSameMiniPanel ? '' : panel
     });
   },
 
   closeToolPanel() {
+    this.resetOrnamentDrag();
     this.setData({
       showToolPanel: false,
       activeToolPanel: ''
@@ -700,7 +1007,208 @@ Page({
   },
 
   onTapToolAmbience() {
-    this.openToolPanel('ambience');
+    this.openToolPanel('scene');
+  },
+
+  onTapToolScene() {
+    this.openToolPanel('scene');
+  },
+
+  onTapToolVolume() {
+    this.openToolPanel('volume');
+  },
+
+  onTapToolIntensity() {
+    this.openToolPanel('intensity');
+  },
+
+  onTapToolLight() {
+    this.openToolPanel('light');
+  },
+
+  onTapToolTemplate() {
+    this.openToolPanel('template');
+  },
+
+  getWritingLightPalette(mode = 'warm') {
+    return WRITING_LIGHT_COLOR_META[mode] || WRITING_LIGHT_COLOR_META.warm;
+  },
+
+  updateWritingLightFxStyles() {
+    const {
+      writingLightColorMode,
+      writingLightFromSide,
+      writingLightIntensity,
+      writingLightAngle,
+      writingLightFocus
+    } = this.data;
+
+    const palette = this.getWritingLightPalette(writingLightColorMode);
+    const intensityRatio = Math.max(0, Math.min(1, Number(writingLightIntensity || 0) / 100));
+    const focusRatio = Math.max(0.2, Math.min(1, Number(writingLightFocus || 0) / 100));
+    const direction = writingLightFromSide === 'right' ? -1 : 1;
+    const safeAngle = Math.max(0, Math.min(65, Number(writingLightAngle) || 20));
+    const rotateDeg = direction * safeAngle;
+
+    const beamOpacity = (0.16 + intensityRatio * 0.42).toFixed(3);
+    const edgeOpacity = (0.02 + intensityRatio * 0.14).toFixed(3);
+    const beamWidth = Math.round(34 + (1 - focusRatio) * 58);
+    const beamBlur = Math.round(8 + (1 - focusRatio) * 18);
+    const beamX = writingLightFromSide === 'right' ? 'right: -16vw;' : 'left: -16vw;';
+
+    const glowOpacity = (0.2 + intensityRatio * 0.4).toFixed(3);
+    const glowSize = Math.round(180 + intensityRatio * 180);
+    const glowX = writingLightFromSide === 'right' ? 'right: -6vw;' : 'left: -6vw;';
+
+    const shadowOpacity = (0.14 + intensityRatio * 0.3).toFixed(3);
+    const lightExit = writingLightFromSide === 'right' ? '20% 0%' : '80% 0%';
+
+    const writingLightBeamStyle = [
+      beamX,
+      `width: ${beamWidth}vw;`,
+      `opacity: ${beamOpacity};`,
+      `filter: blur(${beamBlur}rpx);`,
+      `transform: rotate(${rotateDeg}deg);`,
+      `background: linear-gradient(to bottom, rgba(${palette.beamCore}, ${beamOpacity}), rgba(${palette.beamEdge}, ${edgeOpacity}));`
+    ].join(' ');
+
+    const writingLightGlowStyle = [
+      glowX,
+      `width: ${glowSize}rpx;`,
+      `height: ${glowSize}rpx;`,
+      `opacity: ${glowOpacity};`,
+      `background: radial-gradient(circle, rgba(${palette.glow}, ${glowOpacity}), rgba(${palette.glow}, 0));`
+    ].join(' ');
+
+    const writingLightShadowStyle = `background: radial-gradient(circle at ${lightExit}, rgba(255, 255, 255, 0) 0%, rgba(15, 23, 42, ${shadowOpacity}) 88%);`;
+
+    this.setData({
+      writingLightBeamStyle,
+      writingLightGlowStyle,
+      writingLightShadowStyle
+    });
+  },
+
+  onSwitchWritingLightColor(e) {
+    const mode = e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.mode;
+    if (!WRITING_LIGHT_COLOR_META[mode]) return;
+    this.setData({ writingLightColorMode: mode }, () => {
+      this.updateWritingLightFxStyles();
+      this.persistToolbarSettings({ writingLightColorMode: mode });
+    });
+  },
+
+  onSwitchWritingLightSide(e) {
+    const side = e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.side;
+    if (side !== 'left' && side !== 'right') return;
+    this.setData({ writingLightFromSide: side }, () => {
+      this.updateWritingLightFxStyles();
+      this.persistToolbarSettings({ writingLightFromSide: side });
+    });
+  },
+
+  onWritingLightIntensityChange(e) {
+    const value = Number(e && e.detail && e.detail.value);
+    const nextValue = Number.isFinite(value) ? value : this.data.writingLightIntensity;
+    this.setData({
+      writingLightIntensity: nextValue
+    }, () => {
+      this.updateWritingLightFxStyles();
+      this.persistToolbarSettings({ writingLightIntensity: nextValue });
+    });
+  },
+
+  onWritingLightAngleChange(e) {
+    const value = Number(e && e.detail && e.detail.value);
+    const nextValue = Number.isFinite(value) ? value : this.data.writingLightAngle;
+    this.setData({
+      writingLightAngle: nextValue
+    }, () => {
+      this.updateWritingLightFxStyles();
+      this.persistToolbarSettings({ writingLightAngle: nextValue });
+    });
+  },
+
+  onWritingLightFocusChange(e) {
+    const value = Number(e && e.detail && e.detail.value);
+    const nextValue = Number.isFinite(value) ? value : this.data.writingLightFocus;
+    this.setData({
+      writingLightFocus: nextValue
+    }, () => {
+      this.updateWritingLightFxStyles();
+      this.persistToolbarSettings({ writingLightFocus: nextValue });
+    });
+  },
+
+  onTapToolPackage() {
+    this.openToolPanel('package');
+  },
+
+  onSelectPackageType(e) {
+    const type = e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.type;
+    if (!POST_TYPE_META[type]) {
+      return;
+    }
+
+    this.setData({
+      activePostType: type,
+      pendingPackageType: type,
+      pendingPackageLabel: this.getPostTypeMeta(type).label,
+      postPlaceholder: this.getPostTypeMeta(type).placeholder,
+      packageActionLabel: this.getPostActionMeta(type).cta,
+      activeToolPanel: '',
+      showPackageConfirmDialog: true
+    });
+    this.persistToolbarSettings({ activePostType: type });
+  },
+
+  closePackageConfirmDialog() {
+    this.setData({ showPackageConfirmDialog: false });
+  },
+
+  onSaveDraftPackage() {
+    this.setData({ showPackageConfirmDialog: false });
+    wx.showToast({ title: '已存草稿', icon: 'success' });
+    this.triggerCompanionMoment({
+      state: 'happy',
+      text: '草稿收好啦，随时继续写。',
+      duration: 1200
+    });
+  },
+
+  onConfirmPackageStart() {
+    if (!String(this.data.postContent || '').trim()) {
+      wx.showToast({ title: '先写一点内容再封装', icon: 'none' });
+      return;
+    }
+
+    this.setData({
+      showPackageConfirmDialog: false,
+      showPackagingAnimation: true
+    });
+
+    clearTimeout(this.packageAnimationTimer);
+    this.packageAnimationTimer = setTimeout(() => {
+      this.setData({
+        showPackagingAnimation: false,
+        showPackagePublishDialog: true
+      });
+      this.packageAnimationTimer = null;
+    }, 1200);
+  },
+
+  closePackagePublishDialog() {
+    this.setData({ showPackagePublishDialog: false });
+  },
+
+  onPublishPackagedPost() {
+    this.setData({ showPackagePublishDialog: false });
+    this.publishPost({ visibility: 'public' });
+  },
+
+  onSavePackagedLocal() {
+    this.setData({ showPackagePublishDialog: false });
+    this.publishPost({ visibility: 'private' });
   },
 
   updateOrnamentWindMotion(intensity = 65) {
@@ -714,7 +1222,9 @@ Page({
   },
 
   onSelectHangingOrnament() {
+    this.resetOrnamentDrag();
     this.openToolPanel('ornament');
+    this.setData({ pendingHangingOrnament: this.data.selectedHangingOrnament || 'knot' });
   },
 
   onChooseHangingOrnament(e) {
@@ -722,14 +1232,32 @@ Page({
     if (!HANGING_ORNAMENT_META[key]) {
       return;
     }
+    this.setData({ pendingHangingOrnament: key });
+  },
+
+  onConfirmHangingOrnament() {
+    const key = this.data.pendingHangingOrnament;
+    this.applyHangingOrnament(key, { closePanel: true });
+  },
+
+  applyHangingOrnament(key, options = {}) {
+    if (!HANGING_ORNAMENT_META[key]) {
+      return;
+    }
+    const { closePanel = false } = options;
     const meta = this.getHangingOrnamentMeta(key);
-    this.setData({
+    const nextState = {
       selectedHangingOrnament: key,
+      pendingHangingOrnament: key,
       hangingOrnamentLabel: meta.label,
-      hangingOrnamentSymbol: meta.symbol,
-      showToolPanel: false,
-      activeToolPanel: ''
-    });
+      hangingOrnamentSymbol: meta.symbol
+    };
+    if (closePanel) {
+      nextState.showToolPanel = false;
+      nextState.activeToolPanel = '';
+    }
+    this.setData(nextState);
+    this.persistToolbarSettings({ selectedHangingOrnament: key });
     this.triggerCompanionMoment({
       state: 'happy',
       text: `挂上了${meta.label}，风也变温柔了。`,
@@ -737,18 +1265,151 @@ Page({
     });
   },
 
+  getOrnamentDropZoneBounds() {
+    const width = Number((this.viewportInfo && this.viewportInfo.width) || 375);
+    const left = Math.round(width - 170);
+    const right = Math.round(width - 8);
+    const top = 28;
+    const bottom = 260;
+    return { left, right, top, bottom };
+  },
+
+  isPointInOrnamentDropZone(point = {}) {
+    const x = Number(point.x);
+    const y = Number(point.y);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return false;
+    const bounds = this.getOrnamentDropZoneBounds();
+    return x >= bounds.left && x <= bounds.right && y >= bounds.top && y <= bounds.bottom;
+  },
+
+  updateOrnamentDragVisual(point = {}) {
+    const x = Number(point.x || 0);
+    const y = Number(point.y || 0);
+    const insideHook = this.isPointInOrnamentDropZone({ x, y });
+    const ornamentDragStyle = `left:${Math.round(x - 34)}px;top:${Math.round(y - 34)}px;`;
+    this.setData({
+      ornamentDragStyle,
+      isOrnamentHookHighlighted: insideHook
+    });
+    return insideHook;
+  },
+
+  onOrnamentOptionLongPress(e) {
+    const key = e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.key;
+    if (!HANGING_ORNAMENT_META[key]) {
+      return;
+    }
+    const touch = (e && e.changedTouches && e.changedTouches[0]) || (e && e.touches && e.touches[0]) || {};
+    const point = { x: Number(touch.pageX || 0), y: Number(touch.pageY || 0) };
+    const ornamentDragStyle = `left:${Math.round(point.x - 34)}px;top:${Math.round(point.y - 34)}px;`;
+    const meta = this.getHangingOrnamentMeta(key);
+    this.setData({
+      isOrnamentDragging: true,
+      ornamentDraggingKey: key,
+      ornamentDraggingSymbol: meta.symbol,
+      pendingHangingOrnament: key,
+      ornamentDragStyle,
+      isOrnamentHookHighlighted: this.isPointInOrnamentDropZone(point)
+    });
+  },
+
+  onOrnamentOptionTouchMove(e) {
+    if (!this.data.isOrnamentDragging) {
+      return;
+    }
+    const touch = (e && e.touches && e.touches[0]) || {};
+    this.updateOrnamentDragVisual({
+      x: Number(touch.pageX || 0),
+      y: Number(touch.pageY || 0)
+    });
+  },
+
+  onOrnamentOptionTouchEnd(e) {
+    if (!this.data.isOrnamentDragging) {
+      return;
+    }
+    const touch = (e && e.changedTouches && e.changedTouches[0]) || (e && e.touches && e.touches[0]) || {};
+    const point = { x: Number(touch.pageX || 0), y: Number(touch.pageY || 0) };
+    const isDropSuccess = this.isPointInOrnamentDropZone(point);
+    const dragKey = this.data.ornamentDraggingKey;
+    this.resetOrnamentDrag();
+    if (isDropSuccess && HANGING_ORNAMENT_META[dragKey]) {
+      this.applyHangingOrnament(dragKey, { closePanel: true });
+    }
+  },
+
+  onOrnamentOptionTouchCancel() {
+    this.resetOrnamentDrag();
+  },
+
+  resetOrnamentDrag() {
+    if (
+      !this.data.isOrnamentDragging &&
+      !this.data.isOrnamentHookHighlighted &&
+      !this.data.ornamentDragStyle
+    ) {
+      return;
+    }
+    this.setData({
+      isOrnamentDragging: false,
+      ornamentDragStyle: '',
+      ornamentDraggingKey: '',
+      ornamentDraggingSymbol: '',
+      isOrnamentHookHighlighted: false
+    });
+  },
+
   onTapToolBlindBox() {
-    this.openToolPanel('blindbox');
+    if (this.blindBoxEntryShakeTimer) {
+      clearTimeout(this.blindBoxEntryShakeTimer);
+      this.blindBoxEntryShakeTimer = null;
+    }
+
+    this.setData({ blindBoxEntryShaking: true });
+    this.blindBoxEntryShakeTimer = setTimeout(() => {
+      this.setData({ blindBoxEntryShaking: false });
+      this.blindBoxEntryShakeTimer = null;
+    }, 520);
+
+    this.openBlindBox();
   },
 
   onOpenBlindBoxFromPanel() {
-    this.closeToolPanel();
+    if (!this.data.showToolPanel) {
+      this.setData({ activeToolPanel: '' });
+    } else {
+      this.closeToolPanel();
+    }
     this.openBlindBox();
+  },
+
+  clearBlindBoxTimers() {
+    this.isBlindBoxAnimating = false;
+    if (this.blindBoxEntryShakeTimer) {
+      clearTimeout(this.blindBoxEntryShakeTimer);
+      this.blindBoxEntryShakeTimer = null;
+    }
+    this.setData({ blindBoxEntryShaking: false });
+    if (this.blindBoxRevealTimer) {
+      clearTimeout(this.blindBoxRevealTimer);
+      this.blindBoxRevealTimer = null;
+    }
+    if (this.blindBoxOverlayTimer) {
+      clearTimeout(this.blindBoxOverlayTimer);
+      this.blindBoxOverlayTimer = null;
+    }
+    if (this.ambientSubtitleAnimTimer) {
+      clearTimeout(this.ambientSubtitleAnimTimer);
+      this.ambientSubtitleAnimTimer = null;
+    }
   },
 
   onShow() {
     this.syncThemeFromGlobal();
     this.syncAudioFromGlobal();
+    this.restoreToolbarSettingsFromStorage();
+    this.updateAmbientTimeSlot();
+    this.startAmbientTimeSlotLoop();
     if (this.data.isSceneAutoMode) {
       this.applyImmersiveScene(this.resolveAutoSceneByTime(), {
         persist: true,
@@ -756,7 +1417,9 @@ Page({
         updateAutoMode: true
       });
     }
+    this.initMovableFab({ keepPosition: true });
     this.maybeTriggerCompanionWhisper();
+    this.startCompanionAmbientLoop();
   },
 
   onHide() {
@@ -764,9 +1427,25 @@ Page({
     this.clearCompanionBubbleTimer();
     this.clearCompanionLongPressTimer();
     this.clearCompanionDragSettleTimer();
+    clearTimeout(this.companionTapFeedbackTimer);
+    this.companionTapFeedbackTimer = null;
+    clearTimeout(this.clearSuppressedTapTimer);
+    this.clearSuppressedTapTimer = null;
+    this.shouldSuppressNextPublishTap = false;
+    this.companionTouchStartPoint = null;
+    this.clearBlindBoxTimers();
+    this.stopCompanionAmbientLoop();
+    clearTimeout(this.packageAnimationTimer);
+    this.packageAnimationTimer = null;
+    this.setData({
+      showPackageConfirmDialog: false,
+      showPackagePublishDialog: false,
+      showPackagingAnimation: false
+    });
     this.persistCompanionLastActiveAt();
     clearTimeout(this.sceneEnterTimer);
     clearTimeout(this.sceneRestoreHintTimer);
+    this.stopAmbientTimeSlotLoop();
   },
 
   onUnload() {
@@ -774,9 +1453,25 @@ Page({
     this.clearCompanionBubbleTimer();
     this.clearCompanionLongPressTimer();
     this.clearCompanionDragSettleTimer();
+    clearTimeout(this.companionTapFeedbackTimer);
+    this.companionTapFeedbackTimer = null;
+    clearTimeout(this.clearSuppressedTapTimer);
+    this.clearSuppressedTapTimer = null;
+    this.shouldSuppressNextPublishTap = false;
+    this.companionTouchStartPoint = null;
+    this.clearBlindBoxTimers();
+    this.stopCompanionAmbientLoop();
+    clearTimeout(this.packageAnimationTimer);
+    this.packageAnimationTimer = null;
     this.persistCompanionLastActiveAt();
     clearTimeout(this.sceneEnterTimer);
     clearTimeout(this.sceneRestoreHintTimer);
+    this.stopAmbientTimeSlotLoop();
+
+    if (this.handleWindowResize && wx.offWindowResize) {
+      wx.offWindowResize(this.handleWindowResize);
+      this.handleWindowResize = null;
+    }
   },
 
   persistCompanionLastActiveAt() {
@@ -805,6 +1500,110 @@ Page({
     } catch (e) {
       // ignore
     }
+  },
+
+  getCompanionTimeSlot() {
+    const hour = new Date().getHours();
+    if (hour >= 6 && hour < 11) return 'morning';
+    if (hour >= 11 && hour < 17) return 'noon';
+    if (hour >= 17 && hour < 22) return 'evening';
+    return 'night';
+  },
+
+  maybeTriggerCompanionAmbientInteraction(reason = 'timer') {
+    if (this.data.isBreathingActive || this.data.isCompanionDragging || this.data.showCompanionBubble) {
+      return;
+    }
+
+    const now = Date.now();
+    if (now - (this.lastCompanionAmbientAt || 0) < 24000) {
+      return;
+    }
+
+    const chance = reason === 'resume' ? 0.52 : 0.34;
+    if (Math.random() > chance) {
+      return;
+    }
+
+    const sceneKey = this.data.activeScene || 'rainy';
+    const sceneLines = COMPANION_SCENE_RANDOM_LINES[sceneKey] || COMPANION_SCENE_RANDOM_LINES.rainy;
+    const timeLines = COMPANION_TIME_RANDOM_LINES[this.getCompanionTimeSlot()] || [];
+    const text = pickRandom([...sceneLines, ...timeLines]);
+    if (!text) {
+      return;
+    }
+
+    this.lastCompanionAmbientAt = now;
+    this.triggerCompanionMoment({
+      state: sceneKey === 'rainy' || sceneKey === 'snowy' ? 'idle' : 'happy',
+      text,
+      duration: 1600,
+      restoreAfter: true
+    });
+  },
+
+  scheduleNextCompanionAmbientTick() {
+    clearTimeout(this.companionAmbientTimer);
+    const delay = 28000 + Math.round(Math.random() * 24000);
+    this.companionAmbientTimer = setTimeout(() => {
+      this.maybeTriggerCompanionAmbientInteraction('timer');
+      this.scheduleNextCompanionAmbientTick();
+    }, delay);
+  },
+
+  startCompanionAmbientLoop() {
+    this.stopCompanionAmbientLoop();
+    this.maybeTriggerCompanionAmbientInteraction('resume');
+    this.scheduleNextCompanionAmbientTick();
+  },
+
+  stopCompanionAmbientLoop() {
+    if (this.companionAmbientTimer) {
+      clearTimeout(this.companionAmbientTimer);
+      this.companionAmbientTimer = null;
+    }
+  },
+
+  maybeTriggerCompanionActionInteraction(actionKey = 'generic', options = {}) {
+    if (this.data.isBreathingActive || this.data.isCompanionDragging || this.data.showCompanionBubble) {
+      return;
+    }
+
+    const chanceMap = {
+      switchPostType: 0.52,
+      focusInput: 0.3,
+      blurInput: 0.18,
+      theme: 0.45,
+      sceneIntensity: 0.2,
+      volume: 0.2,
+      generic: 0.16
+    };
+
+    const now = Date.now();
+    const cooldown = Number(options.cooldown || 7000);
+    if (now - (this.lastCompanionActionAt || 0) < cooldown) {
+      return;
+    }
+
+    const chance = typeof options.chance === 'number'
+      ? options.chance
+      : (chanceMap[actionKey] || chanceMap.generic);
+    if (Math.random() > chance) {
+      return;
+    }
+
+    const text = pickRandom(COMPANION_ACTION_RANDOM_LINES[actionKey] || COMPANION_ACTION_RANDOM_LINES.generic);
+    if (!text) {
+      return;
+    }
+
+    this.lastCompanionActionAt = now;
+    this.triggerCompanionMoment({
+      state: 'happy',
+      text,
+      duration: 1100,
+      restoreAfter: true
+    });
   },
 
   syncAudioFromGlobal() {
@@ -841,8 +1640,18 @@ Page({
       ? getThemeTypeById(theme.id)
       : activeThemeType;
 
+    const resolvedTheme = {
+      ...theme,
+      bodyTextColor: theme.bodyTextColor || theme.textColor || '#334155',
+      titleTextColor: theme.titleTextColor || '#1F2937',
+      subtitleTextColor: theme.subtitleTextColor || '#64748B',
+      tertiaryTextColor: theme.tertiaryTextColor || '#94A3B8',
+      inverseTextColor: theme.inverseTextColor || '#FFFFFF'
+    };
+
     this.setData({
-      theme,
+      theme: resolvedTheme,
+      textPalette: resolveSemanticTextPalette(resolvedTheme),
       activeThemeType: resolvedType,
       filteredThemes: getThemesByType(resolvedType),
       companionVisualType: resolvedType === THEME_STYLE_TYPES.MALE ? 'core' : 'cloud'
@@ -887,12 +1696,14 @@ Page({
   onPageChange(e) {
     const current = e.detail.current;
     this.setData({ currentPage: current });
+    this.initMovableFab({ keepPosition: true });
   },
 
   // 切换页面
   switchPage(e) {
     const page = parseInt(e.currentTarget.dataset.page);
     this.setData({ currentPage: page });
+    this.initMovableFab({ keepPosition: true });
   },
 
 
@@ -1107,14 +1918,53 @@ Page({
     const postContent = e.detail.value;
     this.setData({ postContent });
     this.updateCompanionEmotionByInput(postContent);
+    this.maybeUpdateAmbientSubtitleByInput(postContent);
+  },
+
+  maybeUpdateAmbientSubtitleByInput(content = '') {
+    const text = String(content || '').trim();
+    if (text.length < 8 || this.isBlindBoxAnimating) {
+      return;
+    }
+
+    const now = Date.now();
+    const cooldown = 6000;
+    if (this.lastAmbientInputHintAt && now - this.lastAmbientInputHintAt < cooldown) {
+      return;
+    }
+
+    const mood = resolveCompanionStateByText(text);
+    const candidateList = WRITING_AMBIENT_INPUT_HINTS[mood] || WRITING_AMBIENT_INPUT_HINTS.idle;
+    const nextHint = pickRandom(candidateList) || WRITING_AMBIENT_INPUT_HINTS.idle[0];
+    if (!nextHint || nextHint === this.data.writingAmbientSubtitle) {
+      return;
+    }
+
+    this.lastAmbientInputHintAt = now;
+    if (this.ambientSubtitleAnimTimer) {
+      clearTimeout(this.ambientSubtitleAnimTimer);
+      this.ambientSubtitleAnimTimer = null;
+    }
+
+    this.setData({
+      isAmbientSubtitleAnimating: true,
+      writingAmbientSubtitle: nextHint
+    });
+
+    this.ambientSubtitleAnimTimer = setTimeout(() => {
+      this.setData({ isAmbientSubtitleAnimating: false });
+      this.ambientSubtitleAnimTimer = null;
+    }, 520);
   },
 
   onPostFocus() {
     this.setData({ isWritingFocused: true });
+    this.maybeTriggerCompanionActionInteraction('focusInput');
   },
 
   onPostBlur() {
     this.setData({ isWritingFocused: false });
+    this.maybeTriggerCompanionActionInteraction('blurInput', { cooldown: 12000 });
   },
 
   onLetterSalutationInput(e) {
@@ -1167,22 +2017,55 @@ Page({
   },
 
   onCompanionTap() {
+    if (this.shouldSuppressNextPublishTap) {
+      this.shouldSuppressNextPublishTap = false;
+      return;
+    }
+
+    if (this.isFabDragging) {
+      return;
+    }
+
     if (this.data.isBreathingActive) {
       return;
     }
 
-    this.setData({ companionIsShy: true });
-    this.showCompanionBubble('嘿～我一直在你身边。', 1400);
+    try {
+      wx.vibrateShort && wx.vibrateShort({ type: 'light' });
+    } catch (e) {
+      // ignore
+    }
+
+    this.setData({
+      companionIsShy: true,
+      companionTapFeedback: true
+    });
+    this.showCompanionBubble('收到你的戳戳啦～我在这儿。', 1400);
+
+    clearTimeout(this.companionTapFeedbackTimer);
+    this.companionTapFeedbackTimer = setTimeout(() => {
+      this.setData({ companionTapFeedback: false });
+      this.companionTapFeedbackTimer = null;
+    }, 220);
 
     setTimeout(() => {
       this.setData({ companionIsShy: false });
     }, 280);
   },
 
-  onCompanionTouchStart() {
+  onCompanionTouchStart(e) {
     this.clearCompanionLongPressTimer();
+    this.clearCompanionDragSettleTimer();
     this.isFabDragging = false;
     this.prevFabDragPoint = null;
+    this.shouldSuppressNextPublishTap = false;
+    this.dragFeedbackShown = false;
+
+    const touch = (e && e.touches && e.touches[0]) || null;
+    this.companionTouchStartPoint = touch
+      ? { x: Number(touch.pageX || 0), y: Number(touch.pageY || 0) }
+      : null;
+
     this.setData({ isCompanionLongPressTriggered: false });
 
     this.companionLongPressTimer = setTimeout(() => {
@@ -1191,12 +2074,38 @@ Page({
     }, 420);
   },
 
-  onCompanionTouchEnd() {
+  onCompanionTouchEnd(e) {
     this.clearCompanionLongPressTimer();
 
-    if (this.isFabDragging) {
+    const touch = (e && e.changedTouches && e.changedTouches[0]) || null;
+    const endPoint = touch
+      ? { x: Number(touch.pageX || 0), y: Number(touch.pageY || 0) }
+      : null;
+    const startPoint = this.companionTouchStartPoint;
+    const moveDistance = startPoint && endPoint
+      ? Math.hypot(endPoint.x - startPoint.x, endPoint.y - startPoint.y)
+      : 0;
+    const hasMoved = moveDistance >= 6;
+
+    this.companionTouchStartPoint = null;
+
+    if (this.isFabDragging || hasMoved) {
+      try {
+        wx.vibrateShort && wx.vibrateShort({ type: 'light' });
+      } catch (e) {
+        // ignore
+      }
+
+      this.showCompanionBubble('好啦，新位置记住了。', 900);
       this.shouldSuppressNextPublishTap = true;
+      clearTimeout(this.clearSuppressedTapTimer);
+      this.clearSuppressedTapTimer = setTimeout(() => {
+        this.shouldSuppressNextPublishTap = false;
+        this.clearSuppressedTapTimer = null;
+      }, 320);
+
       this.isFabDragging = false;
+      this.prevFabDragPoint = null;
       this.setData({ isCompanionLongPressTriggered: false });
       return;
     }
@@ -1211,6 +2120,8 @@ Page({
 
   onCompanionTouchCancel() {
     this.clearCompanionLongPressTimer();
+    this.companionTouchStartPoint = null;
+    this.prevFabDragPoint = null;
     this.isFabDragging = false;
     this.stopBreathingGuide({ silent: true });
     this.setData({ isCompanionLongPressTriggered: false });
@@ -1225,6 +2136,7 @@ Page({
 
   showCompanionBubble(text = '', duration = 2000) {
     if (!text) return;
+    this.updateCompanionBubbleLayout(this.data.fabX, this.data.fabY);
     this.clearCompanionBubbleTimer();
     this.setData({
       companionBubbleText: text,
@@ -1254,9 +2166,13 @@ Page({
   onFabDragChange(e) {
     const detail = e.detail || {};
     const { x = this.data.fabX, y = this.data.fabY, source = '' } = detail;
+    const clampedPoint = this.clampFabPosition(x, y);
+    const nextX = clampedPoint.x;
+    const nextY = clampedPoint.y;
 
-    if (source !== 'touch') {
-      this.setData({ fabX: x, fabY: y });
+    if (source !== 'touch' && source !== 'touch-out-of-bounds') {
+      this.setData({ fabX: nextX, fabY: nextY });
+      this.updateCompanionBubbleLayout(nextX, nextY);
       return;
     }
 
@@ -1272,10 +2188,10 @@ Page({
     }
 
     const now = Date.now();
-    const prev = this.prevFabDragPoint || { x, y, t: now };
+    const prev = this.prevFabDragPoint || { x: nextX, y: nextY, t: now };
     const dt = Math.max(16, now - prev.t);
-    const dx = x - prev.x;
-    const dy = y - prev.y;
+    const dx = nextX - prev.x;
+    const dy = nextY - prev.y;
     const speed = Math.sqrt(dx * dx + dy * dy) / dt;
 
     let companionDragLevel = 1;
@@ -1285,16 +2201,22 @@ Page({
       companionDragLevel = 2;
     }
 
-    this.prevFabDragPoint = { x, y, t: now };
+    this.prevFabDragPoint = { x: nextX, y: nextY, t: now };
+
+    if (!this.dragFeedbackShown && speed > 0.28) {
+      this.dragFeedbackShown = true;
+      this.showCompanionBubble(speed > 0.95 ? '慢一点点，我跟上啦～' : '拖着我去你喜欢的位置吧。', 700);
+    }
 
     this.setData({
-      fabX: x,
-      fabY: y,
+      fabX: nextX,
+      fabY: nextY,
       companionDragLevel,
       isCompanionDragging: true
     });
 
-    this.emitCompanionTrailParticle(x, y, speed);
+    this.updateCompanionBubbleLayout(nextX, nextY);
+    this.emitCompanionTrailParticle(nextX, nextY, speed);
 
     this.clearCompanionDragSettleTimer();
     this.companionDragSettleTimer = setTimeout(() => {
@@ -1419,6 +2341,33 @@ Page({
       square: 'squarePostList'
     };
     return map[tab] || 'myDiaryList';
+  },
+
+  navigateToPostDetail(post = {}, sourceTab = 'square') {
+    if (!post || !post.id) {
+      return;
+    }
+    const payload = encodeURIComponent(JSON.stringify({
+      ...post,
+      sourceTab,
+      isOwner: false
+    }));
+    wx.navigateTo({
+      url: `/pages/detail/index?payload=${payload}`
+    });
+  },
+
+  onOpenSquarePostDetail(e) {
+    const { id, tab = 'square' } = e.currentTarget.dataset || {};
+    if (!id) {
+      return;
+    }
+    const listKey = this.getListKeyByTab(tab);
+    const target = (this.data[listKey] || []).find((item) => item.id === id);
+    if (!target) {
+      return;
+    }
+    this.navigateToPostDetail(target, tab);
   },
 
   async onShatterCard(e) {
@@ -1547,6 +2496,7 @@ Page({
     const themeState = app.switchTheme(theme.id);
     this.applyThemeState(themeState);
     this.syncAudioFromGlobal();
+    this.maybeTriggerCompanionActionInteraction('theme');
   },
 
   toggleAudioPlay() {
@@ -1619,6 +2569,7 @@ Page({
       rainDrops: activeScene === 'rainy' ? this.buildRainDrops() : []
     });
     this.updateOrnamentWindMotion(safe);
+    this.maybeTriggerCompanionActionInteraction('sceneIntensity', { cooldown: 9000 });
 
     try {
       wx.setStorageSync('homeSceneIntensity', safe);
@@ -1647,6 +2598,7 @@ Page({
     const app = getApp();
     app.setAudioVolume(value / 100);
     this.setData({ audioVolume: value });
+    this.maybeTriggerCompanionActionInteraction('volume', { cooldown: 9000 });
   },
 
   // 跳转到我的发布
@@ -1675,36 +2627,49 @@ Page({
 
   // 打开解忧盲盒
   openBlindBox() {
+    this.isBlindBoxAnimating = true;
+    this.clearBlindBoxTimers();
+    this.isBlindBoxAnimating = true;
+
     // 触发震动
     wx.vibrateShort();
-    
-    // 开始翻转动画
-    this.setData({ isFlipping: true });
+
+    const quotes = [
+      '每一个清晨都是新的开始，愿你今天充满阳光。',
+      '生活不是等待暴风雨过去，而是学会在雨中跳舞。',
+      '你不必完美，你已经足够好。',
+      '今天的你，比昨天更勇敢。',
+      '每一个小确幸，都是生活的礼物。',
+      '相信自己，你比想象中更强大。',
+      '慢慢来，一切都会好起来的。',
+      '你值得被爱，值得拥有所有美好。'
+    ];
+    const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+
+    // 开始开盒动画（中间区域）
+    this.setData({
+      isFlipping: true,
+      showQuote: true,
+      currentQuote: randomQuote,
+      showBlindBoxCenterFx: true,
+      blindBoxCenterQuote: '',
+      blindBoxCenterRevealed: false,
+      isAmbientSubtitleAnimating: false,
+      activeToolPanel: ''
+    });
+
     this.triggerCompanionMoment({
       state: 'happy',
       text: '我来帮你拆开这份礼物。',
       duration: 1000,
       restoreAfter: false
     });
-    
-    // 1秒后显示文案
-    setTimeout(() => {
-      // 随机生成治愈文案
-      const quotes = [
-        '每一个清晨都是新的开始，愿你今天充满阳光。',
-        '生活不是等待暴风雨过去，而是学会在雨中跳舞。',
-        '你不必完美，你已经足够好。',
-        '今天的你，比昨天更勇敢。',
-        '每一个小确幸，都是生活的礼物。',
-        '相信自己，你比想象中更强大。',
-        '慢慢来，一切都会好起来的。',
-        '你值得被爱，值得拥有所有美好。'
-      ];
-      const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
-      
+
+    // 先播放开盒，再展示结果
+    this.blindBoxRevealTimer = setTimeout(() => {
       this.setData({
-        showQuote: true,
-        currentQuote: randomQuote
+        blindBoxCenterQuote: randomQuote,
+        blindBoxCenterRevealed: true
       });
 
       this.triggerCompanionMoment({
@@ -1713,6 +2678,29 @@ Page({
         duration: 1600,
         restoreAfter: true
       });
-    }, 600);
+
+      // 结果展示 1.5 秒后，收束到挂件下方副标题
+      this.blindBoxOverlayTimer = setTimeout(() => {
+        this.setData({
+          showBlindBoxCenterFx: false,
+          blindBoxCenterRevealed: false,
+          isAmbientSubtitleAnimating: true,
+          writingAmbientSubtitle: randomQuote
+        });
+
+        this.ambientSubtitleAnimTimer = setTimeout(() => {
+          this.setData({
+            isAmbientSubtitleAnimating: false,
+            isFlipping: false
+          });
+          this.ambientSubtitleAnimTimer = null;
+          this.isBlindBoxAnimating = false;
+        }, 700);
+
+        this.blindBoxOverlayTimer = null;
+      }, 1500);
+
+      this.blindBoxRevealTimer = null;
+    }, 450);
   }
 });

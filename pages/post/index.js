@@ -51,18 +51,24 @@ Page({
     isShredCanvasVisible: false,
     shatteringCardIds: [],
     myPostList: [],
-    diaryList: []
+    diaryList: [],
+    myPublishTab: 'public',
+    publicPostList: [],
+    privatePostList: []
   },
 
   onLoad() {
     this.setData({
       myPostList: this.getInitialMyPostList(),
       diaryList: this.getInitialDiaryList()
+    }, () => {
+      this.rebuildPublishTabLists();
     });
     this.syncThemeFromGlobal();
   },
 
   onShow() {
+    this.rebuildPublishTabLists();
     this.syncThemeFromGlobal();
   },
 
@@ -91,6 +97,7 @@ Page({
         type: 'letter',
         content: '今天尝试把焦虑写出来，果然轻松了很多。',
         time: '今天 09:16',
+        visibility: 'public',
         letterSalutation: '亲爱的你',
         letterSignature: '—— 来自今天更坦诚的我'
       }),
@@ -151,7 +158,8 @@ Page({
     diaryWeather = '',
     diaryMoodScore,
     vlogScriptTemplate = '',
-    visibility = 'private'
+    visibility = 'private',
+    scenePackage = null
   } = {}) {
     const meta = this.getPostTypeMeta(type);
     const safeMood = Number(diaryMoodScore);
@@ -171,9 +179,19 @@ Page({
       diaryMoodScore: type === 'diary' ? moodScore : null,
       vlogScriptTemplate: type === 'vlog' ? safeScriptTemplate : '',
       vlogShots: type === 'vlog' ? this.buildVlogShots(safeScriptTemplate) : [],
+      scenePackage: scenePackage || this.buildDefaultScenePackage(),
       visibility,
       content,
       time
+    };
+  },
+
+  buildDefaultScenePackage() {
+    return {
+      sceneKey: 'rainy',
+      sceneIntensity: 65,
+      themeId: Number(this.data.theme && this.data.theme.id),
+      capturedAt: Date.now()
     };
   },
 
@@ -272,6 +290,7 @@ Page({
       content: postContent.trim(),
       time: '刚刚',
       visibility,
+      scenePackage: this.buildDefaultScenePackage(),
       letterSalutation,
       letterSignature,
       postcardLocation,
@@ -284,6 +303,8 @@ Page({
       postContent: '',
       myPostList: activePostType === 'diary' ? myPostList : [newItem, ...myPostList],
       diaryList: activePostType === 'diary' ? [newItem, ...diaryList] : diaryList
+    }, () => {
+      this.rebuildPublishTabLists();
     });
 
     const actionMeta = this.getPostActionMeta(activePostType);
@@ -355,6 +376,57 @@ Page({
     return type === 'diary' ? 'diaryList' : 'myPostList';
   },
 
+  rebuildPublishTabLists() {
+    const postList = (this.data.myPostList || []).map((item) => ({
+      ...item,
+      sourceType: 'post'
+    }));
+    const diaryList = (this.data.diaryList || []).map((item) => ({
+      ...item,
+      sourceType: 'diary'
+    }));
+    const merged = [...postList, ...diaryList];
+    const publicPostList = merged.filter((item) => item.visibility === 'public');
+    const privatePostList = merged.filter((item) => item.visibility !== 'public');
+    this.setData({ publicPostList, privatePostList });
+  },
+
+  switchMyPublishTab(e) {
+    const tab = e.currentTarget.dataset.tab;
+    if (!['public', 'private'].includes(tab) || tab === this.data.myPublishTab) {
+      return;
+    }
+    this.setData({ myPublishTab: tab });
+  },
+
+  navigateToPostDetail(post = {}, sourceTab = 'post') {
+    if (!post || !post.id) {
+      return;
+    }
+    const isOwner = true;
+    const payload = encodeURIComponent(JSON.stringify({
+      ...post,
+      sourceTab,
+      isOwner
+    }));
+    wx.navigateTo({
+      url: `/pages/detail/index?payload=${payload}`
+    });
+  },
+
+  onOpenPostDetail(e) {
+    const { id, type = 'post' } = e.currentTarget.dataset || {};
+    if (!id) {
+      return;
+    }
+    const listKey = this.getListKeyByType(type);
+    const target = (this.data[listKey] || []).find((item) => item.id === id);
+    if (!target) {
+      return;
+    }
+    this.navigateToPostDetail(target, type);
+  },
+
   async onShatterCard(e) {
     const { id, type } = e.currentTarget.dataset;
     if (!id || this.data.shatteringCardIds.includes(id)) {
@@ -362,6 +434,19 @@ Page({
     }
 
     const listKey = this.getListKeyByType(type);
+    const target = (this.data[listKey] || []).find((item) => item.id === id);
+    if (!target) {
+      return;
+    }
+
+    if (target.visibility === 'public') {
+      wx.showToast({
+        title: '公开内容请先撤回为私密',
+        icon: 'none'
+      });
+      return;
+    }
+
     const app = getApp();
 
     this.triggerShatterFeedback();
@@ -378,6 +463,8 @@ Page({
       this.setData({
         [listKey]: (this.data[listKey] || []).filter((item) => item.id !== id),
         shatteringCardIds: this.data.shatteringCardIds.filter((itemId) => itemId !== id)
+      }, () => {
+        this.rebuildPublishTabLists();
       });
 
       wx.showToast({
@@ -385,5 +472,33 @@ Page({
         icon: 'success'
       });
     }, 360);
+  },
+
+  onSetPrivate(e) {
+    const { id, type } = e.currentTarget.dataset || {};
+    if (!id) {
+      return;
+    }
+    const listKey = this.getListKeyByType(type);
+    const nextList = (this.data[listKey] || []).map((item) => {
+      if (item.id !== id) {
+        return item;
+      }
+      return {
+        ...item,
+        visibility: 'private'
+      };
+    });
+
+    this.setData({
+      [listKey]: nextList
+    }, () => {
+      this.rebuildPublishTabLists();
+    });
+
+    wx.showToast({
+      title: '已撤回到本地私密',
+      icon: 'success'
+    });
   }
 });
