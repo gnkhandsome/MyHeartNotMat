@@ -33,12 +33,6 @@ const POST_TYPE_META = {
     icon: '📔',
     placeholder: '记录今天的细节，允许情绪自然流动。',
     tagline: '把一天写进页角'
-  },
-  vlog: {
-    label: 'Vlog',
-    icon: '🎬',
-    placeholder: '用镜头感描述今天，像在给生活做旁白。',
-    tagline: '镜头语气，生活片段'
   }
 };
 
@@ -54,10 +48,6 @@ const POST_ACTION_META = {
   diary: {
     cta: '收进日记页',
     done: '日记已收好'
-  },
-  vlog: {
-    cta: '发出片段',
-    done: '片段已整理好'
   }
 };
 
@@ -65,12 +55,6 @@ const POST_TYPES = Object.keys(POST_TYPE_META).map((key) => ({
   key,
   ...POST_TYPE_META[key]
 }));
-
-const DEFAULT_VLOG_SCRIPT_TEMPLATE = [
-  '镜头1｜环境：3秒氛围空镜（天空/街道/窗边）',
-  '镜头2｜主叙事：10秒记录当下动作与感受',
-  '镜头3｜收束：5秒总结一句今天的话'
-].join('\n');
 
 const IMMERSIVE_SCENE_META = {
   sunny: {
@@ -252,7 +236,6 @@ Page({
     postcardLocation: '上海 · 黄昏街角',
     diaryWeather: '多云',
     diaryMoodScore: 7,
-    vlogScriptTemplate: DEFAULT_VLOG_SCRIPT_TEMPLATE,
     writingDateText: '',
     isAnonymous: true,
     
@@ -572,12 +555,21 @@ Page({
     const viewport = this.viewportInfo || {};
     const width = Number(viewport.width || 375);
     const height = Number(viewport.height || 667);
-    const side = Number(x) > width * 0.58 ? 'left' : 'right';
-    const vertical = Number(y) < height * 0.22
-      ? 'bottom'
-      : Number(y) > height * 0.68
-        ? 'top'
-        : 'middle';
+    
+    let side = this.data.companionBubbleSide || 'right';
+    let vertical = this.data.companionBubbleVertical || 'middle';
+    
+    if (Number(x) > width * 0.65) {
+      side = 'left';
+    } else if (Number(x) < width * 0.35) {
+      side = 'right';
+    }
+    
+    if (Number(y) < height * 0.25) {
+      vertical = 'bottom';
+    } else if (Number(y) > height * 0.75) {
+      vertical = 'top';
+    }
 
     if (
       side !== this.data.companionBubbleSide ||
@@ -832,9 +824,7 @@ Page({
     return [
       this.createTypedPostItem({ id: 'square-1', type: 'diary', content: '今天心情有点低落，希望明天会更好。', time: '10分钟前', diaryWeather: '小雨', diaryMoodScore: 4 }),
       this.createTypedPostItem({ id: 'square-2', type: 'postcard', content: '分享一首喜欢的歌，希望大家都能感受到快乐。', time: '30分钟前', postcardLocation: '成都 · 春熙路' }),
-      this.createTypedPostItem({ id: 'square-3', type: 'vlog', content: '今天天气很好，出去散步了，感觉心情舒畅了很多。', time: '1小时前', vlogScriptTemplate: '镜头1｜公园树影\n镜头2｜步伐与呼吸\n镜头3｜抬头看天收尾' }),
-      this.createTypedPostItem({ id: 'square-4', type: 'letter', content: '今天和朋友一起吃饭，聊了很多，感觉很开心。', time: '2小时前', letterSalutation: '亲爱的你', letterSignature: '—— 今晚很满足的我' }),
-      this.createTypedPostItem({ id: 'square-5', type: 'vlog', content: '工作上遇到了一些挑战，但是我相信自己可以克服。', time: '3小时前', vlogScriptTemplate: '镜头1｜工位与文件\n镜头2｜难点拆解过程\n镜头3｜完成后微笑' })
+      this.createTypedPostItem({ id: 'square-4', type: 'letter', content: '今天和朋友一起吃饭，聊了很多，感觉很开心。', time: '2小时前', letterSalutation: '亲爱的你', letterSignature: '—— 今晚很满足的我' })
     ];
   },
 
@@ -846,13 +836,7 @@ Page({
     return POST_ACTION_META[type] || POST_ACTION_META.letter;
   },
 
-  buildVlogShots(template = '') {
-    return String(template || '')
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .slice(0, 4);
-  },
+
 
   createTypedPostItem({
     id,
@@ -864,13 +848,11 @@ Page({
     postcardLocation = '',
     diaryWeather = '',
     diaryMoodScore,
-    vlogScriptTemplate = '',
     scenePackage = null
   } = {}) {
     const meta = this.getPostTypeMeta(type);
     const safeMood = Number(diaryMoodScore);
     const moodScore = Number.isFinite(safeMood) ? Math.max(1, Math.min(10, Math.round(safeMood))) : null;
-    const safeScriptTemplate = (vlogScriptTemplate || DEFAULT_VLOG_SCRIPT_TEMPLATE).trim();
 
     return {
       id: id || `post-${Date.now()}`,
@@ -878,14 +860,11 @@ Page({
       typeLabel: meta.label,
       typeIcon: meta.icon,
       typeTagline: meta.tagline,
-      vlogDuration: type === 'vlog' ? `0${Math.floor(Math.random() * 3) + 1}:${Math.floor(Math.random() * 50 + 10)}` : '',
       letterSalutation: type === 'letter' ? (letterSalutation || '亲爱的你') : '',
       letterSignature: type === 'letter' ? (letterSignature || '—— 今晚的你') : '',
       postcardLocation: type === 'postcard' ? (postcardLocation || '未署名地点') : '',
       diaryWeather: type === 'diary' ? (diaryWeather || '天气未记录') : '',
       diaryMoodScore: type === 'diary' ? moodScore : null,
-      vlogScriptTemplate: type === 'vlog' ? safeScriptTemplate : '',
-      vlogShots: type === 'vlog' ? this.buildVlogShots(safeScriptTemplate) : [],
       scenePackage,
       content,
       time
@@ -1699,6 +1678,11 @@ Page({
     this.initMovableFab({ keepPosition: true });
   },
 
+  // 阻止页面滑动切换
+  onSwiperTouchMove() {
+    return false;
+  },
+
   // 切换页面
   switchPage(e) {
     const page = parseInt(e.currentTarget.dataset.page);
@@ -1988,9 +1972,7 @@ Page({
     this.setData({ diaryMoodScore: Number.isFinite(value) ? value : 5 });
   },
 
-  onVlogScriptTemplateInput(e) {
-    this.setData({ vlogScriptTemplate: e.detail.value });
-  },
+
 
   updateCompanionEmotionByInput(content = '') {
     if (this.data.isBreathingActive) {

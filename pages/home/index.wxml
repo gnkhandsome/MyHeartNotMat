@@ -36,26 +36,26 @@
   </view>
 
   <!-- 页面容器 -->
-  <swiper class="page-swiper" current="{{currentPage}}" bindchange="onPageChange" duration="0">
+  <swiper class="page-swiper" current="{{currentPage}}" bindchange="onPageChange" duration="0" catchtouchmove="onSwiperTouchMove" disable-touch="true">
     <!-- 心语页面 -->
     <swiper-item>
-      <view class="page-container">
+      <view class="page-container" catchtouchmove="onSwiperTouchMove">
         <!-- 写作场景 -->
         <view class="writing-workspace {{isWritingFocused ? 'writing-focused' : ''}}">
           <view class="writing-left-rail">
-            <view class="left-entry-card" bindtap="onSelectHangingOrnament" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+            <view class="left-entry-card" bindtap="onSelectHangingOrnament">
               <text class="left-entry-icon">🪢</text>
             </view>
 
-            <view class="left-entry-card" bindtap="onTapToolTheme" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+            <view class="left-entry-card" bindtap="onTapToolTheme">
               <text class="left-entry-icon">🎨</text>
             </view>
 
-            <view class="left-entry-card" bindtap="onTapToolBlindBox" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+            <view class="left-entry-card" bindtap="onTapToolBlindBox">
               <text class="left-entry-icon {{blindBoxEntryShaking ? 'shake' : ''}}">🎁</text>
             </view>
 
-            <view class="left-entry-card" bindtap="onTapToolPackage" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+            <view class="left-entry-card" bindtap="onTapToolPackage">
               <text class="left-entry-icon">📦</text>
             </view>
           </view>
@@ -113,11 +113,7 @@
                   </view>
                 </view>
 
-                <view wx:if="{{activePostType === 'vlog'}}" class="vlog-head-meta">
-                  <view class="vlog-shot-chip">镜头1｜环境空镜</view>
-                  <view class="vlog-shot-chip">镜头2｜主叙事动作</view>
-                  <view class="vlog-shot-chip">镜头3｜收尾情绪</view>
-                </view>
+
               </view>
 
               <scroll-view class="paper-body-scroll type-{{activePostType}}" scroll-y="true" scrollbar-hidden="true">
@@ -140,11 +136,7 @@
                     </view>
                   </view>
 
-                  <view wx:if="{{activePostType === 'vlog'}}" class="immersive-form-panel">
-                    <view class="immersive-form-row">
-                      <textarea class="immersive-script-input" auto-height="true" placeholder="镜头脚本模板（每行一个镜头）" value="{{vlogScriptTemplate}}" bindinput="onVlogScriptTemplateInput" />
-                    </view>
-                  </view>
+
                 </view>
               </scroll-view>
 
@@ -167,39 +159,37 @@
                 <text class="paper-footer-line" style="color: {{textPalette.subtitle}};">天气：{{diaryWeather || '未填写'}} · 心情分：{{diaryMoodScore}}/10</text>
               </view>
 
-              <view class="paper-footer type-{{activePostType}}" wx:if="{{activePostType === 'vlog'}}">
-                <text class="paper-footer-line" style="color: {{textPalette.subtitle}};">脚本模式：多行分镜，逐镜头记录</text>
-              </view>
+
 
             </view>
           </view>
 
           <view class="writing-right-rail">
-            <view class="left-entry-card right-entry-card" bindtap="onTapToolTemplate" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+            <view class="left-entry-card right-entry-card" bindtap="onTapToolTemplate">
               <text class="left-entry-icon">🧩</text>
             </view>
 
-            <view class="left-entry-card right-entry-card" bindtap="toggleAudioPlay" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+            <view class="left-entry-card right-entry-card" bindtap="toggleAudioPlay">
               <text class="left-entry-icon">{{isAudioPlaying ? '⏸' : '▶'}}</text>
             </view>
 
-            <view class="left-entry-card right-entry-card" bindtap="toggleRainMode" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+            <view class="left-entry-card right-entry-card" bindtap="toggleRainMode">
               <text class="left-entry-icon">🌧️</text>
             </view>
 
-            <view class="left-entry-card right-entry-card" bindtap="onTapToolVolume" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+            <view class="left-entry-card right-entry-card" bindtap="onTapToolVolume">
               <text class="left-entry-icon">🔊</text>
             </view>
 
-            <view class="left-entry-card right-entry-card" bindtap="onTapToolScene" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+            <view class="left-entry-card right-entry-card" bindtap="onTapToolScene">
               <text class="left-entry-icon">🌌</text>
             </view>
 
-            <view class="left-entry-card right-entry-card" bindtap="onTapToolIntensity" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+            <view class="left-entry-card right-entry-card" bindtap="onTapToolIntensity">
               <text class="left-entry-icon">🎚️</text>
             </view>
 
-            <view class="left-entry-card right-entry-card" bindtap="onTapToolLight" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+            <view class="left-entry-card right-entry-card" bindtap="onTapToolLight">
               <text class="left-entry-icon">💡</text>
             </view>
           </view>
@@ -208,7 +198,7 @@
 
           <view wx:if="{{!showToolPanel && (activeToolPanel === 'template' || activeToolPanel === 'volume' || activeToolPanel === 'scene' || activeToolPanel === 'intensity' || activeToolPanel === 'light')}}" class="mini-tool-pop right" catchtap="onTapToolPanelBody" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
             <view class="mini-tool-head">
-              <text class="mini-tool-title" style="color: {{textPalette.title}};">{{activeToolPanel === 'template' ? '写作模板' : (activeToolPanel === 'volume' ? '音量' : (activeToolPanel === 'scene' ? '场景' : (activeToolPanel === 'intensity' ? '强度' : '灯光'))))}}</text>
+              <text class="mini-tool-title" style="color: {{textPalette.title}};">{{activeToolPanel === 'template' ? '写作模板' : (activeToolPanel === 'volume' ? '音量' : (activeToolPanel === 'scene' ? '场景' : (activeToolPanel === 'intensity' ? '强度' : '灯光')))}}</text>
               <text class="mini-tool-close" bindtap="closeToolPanel" style="color: {{theme.primaryColor}};">收起</text>
             </view>
 
@@ -332,10 +322,7 @@
                 <text class="package-tool-icon">📓</text>
                 <text class="package-tool-label">封装日志</text>
               </view>
-              <view class="package-tool-item" data-type="vlog" bindtap="onSelectPackageType">
-                <text class="package-tool-icon">🎬</text>
-                <text class="package-tool-label">封装脚本</text>
-              </view>
+
             </view>
           </view>
 
@@ -401,7 +388,7 @@
     
     <!-- 广场页面 -->
     <swiper-item>
-      <view class="page-container">
+      <view class="page-container" catchtouchmove="onSwiperTouchMove">
         <view class="square-header" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
           <text class="square-title" style="color: {{textPalette.title}};">心语广场</text>
           <text class="square-subtitle" style="color: {{textPalette.subtitle}};">分享你的心情，倾听他人的故事</text>
@@ -436,12 +423,7 @@
               <text class="post-text" style="color: {{textPalette.body}};">{{item.content}}</text>
             </view>
 
-            <view wx:if="{{item.type === 'vlog'}}" class="post-card-content type-vlog">
-              <view class="post-vlog-shots" wx:if="{{item.vlogShots && item.vlogShots.length}}">
-                <text wx:for="{{item.vlogShots}}" wx:key="index" class="post-vlog-shot">{{item}}</text>
-              </view>
-              <text class="post-text" style="color: {{textPalette.body}};">{{item.content}}</text>
-            </view>
+
 
             <view class="post-card-footer">
               <text class="post-card-enter-hint" style="color: {{textPalette.subtitle}};">点击进入内容详情</text>
@@ -453,7 +435,7 @@
     
     <!-- 我的页面 -->
     <swiper-item>
-      <view class="page-container">
+      <view class="page-container" catchtouchmove="onSwiperTouchMove">
         <!-- 大留白用户信息区 -->
         <view class="user-info" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
           <view class="avatar-container">
@@ -667,8 +649,8 @@
       class="fab-movable-view"
       direction="all"
       inertia="false"
-      damping="2"
-      friction="0.5"
+      damping="1"
+      friction="0.8"
       x="{{fabX}}"
       y="{{fabY}}"
       bindchange="onFabDragChange"

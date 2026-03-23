@@ -597,37 +597,34 @@
   min-height: 0;
   position: relative;
   display: flex;
-  padding: 14rpx 12rpx calc(16rpx + env(safe-area-inset-bottom));
+  padding: 14rpx 12rpx calc(16rpx + env(safe-area-inset-bottom) + 50rpx);
   box-sizing: border-box;
 }
 
 .writing-left-rail {
   position: absolute;
   left: 22rpx;
-  top: 40rpx;
+  top: 50%;
+  transform: translateY(-50%);
   width: 88rpx;
   display: flex;
   flex-direction: column;
-  gap: 10rpx;
+  gap: 16rpx;
   z-index: 35;
 }
 
 .left-entry-card {
   border-radius: 18rpx;
-  min-height: 82rpx;
-  border: 1rpx solid rgba(148, 163, 184, 0.2);
-  background-image: linear-gradient(160deg, rgba(255, 255, 255, 0.92), rgba(241, 245, 249, 0.86));
+  min-height: 72rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(4rpx);
-  -webkit-backdrop-filter: blur(4rpx);
   animation: side-entry-breathe 3.2s ease-in-out infinite;
 }
 
 .left-entry-icon {
-  font-size: 30rpx;
+  font-size: 36rpx;
   line-height: 1;
 }
 
@@ -847,7 +844,8 @@
 .writing-right-rail {
   position: absolute;
   right: 22rpx;
-  top: 40rpx;
+  top: 50%;
+  transform: translateY(-50%);
   width: 88rpx;
   display: flex;
   flex-direction: column;
@@ -1156,7 +1154,7 @@
 .card-list {
   display: flex;
   flex-direction: column;
-  padding: 0 20rpx calc(160rpx + env(safe-area-inset-bottom));
+  padding: 0 20rpx calc(50rpx + env(safe-area-inset-bottom));
   gap: 20rpx;
   width: 100%;
   flex: 1;
@@ -1193,13 +1191,7 @@
   color: #9ca3af;
 }
 
-.card-vlog-duration {
-  font-size: 20rpx;
-  color: #6b7280;
-  padding: 4rpx 10rpx;
-  border-radius: 999rpx;
-  background: rgba(15, 23, 42, 0.08);
-}
+
 
 .card.type-letter {
   border-left: 8rpx solid rgba(244, 114, 182, 0.55);
@@ -1214,10 +1206,7 @@
   border-left: 8rpx solid rgba(34, 197, 94, 0.42);
 }
 
-.card.type-vlog {
-  border-left: 8rpx solid rgba(99, 102, 241, 0.5);
-  background-image: linear-gradient(135deg, rgba(224, 231, 255, 0.26), rgba(255, 255, 255, 0));
-}
+
 
 @keyframes card-enter {
   from {
@@ -1262,10 +1251,7 @@
   color: #64748b;
 }
 
-.card-immersive-meta.vlog-shots {
-  flex-direction: column;
-  gap: 6rpx;
-}
+
 
 .card-shot-line {
   font-size: 20rpx;
@@ -1833,9 +1819,7 @@
   background: linear-gradient(180deg, rgba(236, 253, 245, 0.94), rgba(249, 255, 252, 0.9));
 }
 
-.paper-header.type-vlog {
-  background: linear-gradient(180deg, rgba(238, 242, 255, 0.94), rgba(249, 250, 255, 0.9));
-}
+
 
 .paper-date-line {
   display: flex;
@@ -1898,14 +1882,14 @@
 .paper-body-scroll {
   flex: 1;
   min-height: 0;
-  margin: 0 18rpx;
+  margin: 0;
   border-radius: 16rpx;
   background: rgba(255, 255, 255, 0.56);
 }
 
 .paper-body {
   min-height: 100%;
-  padding: 12rpx 12rpx 20rpx;
+  padding: 0;
   background-image:
     linear-gradient(to right, rgba(248, 113, 113, 0.24) 2rpx, transparent 2rpx),
     repeating-linear-gradient(
@@ -1938,12 +1922,7 @@
   background-position: 20rpx 0, 0 0;
 }
 
-.paper-body.type-vlog {
-  background-image:
-    linear-gradient(to right, rgba(99, 102, 241, 0.2) 8rpx, transparent 8rpx),
-    repeating-linear-gradient(to bottom, rgba(99, 102, 241, 0), rgba(99, 102, 241, 0) 50rpx, rgba(99, 102, 241, 0.2) 50rpx, rgba(99, 102, 241, 0.2) 52rpx);
-  background-position: 0 0, 0 0;
-}
+
 
 .paper-textarea {
   width: 100%;
@@ -1951,10 +1930,10 @@
   height: 560rpx;
   border: none;
   background: transparent;
-  padding: 10rpx 16rpx 8rpx 40rpx;
+  padding: 10rpx 80rpx 240rpx 60rpx;
   box-sizing: border-box;
   font-size: 30rpx;
-  line-height: 1.68;
+  line-height: 1.5;
 }
 
 .paper-textarea.input-postcard {
@@ -1966,10 +1945,7 @@
   padding-left: 30rpx;
 }
 
-.paper-textarea.input-vlog {
-  font-family: 'monospace';
-  font-size: 26rpx;
-}
+
 
 .paper-body .immersive-form-panel {
   margin: 6rpx 12rpx 0 42rpx;
@@ -1990,13 +1966,10 @@
   border-top: 1rpx solid rgba(16, 185, 129, 0.28);
 }
 
-.paper-footer.type-vlog {
-  border-top: 1rpx solid rgba(99, 102, 241, 0.28);
-}
+
 
 .postcard-head-meta,
-.diary-head-meta,
-.vlog-head-meta {
+.diary-head-meta {
   margin-top: 10rpx;
 }
 
@@ -2038,20 +2011,9 @@
   background: rgba(16, 185, 129, 0.12);
 }
 
-.vlog-head-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8rpx;
-}
 
-.vlog-shot-chip {
-  font-size: 18rpx;
-  color: #3730a3;
-  background: rgba(99, 102, 241, 0.14);
-  border: 1rpx solid rgba(99, 102, 241, 0.28);
-  border-radius: 999rpx;
-  padding: 6rpx 12rpx;
-}
+
+
 
 .paper-footer-line {
   font-size: 24rpx;
@@ -2077,9 +2039,7 @@
   line-height: 1.72;
 }
 
-.input-vlog {
-  line-height: 1.64;
-}
+
 
 .immersive-form-panel {
   margin-top: 14rpx;
@@ -2362,7 +2322,7 @@
 
 .square-post-list {
   flex: 1;
-  padding: 4rpx 20rpx calc(164rpx + env(safe-area-inset-bottom));
+  padding: 4rpx 20rpx calc(50rpx + env(safe-area-inset-bottom));
 }
 
 .post-card {
@@ -2388,10 +2348,7 @@
   background-image: linear-gradient(120deg, rgba(236, 253, 245, 0.5), rgba(255, 255, 255, 0));
 }
 
-.post-card.type-vlog {
-  border-left: 8rpx solid rgba(99, 102, 241, 0.5);
-  background-image: linear-gradient(120deg, rgba(238, 242, 255, 0.54), rgba(255, 255, 255, 0));
-}
+
 
 .post-card-header {
   display: flex;
@@ -2420,9 +2377,7 @@
   background: rgba(16, 185, 129, 0.14);
 }
 
-.post-type-badge.type-vlog {
-  background: rgba(99, 102, 241, 0.14);
-}
+
 
 .post-time {
   font-size: 19rpx;
@@ -2494,26 +2449,9 @@
   padding: 4rpx 10rpx;
 }
 
-.post-card-content.type-vlog {
-  display: flex;
-  flex-direction: column;
-  gap: 10rpx;
-}
 
-.post-vlog-shots {
-  display: flex;
-  flex-direction: column;
-  gap: 6rpx;
-}
 
-.post-vlog-shot {
-  font-size: 19rpx;
-  color: #3730a3;
-  background: rgba(99, 102, 241, 0.08);
-  border-left: 4rpx solid rgba(99, 102, 241, 0.42);
-  border-radius: 8rpx;
-  padding: 8rpx 10rpx;
-}
+
 
 .post-text {
   font-size: 30rpx;
@@ -2877,7 +2815,7 @@
   justify-content: space-around;
   align-items: center;
   height: 104rpx;
-  padding-bottom: env(safe-area-inset-bottom);
+  padding: 10rpx 20rpx calc(env(safe-area-inset-bottom) + 10rpx) 20rpx;
   z-index: 10;
   backdrop-filter: blur(14rpx);
   -webkit-backdrop-filter: blur(14rpx);
@@ -2918,18 +2856,32 @@
   animation: companion-trail-fade 0.32s ease-out forwards;
 }
 
+.tabbar-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8rpx 16rpx;
+  box-sizing: border-box;
+  width: calc(100% / 3);
+  max-width: 120rpx;
+}
+
 .tabbar-item.active {
   font-weight: bold;
 }
 
 .tabbar-icon {
-  font-size: 34rpx;
+  font-size: 28rpx;
   display: block;
+  margin-bottom: 2rpx;
+  line-height: 1;
 }
 
 .tabbar-text {
-  font-size: 22rpx;
+  font-size: 20rpx;
   color: #64748b;
+  line-height: 1;
 }
 
 .tabbar-item.active .tabbar-text {
@@ -3186,11 +3138,12 @@
   }
   
   .tabbar-icon {
-    font-size: 36rpx;
+    font-size: 26rpx;
+    margin-bottom: 2rpx;
   }
   
   .tabbar-text {
-    font-size: 20rpx;
+    font-size: 18rpx;
   }
   
   .publish-button {
@@ -3259,18 +3212,21 @@
   }
 
   .writing-workspace {
-    padding: 10rpx 8rpx calc(12rpx + env(safe-area-inset-bottom));
+    padding: 10rpx 8rpx calc(12rpx + env(safe-area-inset-bottom) + 50rpx);
   }
 
   .writing-left-rail {
     left: 14rpx;
-    top: 26rpx;
+    top: 50%;
+    transform: translateY(-50%);
     width: 76rpx;
+    gap: 12rpx;
   }
 
   .writing-right-rail {
     right: 14rpx;
-    top: 26rpx;
+    top: 50%;
+    transform: translateY(-50%);
     width: 76rpx;
   }
 
@@ -3298,11 +3254,11 @@
   }
 
   .left-entry-card {
-    min-height: 68rpx;
+    min-height: 64rpx;
   }
 
   .left-entry-icon {
-    font-size: 24rpx;
+    font-size: 32rpx;
   }
 
   .hanging-hook-zone {
@@ -3338,14 +3294,17 @@
   }
 
   .paper-body-scroll {
-    margin: 0 12rpx;
+    margin: 0;
   }
 
   .paper-textarea {
     min-height: 490rpx;
     height: 490rpx;
     font-size: 27rpx;
-    padding-left: 34rpx;
+    padding-left: 40rpx;
+    padding-right: 60rpx;
+    padding-bottom: 220rpx;
+    line-height: 1.5;
   }
 
   .package-dialog-mask,
