@@ -205,13 +205,51 @@ function resolveCompanionStateByText(text = '') {
 }
 
 function resolveSemanticTextPalette(theme = {}) {
+  const parseColorToRgb = (color = '') => {
+    const value = String(color || '').trim();
+    if (!value) return null;
+
+    if (value.startsWith('#')) {
+      const hex = value.slice(1);
+      if (hex.length === 3) {
+        const r = parseInt(hex[0] + hex[0], 16);
+        const g = parseInt(hex[1] + hex[1], 16);
+        const b = parseInt(hex[2] + hex[2], 16);
+        return { r, g, b };
+      }
+      if (hex.length >= 6) {
+        const r = parseInt(hex.slice(0, 2), 16);
+        const g = parseInt(hex.slice(2, 4), 16);
+        const b = parseInt(hex.slice(4, 6), 16);
+        return { r, g, b };
+      }
+      return null;
+    }
+
+    const rgbMatch = value.match(/rgba?\(([^)]+)\)/i);
+    if (!rgbMatch) return null;
+    const [r, g, b] = rgbMatch[1].split(',').map((item) => Number(item.trim()));
+    if (![r, g, b].every(Number.isFinite)) return null;
+    return { r, g, b };
+  };
+
+  const isDarkColor = (color = '') => {
+    const rgb = parseColorToRgb(color);
+    if (!rgb) return false;
+    const { r, g, b } = rgb;
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance < 0.52;
+  };
+
+  const darkBg = isDarkColor(theme.bgColor);
+  const darkPrimary = isDarkColor(theme.primaryColor);
   const body = theme.bodyTextColor || theme.textColor || '#334155';
   return {
-    title: theme.titleTextColor || '#1F2937',
+    title: theme.titleTextColor || (darkBg ? '#F8FAFC' : '#1F2937'),
     body,
-    subtitle: theme.subtitleTextColor || '#64748B',
+    subtitle: theme.subtitleTextColor || (darkBg ? '#CBD5E1' : '#64748B'),
     tertiary: theme.tertiaryTextColor || '#94A3B8',
-    inverse: theme.inverseTextColor || '#FFFFFF'
+    inverse: theme.inverseTextColor || (darkPrimary ? '#FFFFFF' : '#0F172A')
   };
 }
 
@@ -281,6 +319,7 @@ Page({
     ornamentDraggingSymbol: '',
     showToolPanel: false,
     activeToolPanel: '',
+    miniToolTopPx: 48,
     showPackageConfirmDialog: false,
     showPackagePublishDialog: false,
     showPackagingAnimation: false,
@@ -297,6 +336,7 @@ Page({
     sceneRestoreHintText: '',
     sceneRestoreHintScene: 'rainy',
     ambientTimeSlot: 'morning',
+    writingLightEnabled: true,
     writingLightColorMode: 'warm',
     writingLightFromSide: 'right',
     writingLightIntensity: 72,
@@ -316,6 +356,8 @@ Page({
     isCompanionLongPressTriggered: false,
     fabX: 0,
     fabY: 0,
+    companionInNest: true,
+    companionNestHighlighted: false,
     companionDragLevel: 0,
     companionTrailParticles: [],
     isBreathingActive: false,
@@ -328,9 +370,6 @@ Page({
     isWritingFocused: false,
     writingAmbientSubtitle: '慢慢写，不必着急。先把心放下来，再把话写出来。',
     isAmbientSubtitleAnimating: false,
-    showBlindBoxCenterFx: false,
-    blindBoxCenterQuote: '',
-    blindBoxCenterRevealed: false,
     blindBoxEntryShaking: false,
     
     // 主题相关
@@ -365,9 +404,14 @@ Page({
     if (wx.onWindowResize) {
       this.handleWindowResize = () => {
         this.initMovableFab({ keepPosition: true });
+        this.updateCompanionNestBounds();
       };
       wx.onWindowResize(this.handleWindowResize);
     }
+
+    setTimeout(() => {
+      this.updateCompanionNestBounds();
+    }, 60);
   },
 
   getCurrentWritingDateText() {
@@ -381,6 +425,7 @@ Page({
   getToolbarSettingsSnapshot() {
     const {
       activePostType,
+      writingLightEnabled,
       writingLightColorMode,
       writingLightFromSide,
       writingLightIntensity,
@@ -391,6 +436,7 @@ Page({
 
     return {
       activePostType,
+      writingLightEnabled,
       writingLightColorMode,
       writingLightFromSide,
       writingLightIntensity,
@@ -425,6 +471,10 @@ Page({
         nextData.activePostType = stored.activePostType;
         nextData.postPlaceholder = this.getPostTypeMeta(stored.activePostType).placeholder;
         nextData.packageActionLabel = this.getPostActionMeta(stored.activePostType).cta;
+      }
+
+      if (typeof stored.writingLightEnabled === 'boolean') {
+        nextData.writingLightEnabled = stored.writingLightEnabled;
       }
 
       if (WRITING_LIGHT_COLOR_META[stored.writingLightColorMode]) {
@@ -560,9 +610,9 @@ Page({
     let vertical = this.data.companionBubbleVertical || 'middle';
     
     if (Number(x) > width * 0.65) {
-      side = 'left';
-    } else if (Number(x) < width * 0.35) {
       side = 'right';
+    } else if (Number(x) < width * 0.35) {
+      side = 'left';
     }
     
     if (Number(y) < height * 0.25) {
@@ -580,6 +630,63 @@ Page({
         companionBubbleVertical: vertical
       });
     }
+  },
+
+  updateCompanionNestBounds() {
+    const query = this.createSelectorQuery && this.createSelectorQuery();
+    if (!query) return;
+    query.select('#companionNestSlot').boundingClientRect((rect) => {
+      if (!rect) return;
+      this.companionNestBounds = rect;
+    }).exec();
+  },
+
+  isPointInCompanionNest(point = {}, options = {}) {
+    const bounds = this.companionNestBounds;
+    if (!bounds) return false;
+    const x = Number(point.x || 0);
+    const y = Number(point.y || 0);
+    const padding = Number(options.padding);
+    const safePadding = Number.isFinite(padding) ? padding : 10;
+    return (
+      x >= bounds.left - safePadding &&
+      x <= bounds.right + safePadding &&
+      y >= bounds.top - safePadding &&
+      y <= bounds.bottom + safePadding
+    );
+  },
+
+  onTapCompanionNest() {
+    if (!this.data.companionInNest) {
+      this.dockCompanionToNest();
+      return;
+    }
+
+    this.setData({
+      companionInNest: false,
+      companionNestHighlighted: false,
+      companionState: 'happy'
+    }, () => {
+      this.initMovableFab({ keepPosition: false });
+      this.showCompanionBubble('我出来啦，想让我陪你做什么？', 1300);
+      this.startCompanionAmbientLoop();
+    });
+  },
+
+  dockCompanionToNest() {
+    this.clearCompanionBubbleTimer();
+    this.stopBreathingGuide({ silent: true });
+    this.stopCompanionAmbientLoop();
+    this.setData({
+      companionInNest: true,
+      companionNestHighlighted: false,
+      showCompanionBubble: false,
+      companionBubbleText: '',
+      companionDragLevel: 0,
+      isCompanionDragging: false,
+      companionTrailParticles: [],
+      companionState: 'idle'
+    });
   },
 
   initRainPerfProfile() {
@@ -955,16 +1062,68 @@ Page({
     return HANGING_ORNAMENT_META[key] || HANGING_ORNAMENT_META.knot;
   },
 
-  openToolPanel(panel = '') {
-    if (panel === 'theme') {
-      this.setData({
-        showToolPanel: true,
-        activeToolPanel: panel
-      });
+  getRpxToPxRatio() {
+    const width = Number((this.viewportInfo && this.viewportInfo.width) || 0);
+    if (width > 0) return width / 750;
+    try {
+      const info = wx.getSystemInfoSync ? wx.getSystemInfoSync() : {};
+      return Number(info.windowWidth || 375) / 750;
+    } catch (e) {
+      return 375 / 750;
+    }
+  },
+
+  getPanelEstimatedHeightPx(panel = '') {
+    const rpxRatio = this.getRpxToPxRatio();
+    const heightRpxMap = {
+      theme: 360,
+      blindbox: 320,
+      package: 300,
+      ornament: 420,
+      template: 330,
+      volume: 180,
+      scene: 300,
+      intensity: 180,
+      light: 470
+    };
+    return Math.round((heightRpxMap[panel] || 300) * rpxRatio);
+  },
+
+  updateMiniToolTopByAnchor(anchorId = '', panel = '') {
+    if (!anchorId || !this.createSelectorQuery) {
       return;
     }
+    const query = this.createSelectorQuery();
+    query.select(`#${anchorId}`).boundingClientRect((rect) => {
+      if (!rect) return;
+      const panelHeightPx = this.getPanelEstimatedHeightPx(panel);
+      let viewportHeight = Number((this.viewportInfo && this.viewportInfo.height) || 0);
+      if (!viewportHeight) {
+        try {
+          const info = wx.getSystemInfoSync ? wx.getSystemInfoSync() : {};
+          viewportHeight = Number(info.windowHeight || 667);
+        } catch (e) {
+          viewportHeight = 667;
+        }
+      }
+      const rpxRatio = this.getRpxToPxRatio();
+      const bottomReserve = Math.round((104 + 20) * rpxRatio);
+      const minTop = 8;
+      const maxTop = Math.max(minTop, viewportHeight - panelHeightPx - bottomReserve);
+      const anchorCenterY = Number(rect.top || 0) + Number(rect.height || 0) / 2;
+      const nextTop = Math.max(minTop, Math.min(maxTop, Math.round(anchorCenterY - panelHeightPx / 2)));
+      if (nextTop !== this.data.miniToolTopPx) {
+        this.setData({ miniToolTopPx: nextTop });
+      }
+    }).exec();
+  },
 
+  openToolPanel(panel = '', options = {}) {
+    const { anchorId = '' } = options || {};
     const isSameMiniPanel = this.data.activeToolPanel === panel && !this.data.showToolPanel;
+    if (!isSameMiniPanel) {
+      this.updateMiniToolTopByAnchor(anchorId, panel);
+    }
     this.setData({
       showToolPanel: false,
       activeToolPanel: isSameMiniPanel ? '' : panel
@@ -982,7 +1141,7 @@ Page({
   onTapToolPanelBody() {},
 
   onTapToolTheme() {
-    this.openToolPanel('theme');
+    this.openToolPanel('theme', { anchorId: 'toolEntryTheme' });
   },
 
   onTapToolAmbience() {
@@ -990,23 +1149,23 @@ Page({
   },
 
   onTapToolScene() {
-    this.openToolPanel('scene');
+    this.openToolPanel('scene', { anchorId: 'toolEntryScene' });
   },
 
   onTapToolVolume() {
-    this.openToolPanel('volume');
+    this.openToolPanel('volume', { anchorId: 'toolEntryVolume' });
   },
 
   onTapToolIntensity() {
-    this.openToolPanel('intensity');
+    this.openToolPanel('intensity', { anchorId: 'toolEntryIntensity' });
   },
 
   onTapToolLight() {
-    this.openToolPanel('light');
+    this.openToolPanel('light', { anchorId: 'toolEntryLight' });
   },
 
   onTapToolTemplate() {
-    this.openToolPanel('template');
+    this.openToolPanel('template', { anchorId: 'toolEntryTemplate' });
   },
 
   getWritingLightPalette(mode = 'warm') {
@@ -1015,12 +1174,22 @@ Page({
 
   updateWritingLightFxStyles() {
     const {
+      writingLightEnabled,
       writingLightColorMode,
       writingLightFromSide,
       writingLightIntensity,
       writingLightAngle,
       writingLightFocus
     } = this.data;
+
+    if (!writingLightEnabled) {
+      this.setData({
+        writingLightBeamStyle: '',
+        writingLightGlowStyle: '',
+        writingLightShadowStyle: ''
+      });
+      return;
+    }
 
     const palette = this.getWritingLightPalette(writingLightColorMode);
     const intensityRatio = Math.max(0, Math.min(1, Number(writingLightIntensity || 0) / 100));
@@ -1077,6 +1246,14 @@ Page({
     });
   },
 
+  onWritingLightEnableChange(e) {
+    const enabled = !!(e && e.detail && e.detail.value);
+    this.setData({ writingLightEnabled: enabled }, () => {
+      this.updateWritingLightFxStyles();
+      this.persistToolbarSettings({ writingLightEnabled: enabled });
+    });
+  },
+
   onSwitchWritingLightSide(e) {
     const side = e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.side;
     if (side !== 'left' && side !== 'right') return;
@@ -1120,7 +1297,7 @@ Page({
   },
 
   onTapToolPackage() {
-    this.openToolPanel('package');
+    this.openToolPanel('package', { anchorId: 'toolEntryPackage' });
   },
 
   onSelectPackageType(e) {
@@ -1202,7 +1379,7 @@ Page({
 
   onSelectHangingOrnament() {
     this.resetOrnamentDrag();
-    this.openToolPanel('ornament');
+    this.openToolPanel('ornament', { anchorId: 'toolEntryOrnament' });
     this.setData({ pendingHangingOrnament: this.data.selectedHangingOrnament || 'knot' });
   },
 
@@ -1344,21 +1521,20 @@ Page({
       this.blindBoxEntryShakeTimer = null;
     }
 
-    this.setData({ blindBoxEntryShaking: true });
+    this.setData({
+      blindBoxEntryShaking: true,
+      isFlipping: false,
+      showQuote: false
+    });
     this.blindBoxEntryShakeTimer = setTimeout(() => {
       this.setData({ blindBoxEntryShaking: false });
       this.blindBoxEntryShakeTimer = null;
     }, 520);
 
-    this.openBlindBox();
+    this.openToolPanel('blindbox', { anchorId: 'toolEntryBlindbox' });
   },
 
   onOpenBlindBoxFromPanel() {
-    if (!this.data.showToolPanel) {
-      this.setData({ activeToolPanel: '' });
-    } else {
-      this.closeToolPanel();
-    }
     this.openBlindBox();
   },
 
@@ -1397,6 +1573,7 @@ Page({
       });
     }
     this.initMovableFab({ keepPosition: true });
+    this.updateCompanionNestBounds();
     this.maybeTriggerCompanionWhisper();
     this.startCompanionAmbientLoop();
   },
@@ -1462,6 +1639,9 @@ Page({
   },
 
   maybeTriggerCompanionWhisper() {
+    if (this.data.companionInNest) {
+      return;
+    }
     try {
       const now = Date.now();
       const last = Number(wx.getStorageSync('homeCompanionLastActiveAt')) || 0;
@@ -1490,7 +1670,7 @@ Page({
   },
 
   maybeTriggerCompanionAmbientInteraction(reason = 'timer') {
-    if (this.data.isBreathingActive || this.data.isCompanionDragging || this.data.showCompanionBubble) {
+    if (this.data.companionInNest || this.data.isBreathingActive || this.data.isCompanionDragging || this.data.showCompanionBubble) {
       return;
     }
 
@@ -1544,7 +1724,7 @@ Page({
   },
 
   maybeTriggerCompanionActionInteraction(actionKey = 'generic', options = {}) {
-    if (this.data.isBreathingActive || this.data.isCompanionDragging || this.data.showCompanionBubble) {
+    if (this.data.companionInNest || this.data.isBreathingActive || this.data.isCompanionDragging || this.data.showCompanionBubble) {
       return;
     }
 
@@ -1662,8 +1842,37 @@ Page({
   updateNavigationBarColor() {
     const { theme } = this.data;
     if (theme && theme.bgColor) {
+      const rgb = (() => {
+        const value = String(theme.bgColor || '').trim();
+        if (value.startsWith('#')) {
+          const hex = value.slice(1);
+          if (hex.length === 3) {
+            return {
+              r: parseInt(hex[0] + hex[0], 16),
+              g: parseInt(hex[1] + hex[1], 16),
+              b: parseInt(hex[2] + hex[2], 16)
+            };
+          }
+          if (hex.length >= 6) {
+            return {
+              r: parseInt(hex.slice(0, 2), 16),
+              g: parseInt(hex.slice(2, 4), 16),
+              b: parseInt(hex.slice(4, 6), 16)
+            };
+          }
+        }
+        const rgbMatch = value.match(/rgba?\(([^)]+)\)/i);
+        if (!rgbMatch) return null;
+        const [r, g, b] = rgbMatch[1].split(',').map((item) => Number(item.trim()));
+        if (![r, g, b].every(Number.isFinite)) return null;
+        return { r, g, b };
+      })();
+      const isDarkBg = rgb
+        ? ((0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255) < 0.52
+        : false;
+
       wx.setNavigationBarColor({
-        frontColor: '#000000',
+        frontColor: isDarkBg ? '#ffffff' : '#000000',
         backgroundColor: theme.bgColor
       });
     }
@@ -1676,11 +1885,6 @@ Page({
     const current = e.detail.current;
     this.setData({ currentPage: current });
     this.initMovableFab({ keepPosition: true });
-  },
-
-  // 阻止页面滑动切换
-  onSwiperTouchMove() {
-    return false;
   },
 
   // 切换页面
@@ -1999,6 +2203,9 @@ Page({
   },
 
   onCompanionTap() {
+    if (this.data.companionInNest) {
+      return;
+    }
     if (this.shouldSuppressNextPublishTap) {
       this.shouldSuppressNextPublishTap = false;
       return;
@@ -2036,6 +2243,9 @@ Page({
   },
 
   onCompanionTouchStart(e) {
+    if (this.data.companionInNest) {
+      return;
+    }
     this.clearCompanionLongPressTimer();
     this.clearCompanionDragSettleTimer();
     this.isFabDragging = false;
@@ -2057,6 +2267,9 @@ Page({
   },
 
   onCompanionTouchEnd(e) {
+    if (this.data.companionInNest) {
+      return;
+    }
     this.clearCompanionLongPressTimer();
 
     const touch = (e && e.changedTouches && e.changedTouches[0]) || null;
@@ -2072,6 +2285,21 @@ Page({
     this.companionTouchStartPoint = null;
 
     if (this.isFabDragging || hasMoved) {
+      const viewport = this.viewportInfo || {};
+      const fabSize = Number(viewport.fabSize || 46);
+      const releasePoint = endPoint
+        ? { x: endPoint.x, y: endPoint.y }
+        : {
+            x: Number(this.data.fabX || 0) + fabSize / 2,
+            y: Number(this.data.fabY || 0) + fabSize / 2
+          };
+      const shouldDockToNest = this.isPointInCompanionNest(releasePoint, { padding: 2 });
+
+      if (shouldDockToNest) {
+        this.dockCompanionToNest();
+        this.shouldSuppressNextPublishTap = true;
+        return;
+      }
       try {
         wx.vibrateShort && wx.vibrateShort({ type: 'light' });
       } catch (e) {
@@ -2101,6 +2329,9 @@ Page({
   },
 
   onCompanionTouchCancel() {
+    if (this.data.companionInNest) {
+      return;
+    }
     this.clearCompanionLongPressTimer();
     this.companionTouchStartPoint = null;
     this.prevFabDragPoint = null;
@@ -2117,7 +2348,7 @@ Page({
   },
 
   showCompanionBubble(text = '', duration = 2000) {
-    if (!text) return;
+    if (!text || this.data.companionInNest) return;
     this.updateCompanionBubbleLayout(this.data.fabX, this.data.fabY);
     this.clearCompanionBubbleTimer();
     this.setData({
@@ -2146,13 +2377,20 @@ Page({
   },
 
   onFabDragChange(e) {
+    if (this.data.companionInNest) {
+      return;
+    }
     const detail = e.detail || {};
     const { x = this.data.fabX, y = this.data.fabY, source = '' } = detail;
     const clampedPoint = this.clampFabPosition(x, y);
     const nextX = clampedPoint.x;
     const nextY = clampedPoint.y;
 
-    if (source !== 'touch' && source !== 'touch-out-of-bounds') {
+    const isTouchDragging = source === 'touch' || source === 'touch-out-of-bounds';
+    if (!isTouchDragging) {
+      if (this.isFabDragging) {
+        return;
+      }
       this.setData({ fabX: nextX, fabY: nextY });
       this.updateCompanionBubbleLayout(nextX, nextY);
       return;
@@ -2169,45 +2407,33 @@ Page({
       this.setData({ isCompanionLongPressTriggered: false });
     }
 
-    const now = Date.now();
-    const prev = this.prevFabDragPoint || { x: nextX, y: nextY, t: now };
-    const dt = Math.max(16, now - prev.t);
-    const dx = nextX - prev.x;
-    const dy = nextY - prev.y;
-    const speed = Math.sqrt(dx * dx + dy * dy) / dt;
-
-    let companionDragLevel = 1;
-    if (speed > 1.2) {
-      companionDragLevel = 3;
-    } else if (speed > 0.7) {
-      companionDragLevel = 2;
-    }
-
-    this.prevFabDragPoint = { x: nextX, y: nextY, t: now };
-
-    if (!this.dragFeedbackShown && speed > 0.28) {
-      this.dragFeedbackShown = true;
-      this.showCompanionBubble(speed > 0.95 ? '慢一点点，我跟上啦～' : '拖着我去你喜欢的位置吧。', 700);
-    }
+    const viewport = this.viewportInfo || {};
+    const fabSize = Number(viewport.fabSize || 46);
+    const centerPoint = {
+      x: nextX + fabSize / 2,
+      y: nextY + fabSize / 2
+    };
+    const isOverNest = this.isPointInCompanionNest(centerPoint, { padding: 8 });
 
     this.setData({
       fabX: nextX,
       fabY: nextY,
-      companionDragLevel,
+      companionDragLevel: 0,
+      companionNestHighlighted: isOverNest,
       isCompanionDragging: true
     });
 
     this.updateCompanionBubbleLayout(nextX, nextY);
-    this.emitCompanionTrailParticle(nextX, nextY, speed);
 
     this.clearCompanionDragSettleTimer();
     this.companionDragSettleTimer = setTimeout(() => {
       this.setData({ 
         companionDragLevel: 0,
+        companionNestHighlighted: false,
         isCompanionDragging: false
       });
       this.companionDragSettleTimer = null;
-    }, 120);
+    }, 90);
   },
 
   emitCompanionTrailParticle(x, y, speed = 0) {
@@ -2237,6 +2463,9 @@ Page({
     duration = 1200,
     restoreAfter = true
   } = {}) {
+    if (this.data.companionInNest) {
+      return;
+    }
     if (state && !this.data.isBreathingActive) {
       this.setData({ companionState: state });
     }
@@ -2609,6 +2838,9 @@ Page({
 
   // 打开解忧盲盒
   openBlindBox() {
+    if (this.isBlindBoxAnimating) {
+      return;
+    }
     this.isBlindBoxAnimating = true;
     this.clearBlindBoxTimers();
     this.isBlindBoxAnimating = true;
@@ -2628,16 +2860,13 @@ Page({
     ];
     const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
 
-    // 开始开盒动画（中间区域）
+    // 在入口侧弹窗内完成开盒动画
     this.setData({
       isFlipping: true,
-      showQuote: true,
+      showQuote: false,
       currentQuote: randomQuote,
-      showBlindBoxCenterFx: true,
-      blindBoxCenterQuote: '',
-      blindBoxCenterRevealed: false,
       isAmbientSubtitleAnimating: false,
-      activeToolPanel: ''
+      activeToolPanel: 'blindbox'
     });
 
     this.triggerCompanionMoment({
@@ -2647,11 +2876,10 @@ Page({
       restoreAfter: false
     });
 
-    // 先播放开盒，再展示结果
+    // 先播放开盒，再展示结果（仍停留在入口弹窗内）
     this.blindBoxRevealTimer = setTimeout(() => {
       this.setData({
-        blindBoxCenterQuote: randomQuote,
-        blindBoxCenterRevealed: true
+        showQuote: true
       });
 
       this.triggerCompanionMoment({
@@ -2664,8 +2892,6 @@ Page({
       // 结果展示 1.5 秒后，收束到挂件下方副标题
       this.blindBoxOverlayTimer = setTimeout(() => {
         this.setData({
-          showBlindBoxCenterFx: false,
-          blindBoxCenterRevealed: false,
           isAmbientSubtitleAnimating: true,
           writingAmbientSubtitle: randomQuote
         });

@@ -18,13 +18,53 @@ const SCENE_OPTIONS = Object.keys(SCENE_META).map((key) => ({
 }));
 
 function resolveSemanticTextPalette(theme = {}) {
+  const parseColorToRgb = (color = '') => {
+    const value = String(color || '').trim();
+    if (!value) return null;
+
+    if (value.startsWith('#')) {
+      const hex = value.slice(1);
+      if (hex.length === 3) {
+        return {
+          r: parseInt(hex[0] + hex[0], 16),
+          g: parseInt(hex[1] + hex[1], 16),
+          b: parseInt(hex[2] + hex[2], 16)
+        };
+      }
+      if (hex.length >= 6) {
+        return {
+          r: parseInt(hex.slice(0, 2), 16),
+          g: parseInt(hex.slice(2, 4), 16),
+          b: parseInt(hex.slice(4, 6), 16)
+        };
+      }
+      return null;
+    }
+
+    const rgbMatch = value.match(/rgba?\(([^)]+)\)/i);
+    if (!rgbMatch) return null;
+    const [r, g, b] = rgbMatch[1].split(',').map((item) => Number(item.trim()));
+    if (![r, g, b].every(Number.isFinite)) return null;
+    return { r, g, b };
+  };
+
+  const isDarkColor = (color = '') => {
+    const rgb = parseColorToRgb(color);
+    if (!rgb) return false;
+    const { r, g, b } = rgb;
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance < 0.52;
+  };
+
+  const darkBg = isDarkColor(theme.bgColor);
+  const darkPrimary = isDarkColor(theme.primaryColor);
   const body = theme.bodyTextColor || theme.textColor || '#334155';
   return {
-    title: theme.titleTextColor || '#1F2937',
+    title: theme.titleTextColor || (darkBg ? '#F8FAFC' : '#1F2937'),
     body,
-    subtitle: theme.subtitleTextColor || '#64748B',
+    subtitle: theme.subtitleTextColor || (darkBg ? '#CBD5E1' : '#64748B'),
     tertiary: theme.tertiaryTextColor || '#94A3B8',
-    inverse: theme.inverseTextColor || '#FFFFFF'
+    inverse: theme.inverseTextColor || (darkPrimary ? '#FFFFFF' : '#0F172A')
   };
 }
 

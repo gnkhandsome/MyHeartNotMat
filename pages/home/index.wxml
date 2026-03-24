@@ -36,27 +36,42 @@
   </view>
 
   <!-- 页面容器 -->
-  <swiper class="page-swiper" current="{{currentPage}}" bindchange="onPageChange" duration="0" catchtouchmove="onSwiperTouchMove" disable-touch="true">
+  <swiper class="page-swiper" current="{{currentPage}}" bindchange="onPageChange" duration="0" disable-touch="true">
     <!-- 心语页面 -->
     <swiper-item>
-      <view class="page-container" catchtouchmove="onSwiperTouchMove">
+      <view class="page-container">
         <!-- 写作场景 -->
-        <view class="writing-workspace {{isWritingFocused ? 'writing-focused' : ''}}">
+        <view class="writing-workspace theme-{{activeThemeType}} {{isWritingFocused ? 'writing-focused' : ''}}">
           <view class="writing-left-rail">
-            <view class="left-entry-card" bindtap="onSelectHangingOrnament">
-              <text class="left-entry-icon">🪢</text>
+            <view
+              id="companionNestSlot"
+              class="left-entry-card companion-nest-card {{companionNestHighlighted ? 'is-highlighted' : ''}}"
+              bindtap="onTapCompanionNest"
+            >
+              <view class="companion-nest-shell">
+                <view wx:if="{{companionInNest}}" class="companion-nest-resting-sprite {{companionVisualType}}">
+                  <view class="companion-eye left"></view>
+                  <view class="companion-eye right"></view>
+                </view>
+                <text wx:else class="companion-nest-emoji">🏡</text>
+              </view>
+              <text class="companion-nest-label">{{companionInNest ? '精灵休息中' : '点击回窝'}}</text>
             </view>
 
-            <view class="left-entry-card" bindtap="onTapToolTheme">
-              <text class="left-entry-icon">🎨</text>
+            <view id="toolEntryOrnament" class="left-entry-card {{activeToolPanel === 'ornament' ? 'is-active' : ''}}" bindtap="onSelectHangingOrnament">
+              <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{activeToolPanel === 'ornament' ? 14 : 8}}rpx {{theme.primaryColor}});">🪢</text>
             </view>
 
-            <view class="left-entry-card" bindtap="onTapToolBlindBox">
-              <text class="left-entry-icon {{blindBoxEntryShaking ? 'shake' : ''}}">🎁</text>
+            <view id="toolEntryTheme" class="left-entry-card {{activeToolPanel === 'theme' ? 'is-active' : ''}}" bindtap="onTapToolTheme">
+              <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{activeToolPanel === 'theme' ? 14 : 8}}rpx {{theme.primaryColor}});">🎨</text>
             </view>
 
-            <view class="left-entry-card" bindtap="onTapToolPackage">
-              <text class="left-entry-icon">📦</text>
+            <view id="toolEntryBlindbox" class="left-entry-card {{activeToolPanel === 'blindbox' ? 'is-active' : ''}}" bindtap="onTapToolBlindBox">
+              <text class="left-entry-icon {{blindBoxEntryShaking ? 'shake' : ''}}" style="filter: drop-shadow(0 0 {{activeToolPanel === 'blindbox' ? 14 : 8}}rpx {{theme.primaryColor}});">🎁</text>
+            </view>
+
+            <view id="toolEntryPackage" class="left-entry-card {{activeToolPanel === 'package' ? 'is-active' : ''}}" bindtap="onTapToolPackage">
+              <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{activeToolPanel === 'package' ? 14 : 8}}rpx {{theme.primaryColor}});">📦</text>
             </view>
           </view>
 
@@ -75,13 +90,13 @@
               <text class="hanging-ornament-label">{{hangingOrnamentLabel}}</text>
             </view>
 
-            <view class="writing-light-fx-layer" aria-hidden="true">
+            <view wx:if="{{writingLightEnabled}}" class="writing-light-fx-layer" aria-hidden="true">
               <view class="writing-light-shadow-mask" style="{{writingLightShadowStyle}}"></view>
               <view class="writing-light-beam" style="{{writingLightBeamStyle}}"></view>
               <view class="writing-light-glow" style="{{writingLightGlowStyle}}"></view>
             </view>
 
-            <view class="writing-paper {{activePostType}}" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+            <view class="writing-paper {{activePostType}}" style="background-color: {{theme.cardColor}}; background-image: linear-gradient(160deg, {{theme.cardColor}}, {{theme.bgColor}}); box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
               <view class="paper-header type-{{activePostType}}">
                 <view class="paper-type-banner">
                   <text class="paper-type-icon">{{activePostType === 'letter' ? '✉️' : (activePostType === 'postcard' ? '🖼️' : (activePostType === 'diary' ? '📔' : '🎬'))}}</text>
@@ -116,8 +131,8 @@
 
               </view>
 
-              <scroll-view class="paper-body-scroll type-{{activePostType}}" scroll-y="true" scrollbar-hidden="true">
-                <view class="paper-body {{isPostShattering ? 'post-shattering' : ''}} {{isWritingFocused ? 'writing-focused' : ''}} type-{{activePostType}}">
+              <scroll-view class="paper-body-scroll type-{{activePostType}}" scroll-y="true" scrollbar-hidden="true" style="background: linear-gradient(to bottom, {{theme.cardColor}}, {{theme.bgColor}});">
+                <view class="paper-body {{isPostShattering ? 'post-shattering' : ''}} {{isWritingFocused ? 'writing-focused' : ''}} type-{{activePostType}}" style="background: linear-gradient(160deg, {{theme.cardColor}}, {{theme.bgColor}});">
                   <textarea
                     id="homePostInputField"
                     class="paper-textarea input-{{activePostType}}"
@@ -165,38 +180,38 @@
           </view>
 
           <view class="writing-right-rail">
-            <view class="left-entry-card right-entry-card" bindtap="onTapToolTemplate">
-              <text class="left-entry-icon">🧩</text>
+            <view id="toolEntryTemplate" class="left-entry-card right-entry-card {{activeToolPanel === 'template' ? 'is-active' : ''}}" bindtap="onTapToolTemplate">
+              <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{activeToolPanel === 'template' ? 14 : 8}}rpx {{theme.primaryColor}});">🧩</text>
             </view>
 
-            <view class="left-entry-card right-entry-card" bindtap="toggleAudioPlay">
-              <text class="left-entry-icon">{{isAudioPlaying ? '⏸' : '▶'}}</text>
+            <view class="left-entry-card right-entry-card {{isAudioPlaying ? 'is-active' : ''}}" bindtap="toggleAudioPlay">
+              <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{isAudioPlaying ? 14 : 8}}rpx {{theme.primaryColor}});">{{isAudioPlaying ? '⏸' : '▶'}}</text>
             </view>
 
-            <view class="left-entry-card right-entry-card" bindtap="toggleRainMode">
-              <text class="left-entry-icon">🌧️</text>
+            <view class="left-entry-card right-entry-card {{isRainModeEnabled ? 'is-active' : ''}}" bindtap="toggleRainMode">
+              <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{isRainModeEnabled ? 14 : 8}}rpx {{theme.primaryColor}});">🌧️</text>
             </view>
 
-            <view class="left-entry-card right-entry-card" bindtap="onTapToolVolume">
-              <text class="left-entry-icon">🔊</text>
+            <view id="toolEntryVolume" class="left-entry-card right-entry-card {{activeToolPanel === 'volume' ? 'is-active' : ''}}" bindtap="onTapToolVolume">
+              <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{activeToolPanel === 'volume' ? 14 : 8}}rpx {{theme.primaryColor}});">🔊</text>
             </view>
 
-            <view class="left-entry-card right-entry-card" bindtap="onTapToolScene">
-              <text class="left-entry-icon">🌌</text>
+            <view id="toolEntryScene" class="left-entry-card right-entry-card {{activeToolPanel === 'scene' ? 'is-active' : ''}}" bindtap="onTapToolScene">
+              <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{activeToolPanel === 'scene' ? 14 : 8}}rpx {{theme.primaryColor}});">🌌</text>
             </view>
 
-            <view class="left-entry-card right-entry-card" bindtap="onTapToolIntensity">
-              <text class="left-entry-icon">🎚️</text>
+            <view id="toolEntryIntensity" class="left-entry-card right-entry-card {{activeToolPanel === 'intensity' ? 'is-active' : ''}}" bindtap="onTapToolIntensity">
+              <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{activeToolPanel === 'intensity' ? 14 : 8}}rpx {{theme.primaryColor}});">🎚️</text>
             </view>
 
-            <view class="left-entry-card right-entry-card" bindtap="onTapToolLight">
-              <text class="left-entry-icon">💡</text>
+            <view id="toolEntryLight" class="left-entry-card right-entry-card {{activeToolPanel === 'light' ? 'is-active' : ''}}" bindtap="onTapToolLight">
+              <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{activeToolPanel === 'light' ? 14 : 8}}rpx {{theme.primaryColor}});">💡</text>
             </view>
           </view>
 
-          <view wx:if="{{!showToolPanel && activeToolPanel && activeToolPanel !== 'theme'}}" class="mini-tool-mask" bindtap="closeToolPanel"></view>
+          <view wx:if="{{activeToolPanel}}" class="mini-tool-mask" bindtap="closeToolPanel"></view>
 
-          <view wx:if="{{!showToolPanel && (activeToolPanel === 'template' || activeToolPanel === 'volume' || activeToolPanel === 'scene' || activeToolPanel === 'intensity' || activeToolPanel === 'light')}}" class="mini-tool-pop right" catchtap="onTapToolPanelBody" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+          <view wx:if="{{activeToolPanel === 'template' || activeToolPanel === 'volume' || activeToolPanel === 'scene' || activeToolPanel === 'intensity' || activeToolPanel === 'light'}}" class="mini-tool-pop right panel-{{activeToolPanel}}" catchtap="onTapToolPanelBody" style="top: {{miniToolTopPx}}px; background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
             <view class="mini-tool-head">
               <text class="mini-tool-title" style="color: {{textPalette.title}};">{{activeToolPanel === 'template' ? '写作模板' : (activeToolPanel === 'volume' ? '音量' : (activeToolPanel === 'scene' ? '场景' : (activeToolPanel === 'intensity' ? '强度' : '灯光')))}}</text>
               <text class="mini-tool-close" bindtap="closeToolPanel" style="color: {{theme.primaryColor}};">收起</text>
@@ -271,6 +286,15 @@
             </view>
 
             <view wx:if="{{activeToolPanel === 'light'}}" class="mini-tool-body">
+              <view class="writing-light-option-row writing-light-switch-row">
+                <text class="writing-light-option-label" style="color: {{textPalette.subtitle}};">灯光</text>
+                <switch
+                  checked="{{writingLightEnabled}}"
+                  color="{{theme.primaryColor}}"
+                  bindchange="onWritingLightEnableChange"
+                />
+              </view>
+
               <view class="writing-light-option-row">
                 <text class="writing-light-option-label" style="color: {{textPalette.subtitle}};">灯色</text>
                 <view class="writing-light-chip-group">
@@ -304,7 +328,30 @@
             </view>
           </view>
 
-          <view wx:if="{{!showToolPanel && activeToolPanel === 'package'}}" class="mini-tool-pop left package" catchtap="onTapToolPanelBody" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+          <view wx:if="{{activeToolPanel === 'theme'}}" class="mini-tool-pop left theme panel-theme" catchtap="onTapToolPanelBody" style="top: {{miniToolTopPx}}px; background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+            <view class="mini-tool-head">
+              <text class="mini-tool-title" style="color: {{textPalette.title}};">主题设置</text>
+              <text class="mini-tool-close" bindtap="closeToolPanel" style="color: {{theme.primaryColor}};">收起</text>
+            </view>
+            <view class="mini-tool-body">
+              <view class="theme-tabs compact">
+                <view class="theme-tab {{activeThemeType === themeStyleTypes.FEMALE ? 'active' : ''}}" bindtap="switchThemeType" data-type="{{themeStyleTypes.FEMALE}}">
+                  柔美
+                </view>
+                <view class="theme-tab {{activeThemeType === themeStyleTypes.MALE ? 'active' : ''}}" bindtap="switchThemeType" data-type="{{themeStyleTypes.MALE}}">
+                  深邃
+                </view>
+              </view>
+              <view class="theme-list compact">
+                <view class="theme-item compact" wx:for="{{filteredThemes}}" wx:key="item.id" bindtap="selectTheme" data-theme="{{item}}">
+                  <view class="theme-color" style="background-color: {{item.primaryColor}};"></view>
+                  <text class="theme-name" style="color: {{textPalette.body}};">{{item.name}}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <view wx:if="{{activeToolPanel === 'package'}}" class="mini-tool-pop left package panel-package" catchtap="onTapToolPanelBody" style="top: {{miniToolTopPx}}px; background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
             <view class="mini-tool-head">
               <text class="mini-tool-title" style="color: {{textPalette.title}};">完成写作</text>
               <text class="mini-tool-close" bindtap="closeToolPanel" style="color: {{theme.primaryColor}};">收起</text>
@@ -326,7 +373,7 @@
             </view>
           </view>
 
-          <view wx:if="{{!showToolPanel && activeToolPanel === 'blindbox'}}" class="mini-tool-pop left" catchtap="onTapToolPanelBody" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+          <view wx:if="{{activeToolPanel === 'blindbox'}}" class="mini-tool-pop left panel-blindbox" catchtap="onTapToolPanelBody" style="top: {{miniToolTopPx}}px; background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
             <view class="mini-tool-head">
               <text class="mini-tool-title" style="color: {{textPalette.title}};">解忧盲盒</text>
               <text class="mini-tool-close" bindtap="closeToolPanel" style="color: {{theme.primaryColor}};">收起</text>
@@ -346,7 +393,7 @@
             </view>
           </view>
 
-          <view wx:if="{{!showToolPanel && activeToolPanel === 'ornament'}}" class="mini-tool-pop left ornament" catchtap="onTapToolPanelBody" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+          <view wx:if="{{activeToolPanel === 'ornament'}}" class="mini-tool-pop left ornament panel-ornament" catchtap="onTapToolPanelBody" style="top: {{miniToolTopPx}}px; background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
             <view class="mini-tool-head">
               <text class="mini-tool-title" style="color: {{textPalette.title}};">挂件更换</text>
               <text class="mini-tool-close" bindtap="closeToolPanel" style="color: {{theme.primaryColor}};">收起</text>
@@ -375,20 +422,13 @@
             </view>
           </view>
 
-          <view wx:if="{{showBlindBoxCenterFx}}" class="blind-box-center-fx {{blindBoxCenterRevealed ? 'revealed' : ''}}" aria-live="polite">
-            <view class="blind-box-center-card">
-              <text class="blind-box-center-icon">🎁</text>
-              <text wx:if="{{!blindBoxCenterRevealed}}" class="blind-box-center-tip">正在开盲盒...</text>
-              <text wx:if="{{blindBoxCenterRevealed}}" class="blind-box-center-quote">{{blindBoxCenterQuote}}</text>
-            </view>
-          </view>
         </view>
       </view>
     </swiper-item>
     
     <!-- 广场页面 -->
     <swiper-item>
-      <view class="page-container" catchtouchmove="onSwiperTouchMove">
+      <view class="page-container">
         <view class="square-header" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
           <text class="square-title" style="color: {{textPalette.title}};">心语广场</text>
           <text class="square-subtitle" style="color: {{textPalette.subtitle}};">分享你的心情，倾听他人的故事</text>
@@ -435,7 +475,7 @@
     
     <!-- 我的页面 -->
     <swiper-item>
-      <view class="page-container" catchtouchmove="onSwiperTouchMove">
+      <view class="page-container">
         <!-- 大留白用户信息区 -->
         <view class="user-info" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
           <view class="avatar-container">
@@ -505,121 +545,13 @@
     </view>
   </view>
 
-  <view wx:if="{{showToolPanel}}" class="tool-panel-mask" bindtap="closeToolPanel">
-    <view class="tool-panel-sheet" catchtap="onTapToolPanelBody" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
-      <view class="tool-panel-head">
-        <text class="tool-panel-title" style="color: {{textPalette.title}};">{{activeToolPanel === 'theme' ? '主题设置' : (activeToolPanel === 'scene' ? '场景设置' : (activeToolPanel === 'volume' ? '音量设置' : (activeToolPanel === 'intensity' ? '强度设置' : (activeToolPanel === 'blindbox' ? '解忧盲盒' : '工具面板'))))}}</text>
-        <text class="tool-panel-close" bindtap="closeToolPanel" style="color: {{theme.primaryColor}};">关闭</text>
-      </view>
-
-      <view wx:if="{{activeToolPanel === 'theme'}}" class="tool-panel-body">
-        <view class="theme-tabs compact">
-          <view class="theme-tab {{activeThemeType === themeStyleTypes.FEMALE ? 'active' : ''}}" bindtap="switchThemeType" data-type="{{themeStyleTypes.FEMALE}}">
-            柔美
-          </view>
-          <view class="theme-tab {{activeThemeType === themeStyleTypes.MALE ? 'active' : ''}}" bindtap="switchThemeType" data-type="{{themeStyleTypes.MALE}}">
-            深邃
-          </view>
-        </view>
-        <view class="theme-list compact">
-          <view class="theme-item compact" wx:for="{{filteredThemes}}" wx:key="item.id" bindtap="selectTheme" data-theme="{{item}}">
-            <view class="theme-color" style="background-color: {{item.primaryColor}};"></view>
-            <text class="theme-name" style="color: {{textPalette.body}};">{{item.name}}</text>
-          </view>
-        </view>
-      </view>
-
-      <view wx:if="{{activeToolPanel === 'scene'}}" class="tool-panel-body">
-        <view class="scene-mode-row compact">
-          <view class="scene-mode-meta">
-            <text class="scene-mode-title" style="color: {{textPalette.title}};">沉浸场景</text>
-            <text class="scene-mode-sound" style="color: {{textPalette.subtitle}};">{{sceneSoundLabel}}</text>
-          </view>
-          <switch checked="{{isSceneAutoMode}}" color="{{theme.primaryColor}}" bindchange="onSceneAutoModeChange" />
-        </view>
-
-        <view class="scene-type-grid">
-          <view
-            wx:for="{{sceneOptions}}"
-            wx:key="key"
-            class="scene-type-chip {{activeScene === item.key ? 'active' : ''}}"
-            bindtap="onSceneChange"
-            data-scene="{{item.key}}"
-          >
-            <text class="scene-type-chip-icon">{{item.icon}}</text>
-            <text class="scene-type-chip-label">{{item.label}}</text>
-          </view>
-        </view>
-      </view>
-
-      <view wx:if="{{activeToolPanel === 'volume'}}" class="tool-panel-body">
-        <view class="audio-main compact">
-          <view class="audio-btn" bindtap="toggleAudioPlay" style="background-color: {{isAudioPlaying ? theme.primaryColor : '#E5E7EB'}};">
-            <text class="audio-btn-icon">{{isAudioPlaying ? '⏸' : '▶'}}</text>
-          </view>
-          <view class="audio-meta">
-            <text class="audio-title" style="color: {{textPalette.title}};">白噪音</text>
-            <text class="audio-status" style="color: {{textPalette.subtitle}};">{{isAudioPlaying ? '播放中' : '已暂停'}}</text>
-          </view>
-        </view>
-
-        <view class="audio-volume-row compact">
-          <slider
-            class="audio-slider"
-            min="0"
-            max="100"
-            step="5"
-            value="{{audioVolume}}"
-            activeColor="{{theme.primaryColor}}"
-            backgroundColor="#E5E7EB"
-            block-size="16"
-            bindchange="onAudioVolumeChange"
-          />
-          <text class="audio-volume-value" style="color: {{textPalette.subtitle}};">{{audioVolume}}%</text>
-        </view>
-      </view>
-
-      <view wx:if="{{activeToolPanel === 'intensity'}}" class="tool-panel-body">
-        <view class="scene-intensity-row compact">
-          <slider
-            class="scene-intensity-slider"
-            min="20"
-            max="100"
-            step="5"
-            value="{{sceneIntensity}}"
-            activeColor="{{theme.primaryColor}}"
-            backgroundColor="#E5E7EB"
-            block-size="16"
-            bindchanging="onSceneIntensityChange"
-            bindchange="onSceneIntensityChange"
-          />
-          <text class="scene-intensity-value" style="color: {{textPalette.subtitle}};">{{sceneIntensity}}%</text>
-        </view>
-      </view>
-
-      <view wx:if="{{activeToolPanel === 'blindbox'}}" class="tool-panel-body">
-        <view class="blind-box-content" bindtap="onOpenBlindBoxFromPanel">
-          <view class="blind-box-card {{isFlipping ? 'flipping' : ''}}">
-            <view class="blind-box-front" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
-              <text class="blind-box-icon">🎁</text>
-              <text class="blind-box-text" style="color: {{textPalette.subtitle}};">点我抽一句</text>
-            </view>
-            <view class="blind-box-back" wx:if="{{showQuote}}" style="background-color: {{theme.primaryColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
-              <text class="blind-box-quote" style="color: {{textPalette.inverse}};">{{currentQuote}}</text>
-            </view>
-          </view>
-        </view>
-      </view>
-    </view>
-  </view>
-
   <view wx:if="{{isBreathingActive}}" class="breathing-guide-panel" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
     <text class="breathing-guide-title" style="color: {{textPalette.subtitle}};">呼吸岛屿 · 第{{breathingDisplayRound}}轮</text>
     <text class="breathing-guide-phase" style="color: {{textPalette.title}};">{{breathingGuideText}}</text>
     <text class="breathing-guide-tip" style="color: {{textPalette.tertiary}};">长按发布按钮保持引导，松手即可结束</text>
   </view>
 
-  <view class="companion-trail-layer" aria-hidden="true">
+  <view wx:if="{{!companionInNest}}" class="companion-trail-layer" aria-hidden="true">
     <view
       wx:for="{{companionTrailParticles}}"
       wx:key="id"
@@ -644,7 +576,7 @@
     </view>
   </view>
 
-  <movable-area class="fab-movable-area">
+  <movable-area wx:if="{{!companionInNest}}" class="fab-movable-area">
     <movable-view
       class="fab-movable-view"
       direction="all"
