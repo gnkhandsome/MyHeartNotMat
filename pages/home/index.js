@@ -16,23 +16,23 @@ const COMPANION_EMOTION_KEYWORDS = {
 };
 
 const POST_TYPE_META = {
-  letter: {
-    label: '写信',
-    icon: '✉️',
-    placeholder: '慢慢写一封信，寄给此刻最需要被安慰的你。',
-    tagline: '把心事写成会被认真阅读的信'
-  },
-  postcard: {
-    label: '明信片',
-    icon: '🖼️',
-    placeholder: '写下一帧风景与心情，像寄出一张明信片。',
-    tagline: '一段风景，一句问候'
-  },
   diary: {
     label: '日记',
     icon: '📔',
-    placeholder: '记录今天的细节，允许情绪自然流动。',
+    placeholder: '记录今天的心情与细节',
     tagline: '把一天写进页角'
+  },
+  letter: {
+    label: '写信',
+    icon: '✉️',
+    placeholder: '写一封信给自己',
+    tagline: '把心事写成一封信'
+  },
+  postcard: {
+    label: '明信片',
+    icon: '�️',
+    placeholder: '记录此刻的风景与心情',
+    tagline: '一段风景，一句问候'
   }
 };
 
@@ -243,12 +243,12 @@ function resolveSemanticTextPalette(theme = {}) {
 
   const darkBg = isDarkColor(theme.bgColor);
   const darkPrimary = isDarkColor(theme.primaryColor);
-  const body = theme.bodyTextColor || theme.textColor || '#334155';
+  const body = theme.bodyTextColor || theme.textColor || (darkBg ? '#E5E7EB' : '#334155');
   return {
-    title: theme.titleTextColor || (darkBg ? '#F8FAFC' : '#1F2937'),
+    title: theme.titleTextColor || theme.textColor || (darkBg ? '#F8FAFC' : '#1F2937'),
     body,
     subtitle: theme.subtitleTextColor || (darkBg ? '#CBD5E1' : '#64748B'),
-    tertiary: theme.tertiaryTextColor || '#94A3B8',
+    tertiary: theme.tertiaryTextColor || (darkBg ? '#94A3B8' : '#94A3B8'),
     inverse: theme.inverseTextColor || (darkPrimary ? '#FFFFFF' : '#0F172A')
   };
 }
@@ -377,7 +377,13 @@ Page({
     textPalette: resolveSemanticTextPalette(THEMES[0]),
     
     // 小精灵拖动状态
-    isCompanionDragging: false
+    isCompanionDragging: false,
+    // 小精灵选中状态
+    isCompanionSelected: false,
+    // 小精灵移动状态
+    isCompanionMoving: false,
+    // 移动动画定时器
+    companionMoveTimer: null
   },
 
   onLoad() {
@@ -561,7 +567,7 @@ Page({
       const width = Number(info.windowWidth || 375);
       const height = Number(info.windowHeight || 667);
       const rpxToPx = width / 750;
-      const fabSize = Math.round((width <= 360 ? 128 : 92) * rpxToPx);
+      const fabSize = Math.round((width <= 360 ? 108 : 72) * rpxToPx);
       const bottomReserve = Math.round(120 * rpxToPx);
       const yMax = Math.max(0, height - fabSize - bottomReserve);
 
@@ -589,7 +595,7 @@ Page({
     const viewport = this.viewportInfo || {};
     const width = Number(viewport.width || 375);
     const height = Number(viewport.height || 667);
-    const fabSize = Number(viewport.fabSize || Math.round((width / 750) * 92));
+    const fabSize = Number(viewport.fabSize || Math.round((width / 750) * 72));
     const maxX = Math.max(0, width - fabSize);
     const maxY = Number.isFinite(viewport.yMax)
       ? Math.max(0, viewport.yMax)
@@ -667,7 +673,7 @@ Page({
       companionNestHighlighted: false,
       companionState: 'happy'
     }, () => {
-      this.initMovableFab({ keepPosition: false });
+      this.initMovableFab({ keepPosition: true });
       this.showCompanionBubble('我出来啦，想让我陪你做什么？', 1300);
       this.startCompanionAmbientLoop();
     });
@@ -684,6 +690,8 @@ Page({
       companionBubbleText: '',
       companionDragLevel: 0,
       isCompanionDragging: false,
+      isCompanionSelected: false,
+      isCompanionMoving: false,
       companionTrailParticles: [],
       companionState: 'idle'
     });
@@ -1090,43 +1098,67 @@ Page({
   },
 
   updateMiniToolTopByAnchor(anchorId = '', panel = '') {
-    if (!anchorId || !this.createSelectorQuery) {
-      return;
-    }
-    const query = this.createSelectorQuery();
-    query.select(`#${anchorId}`).boundingClientRect((rect) => {
-      if (!rect) return;
-      const panelHeightPx = this.getPanelEstimatedHeightPx(panel);
-      let viewportHeight = Number((this.viewportInfo && this.viewportInfo.height) || 0);
-      if (!viewportHeight) {
-        try {
-          const info = wx.getSystemInfoSync ? wx.getSystemInfoSync() : {};
-          viewportHeight = Number(info.windowHeight || 667);
-        } catch (e) {
-          viewportHeight = 667;
+    return new Promise((resolve) => {
+      if (!anchorId || !this.createSelectorQuery) {
+        resolve();
+        return;
+      }
+      const query = this.createSelectorQuery();
+      query.select('.writing-workspace').boundingClientRect();
+      query.select(`#${anchorId}`).boundingClientRect();
+      query.exec((res) => {
+        if (!res || res.length < 2 || !res[0] || !res[1]) {
+          console.log('弹窗定位查询失败:', res);
+          resolve();
+          return;
         }
-      }
-      const rpxRatio = this.getRpxToPxRatio();
-      const bottomReserve = Math.round((104 + 20) * rpxRatio);
-      const minTop = 8;
-      const maxTop = Math.max(minTop, viewportHeight - panelHeightPx - bottomReserve);
-      const anchorCenterY = Number(rect.top || 0) + Number(rect.height || 0) / 2;
-      const nextTop = Math.max(minTop, Math.min(maxTop, Math.round(anchorCenterY - panelHeightPx / 2)));
-      if (nextTop !== this.data.miniToolTopPx) {
-        this.setData({ miniToolTopPx: nextTop });
-      }
-    }).exec();
+        const workspaceRect = res[0];
+        const anchorRect = res[1];
+        console.log('弹窗定位信息:', {
+          anchorId,
+          workspaceTop: workspaceRect.top,
+          anchorTop: anchorRect.top,
+          relativeTop: anchorRect.top - workspaceRect.top
+        });
+        const panelHeightPx = this.getPanelEstimatedHeightPx(panel);
+        let viewportHeight = Number((this.viewportInfo && this.viewportInfo.height) || 0);
+        if (!viewportHeight) {
+          try {
+            const info = wx.getSystemInfoSync ? wx.getSystemInfoSync() : {};
+            viewportHeight = Number(info.windowHeight || 667);
+          } catch (e) {
+            viewportHeight = 667;
+          }
+        }
+        const rpxRatio = this.getRpxToPxRatio();
+        const bottomReserve = Math.round((104 + 20 + 40) * rpxRatio);
+        const minTop = 8;
+        const maxTop = Math.max(minTop, viewportHeight - panelHeightPx - bottomReserve - workspaceRect.top);
+        const anchorTopRelativeToWorkspace = Math.round(anchorRect.top - workspaceRect.top);
+        const nextTop = Math.max(minTop, Math.min(maxTop, anchorTopRelativeToWorkspace));
+        console.log('弹窗最终位置:', { nextTop, minTop, maxTop });
+        this.setData({ miniToolTopPx: nextTop }, resolve);
+      });
+    });
   },
 
   openToolPanel(panel = '', options = {}) {
     const { anchorId = '' } = options || {};
     const isSameMiniPanel = this.data.activeToolPanel === panel && !this.data.showToolPanel;
-    if (!isSameMiniPanel) {
-      this.updateMiniToolTopByAnchor(anchorId, panel);
+    if (isSameMiniPanel) {
+      this.setData({
+        showToolPanel: false,
+        activeToolPanel: ''
+      });
+      return;
     }
-    this.setData({
-      showToolPanel: false,
-      activeToolPanel: isSameMiniPanel ? '' : panel
+    this.setData({ activeToolPanel: '' }, () => {
+      this.updateMiniToolTopByAnchor(anchorId, panel).then(() => {
+        this.setData({
+          showToolPanel: false,
+          activeToolPanel: panel
+        });
+      });
     });
   },
 
@@ -1228,7 +1260,7 @@ Page({
       `background: radial-gradient(circle, rgba(${palette.glow}, ${glowOpacity}), rgba(${palette.glow}, 0));`
     ].join(' ');
 
-    const writingLightShadowStyle = `background: radial-gradient(circle at ${lightExit}, rgba(255, 255, 255, 0) 0%, rgba(15, 23, 42, ${shadowOpacity}) 88%);`;
+    const writingLightShadowStyle = '';
 
     this.setData({
       writingLightBeamStyle,
@@ -1388,7 +1420,7 @@ Page({
     if (!HANGING_ORNAMENT_META[key]) {
       return;
     }
-    this.setData({ pendingHangingOrnament: key });
+    this.applyHangingOrnament(key, { closePanel: true });
   },
 
   onConfirmHangingOrnament() {
@@ -1799,18 +1831,9 @@ Page({
       ? getThemeTypeById(theme.id)
       : activeThemeType;
 
-    const resolvedTheme = {
-      ...theme,
-      bodyTextColor: theme.bodyTextColor || theme.textColor || '#334155',
-      titleTextColor: theme.titleTextColor || '#1F2937',
-      subtitleTextColor: theme.subtitleTextColor || '#64748B',
-      tertiaryTextColor: theme.tertiaryTextColor || '#94A3B8',
-      inverseTextColor: theme.inverseTextColor || '#FFFFFF'
-    };
-
     this.setData({
-      theme: resolvedTheme,
-      textPalette: resolveSemanticTextPalette(resolvedTheme),
+      theme: theme,
+      textPalette: resolveSemanticTextPalette(theme),
       activeThemeType: resolvedType,
       filteredThemes: getThemesByType(resolvedType),
       companionVisualType: resolvedType === THEME_STYLE_TYPES.MALE ? 'core' : 'cloud'
@@ -1979,8 +2002,8 @@ Page({
     this.setData({
       isBreathingActive: false,
       breathingPhase: 'idle',
-      breathingGuideText: '',
       breathingCycleCount: 0,
+      breathingGuideText: '',
       breathingDisplayRound: 1
     });
 
@@ -1991,6 +2014,14 @@ Page({
         title: '呼吸引导已结束',
         icon: 'none'
       });
+    }
+  },
+
+  toggleBreathingGuide() {
+    if (this.data.isBreathingActive) {
+      this.stopBreathingGuide();
+    } else {
+      this.startBreathingGuide();
     }
   },
 
@@ -2259,11 +2290,23 @@ Page({
       : null;
 
     this.setData({ isCompanionLongPressTriggered: false });
+  },
 
-    this.companionLongPressTimer = setTimeout(() => {
-      this.setData({ isCompanionLongPressTriggered: true });
-      this.startBreathingGuide();
-    }, 420);
+  onCompanionTouchMove(e) {
+    if (this.data.companionInNest) {
+      return;
+    }
+    const touch = (e && e.touches && e.touches[0]) || null;
+    if (!touch || !this.companionTouchStartPoint) {
+      return;
+    }
+    const moveDistance = Math.hypot(
+      touch.pageX - this.companionTouchStartPoint.x,
+      touch.pageY - this.companionTouchStartPoint.y
+    );
+    if (moveDistance >= 3) {
+      this.isFabDragging = true;
+    }
   },
 
   onCompanionTouchEnd(e) {
@@ -2320,12 +2363,7 @@ Page({
       return;
     }
 
-    if (this.data.isCompanionLongPressTriggered) {
-      this.stopBreathingGuide({ silent: true });
-      setTimeout(() => {
-        this.setData({ isCompanionLongPressTriggered: false });
-      }, 50);
-    }
+    
   },
 
   onCompanionTouchCancel() {
@@ -2376,64 +2414,120 @@ Page({
     }
   },
 
-  onFabDragChange(e) {
+  onTapCompanion(e) {
+    if (e && e.stopPropagation) {
+      e.stopPropagation();
+    }
     if (this.data.companionInNest) {
       return;
     }
-    const detail = e.detail || {};
-    const { x = this.data.fabX, y = this.data.fabY, source = '' } = detail;
-    const clampedPoint = this.clampFabPosition(x, y);
-    const nextX = clampedPoint.x;
-    const nextY = clampedPoint.y;
-
-    const isTouchDragging = source === 'touch' || source === 'touch-out-of-bounds';
-    if (!isTouchDragging) {
-      if (this.isFabDragging) {
-        return;
-      }
-      this.setData({ fabX: nextX, fabY: nextY });
-      this.updateCompanionBubbleLayout(nextX, nextY);
+    
+    // 如果正在移动，停止移动
+    if (this.data.isCompanionMoving) {
+      this.stopCompanionMove();
+      this.setData({
+        isCompanionSelected: true,
+        isCompanionMoving: false
+      });
       return;
     }
-
-    this.isFabDragging = true;
-    this.clearCompanionLongPressTimer();
-
-    if (this.data.isBreathingActive) {
-      this.stopBreathingGuide({ silent: true });
-    }
-
-    if (this.data.isCompanionLongPressTriggered) {
-      this.setData({ isCompanionLongPressTriggered: false });
-    }
-
-    const viewport = this.viewportInfo || {};
-    const fabSize = Number(viewport.fabSize || 46);
-    const centerPoint = {
-      x: nextX + fabSize / 2,
-      y: nextY + fabSize / 2
-    };
-    const isOverNest = this.isPointInCompanionNest(centerPoint, { padding: 8 });
-
+    
+    // 切换选中状态
     this.setData({
-      fabX: nextX,
-      fabY: nextY,
-      companionDragLevel: 0,
-      companionNestHighlighted: isOverNest,
-      isCompanionDragging: true
+      isCompanionSelected: !this.data.isCompanionSelected
     });
+  },
 
-    this.updateCompanionBubbleLayout(nextX, nextY);
+  onTapScreenForCompanionMove(e) {
+    if (this.data.companionInNest || !this.data.isCompanionSelected) {
+      return;
+    }
+    
+    // 直接使用点击事件的坐标（相对于视口）
+    const targetX = e.detail.x;
+    const targetY = e.detail.y;
+    
+    this.moveCompanionTo(targetX, targetY);
+  },
 
-    this.clearCompanionDragSettleTimer();
-    this.companionDragSettleTimer = setTimeout(() => {
-      this.setData({ 
-        companionDragLevel: 0,
-        companionNestHighlighted: false,
-        isCompanionDragging: false
+  moveCompanionTo(targetX, targetY) {
+    // 检查目标位置是否在窝的区域内
+    const centerPoint = {
+      x: targetX,
+      y: targetY
+    };
+    
+    const isOverNest = this.isPointInCompanionNest(centerPoint, { padding: 20 });
+    
+    if (isOverNest) {
+      this.dockCompanionToNest();
+      return;
+    }
+    
+    const startX = this.data.fabX;
+    const startY = this.data.fabY;
+    const distanceX = targetX - startX;
+    const distanceY = targetY - startY;
+    
+    // 计算移动距离
+    const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+    
+    // 根据距离调整移动时间
+    const baseDuration = 1000; // 基础时间（毫秒）
+    const maxDuration = 2000; // 最大时间（毫秒）
+    const minDuration = 500; // 最小时间（毫秒）
+    
+    // 距离越远，时间越长，但不超过最大时间
+    const duration = Math.min(maxDuration, Math.max(minDuration, baseDuration + distance * 2));
+    
+    const steps = 60; // 动画步数
+    const stepDuration = duration / steps;
+    
+    let currentStep = 0;
+    
+    this.stopCompanionMove();
+    this.setData({ isCompanionMoving: true });
+    
+    this.companionMoveTimer = setInterval(() => {
+      currentStep++;
+      const progress = Math.min(currentStep / steps, 1);
+      const easeProgress = this.easeOutQuad(progress);
+      
+      const currentX = startX + distanceX * easeProgress;
+      const currentY = startY + distanceY * easeProgress;
+      
+      const clampedPoint = this.clampFabPosition(currentX, currentY);
+      
+      this.setData({
+        fabX: clampedPoint.x,
+        fabY: clampedPoint.y
       });
-      this.companionDragSettleTimer = null;
-    }, 90);
+      
+      this.updateCompanionBubbleLayout(clampedPoint.x, clampedPoint.y);
+      
+      if (currentStep >= steps) {
+        this.stopCompanionMove();
+        this.setData({
+          isCompanionSelected: false,
+          isCompanionMoving: false
+        });
+      }
+    }, stepDuration);
+  },
+
+  stopCompanionMove() {
+    if (this.companionMoveTimer) {
+      clearInterval(this.companionMoveTimer);
+      this.companionMoveTimer = null;
+    }
+  },
+
+  easeOutQuad(t) {
+    return t * (2 - t);
+  },
+
+  onFabDragChange(e) {
+    // 拖动功能已移除，保留此函数以兼容旧代码
   },
 
   emitCompanionTrailParticle(x, y, speed = 0) {
@@ -2901,6 +2995,7 @@ Page({
             isAmbientSubtitleAnimating: false,
             isFlipping: false
           });
+          this.closeToolPanel();
           this.ambientSubtitleAnimTimer = null;
           this.isBlindBoxAnimating = false;
         }, 700);

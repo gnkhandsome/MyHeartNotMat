@@ -8,10 +8,10 @@ const postShredHelper = createPageShredHelper({
 });
 
 const POST_TYPE_META = {
-  letter: { label: '写信', icon: '✉️', placeholder: '把想说的话写成一封信，慢慢寄给自己。' },
-  postcard: { label: '明信片', icon: '🖼️', placeholder: '写下此刻风景与心情，寄出一张明信片。' },
-  diary: { label: '日记', icon: '📔', placeholder: '今天发生了什么？写进你的日记页。' },
-  vlog: { label: 'Vlog', icon: '🎬', placeholder: '用镜头语言记录今天，像在写生活旁白。' }
+  letter: { label: '写信', icon: '✉️', placeholder: '把想说的话写成一封信' },
+  postcard: { label: '明信片', icon: '🖼️', placeholder: '写下此刻风景与心情' },
+  diary: { label: '日记', icon: '📔', placeholder: '记录今天发生的事情' },
+  vlog: { label: 'Vlog', icon: '🎬', placeholder: '用镜头语言记录今天' }
 };
 
 const POST_ACTION_META = {
