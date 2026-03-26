@@ -444,7 +444,6 @@ Page({
       activePostType,
       writingLightEnabled,
       writingLightColorMode,
-      writingLightFromSide,
       writingLightIntensity,
       writingLightAngle,
       writingLightFocus,
@@ -485,10 +484,6 @@ Page({
 
       if (WRITING_LIGHT_COLOR_META[stored.writingLightColorMode]) {
         nextData.writingLightColorMode = stored.writingLightColorMode;
-      }
-
-      if (stored.writingLightFromSide === 'left' || stored.writingLightFromSide === 'right') {
-        nextData.writingLightFromSide = stored.writingLightFromSide;
       }
 
       const safeIntensity = Number(stored.writingLightIntensity);
@@ -1233,6 +1228,8 @@ Page({
           activeToolPanel: panel
         }, () => {
           this.startToolPanelAutoCloseTimer(panel);
+          // 更新精灵窝边界，确保使用最新位置
+          this.updateCompanionNestBounds();
         });
       });
     });
@@ -1303,7 +1300,6 @@ Page({
     const {
       writingLightEnabled,
       writingLightColorMode,
-      writingLightFromSide,
       writingLightIntensity,
       writingLightAngle,
       writingLightFocus
@@ -1320,36 +1316,25 @@ Page({
     const palette = this.getWritingLightPalette(writingLightColorMode);
     const intensityRatio = Math.max(0, Math.min(1, Number(writingLightIntensity || 0) / 100));
     const focusRatio = Math.max(0.2, Math.min(1, Number(writingLightFocus || 0) / 100));
-    const direction = writingLightFromSide === 'right' ? -1 : 1;
-    const safeAngle = Math.max(0, Math.min(65, Number(writingLightAngle) || 20));
-    const rotateDeg = direction * safeAngle;
 
-    const beamOpacity = (0.20 + intensityRatio * 0.48).toFixed(3);
-    const edgeOpacity = (0.04 + intensityRatio * 0.18).toFixed(3);
-    const tailOpacity = (0.01 + intensityRatio * 0.08).toFixed(3);
+    const beamOpacity = '0.2';
+    const edgeOpacity = '0.2';
+    const tailOpacity = '0.2';
     const beamWidth = Math.round(96 + (1 - focusRatio) * 104);
     const beamBlur = Math.round(14 + (1 - focusRatio) * 28);
-    const beamX = writingLightFromSide === 'right' ? 'right: -38vw;' : 'left: -38vw;';
 
-    const glowOpacity = (0.28 + intensityRatio * 0.50).toFixed(3);
+    const glowOpacity = '0.2';
     const glowSize = Math.round(360 + intensityRatio * 420);
-    const glowX = writingLightFromSide === 'right' ? 'right: -20vw;' : 'left: -20vw;';
 
     const writingLightBeamStyle = [
-      beamX,
-      `width: ${beamWidth}vw;`,
       `opacity: ${beamOpacity};`,
       `filter: blur(${beamBlur}rpx);`,
-      `transform: rotate(${rotateDeg}deg);`,
-      `background: linear-gradient(to bottom, rgba(${palette.beamCore}, ${beamOpacity}) 0%, rgba(${palette.beamCore}, ${beamOpacity}) 20%, rgba(${palette.beamEdge}, ${edgeOpacity}) 55%, rgba(${palette.beamEdge}, ${tailOpacity}) 85%, rgba(${palette.beamEdge}, 0) 100%);`
+      `background: rgba(${palette.beamCore}, ${beamOpacity});`
     ].join(' ');
 
     const writingLightGlowStyle = [
-      glowX,
-      `width: ${glowSize}rpx;`,
-      `height: ${glowSize}rpx;`,
       `opacity: ${glowOpacity};`,
-      `background: radial-gradient(circle, rgba(${palette.glow}, ${glowOpacity}), rgba(${palette.glow}, 0));`
+      `background: rgba(${palette.glow}, ${glowOpacity});`
     ].join(' ');
 
     this.setData({
@@ -1375,14 +1360,7 @@ Page({
     });
   },
 
-  onSwitchWritingLightSide(e) {
-    const side = e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.side;
-    if (side !== 'left' && side !== 'right') return;
-    this.setData({ writingLightFromSide: side }, () => {
-      this.updateWritingLightFxStyles();
-      this.persistToolbarSettings({ writingLightFromSide: side });
-    });
-  },
+
 
   onWritingLightIntensityChange(e) {
     const value = Number(e && e.detail && e.detail.value);
@@ -1637,21 +1615,6 @@ Page({
   },
 
   onTapToolBlindBox() {
-    if (this.blindBoxEntryShakeTimer) {
-      clearTimeout(this.blindBoxEntryShakeTimer);
-      this.blindBoxEntryShakeTimer = null;
-    }
-
-    this.setData({
-      blindBoxEntryShaking: true,
-      isFlipping: false,
-      showQuote: false
-    });
-    this.blindBoxEntryShakeTimer = setTimeout(() => {
-      this.setData({ blindBoxEntryShaking: false });
-      this.blindBoxEntryShakeTimer = null;
-    }, 520);
-
     this.openToolPanel('blindbox', { anchorId: 'toolEntryBlindbox' });
   },
 
@@ -1694,7 +1657,10 @@ Page({
       });
     }
     this.initMovableFab({ keepPosition: true });
-    this.updateCompanionNestBounds();
+    // 重新计算精灵窝边界，确保使用最新位置
+    setTimeout(() => {
+      this.updateCompanionNestBounds();
+    }, 100);
     this.maybeTriggerCompanionWhisper();
     this.startCompanionAmbientLoop();
   },
@@ -2030,14 +1996,18 @@ Page({
     wx.vibrateShort();
     this.setData({
       isBreathingActive: true,
+      showBreathingStartScreen: false,
       companionState: 'breathing',
       breathingCycleCount: 0,
-      breathingDisplayRound: 1
+      breathingDisplayRound: 1,
+      breathingTimer: '00:00',
+      phaseTimer: ''
     });
 
     this.showCompanionBubble('我陪你一起慢慢呼吸。', 1800);
 
     this.runBreathingPhase(0, 0);
+    this.startBreathingTimer();
   },
 
   runBreathingPhase(phaseIndex = 0, cycleCount = 0) {
@@ -2051,10 +2021,35 @@ Page({
       breathingPhase: phase.key,
       breathingGuideText: phase.text,
       breathingCycleCount: cycleCount,
-      breathingDisplayRound: cycleCount + 1
+      breathingDisplayRound: cycleCount + 1,
+      phaseTimer: Math.floor(phase.duration / 1000).toString()
     });
 
     this.clearBreathingPhaseTimer();
+    this.clearPhaseTimerInterval();
+    
+    // 启动阶段倒计时
+    const phaseDuration = phase.duration;
+    const startTime = Date.now();
+    
+    this.phaseTimerInterval = setInterval(() => {
+      if (!this.data.isBreathingActive) {
+        this.clearPhaseTimerInterval();
+        return;
+      }
+      
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, Math.floor((phaseDuration - elapsed) / 1000));
+      
+      this.setData({
+        phaseTimer: remaining.toString()
+      });
+      
+      if (remaining <= 0) {
+        this.clearPhaseTimerInterval();
+      }
+    }, 1000);
+
     this.breathingPhaseTimer = setTimeout(() => {
       if (!this.data.isBreathingActive) {
         return;
@@ -2069,8 +2064,70 @@ Page({
       }
 
       const nextPhaseIndex = isLastPhase ? 0 : phaseIndex + 1;
-      this.runBreathingPhase(nextPhaseIndex, nextCycleCount);
+      
+      // 添加过渡效果
+      if (isLastPhase) {
+        // 轮次切换过渡
+        this.setData({
+          breathingGuideText: `准备开始第${nextCycleCount + 1}轮`,
+          phaseTimer: ''
+        });
+        
+        setTimeout(() => {
+          if (!this.data.isBreathingActive) {
+            return;
+          }
+          this.runBreathingPhase(nextPhaseIndex, nextCycleCount);
+        }, 3000); // 轮次切换过渡时间：3秒
+      } else {
+        // 呼吸阶段切换过渡
+        this.setData({
+          breathingGuideText: '准备切换呼吸',
+          phaseTimer: ''
+        });
+        
+        setTimeout(() => {
+          if (!this.data.isBreathingActive) {
+            return;
+          }
+          this.runBreathingPhase(nextPhaseIndex, nextCycleCount);
+        }, 2000); // 阶段切换过渡时间：2秒
+      }
     }, phase.duration);
+  },
+
+  startBreathingTimer() {
+    this.breathingStartTime = Date.now();
+    this.clearBreathingTimer();
+    
+    this.breathingTimerInterval = setInterval(() => {
+      if (!this.data.isBreathingActive) {
+        this.clearBreathingTimer();
+        return;
+      }
+      
+      const elapsed = Math.floor((Date.now() - this.breathingStartTime) / 1000);
+      const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+      const seconds = (elapsed % 60).toString().padStart(2, '0');
+      
+      this.setData({
+        breathingTimer: `${minutes}:${seconds}`
+      });
+    }, 1000);
+  },
+
+  clearBreathingTimer() {
+    if (this.breathingTimerInterval) {
+      clearInterval(this.breathingTimerInterval);
+      this.breathingTimerInterval = null;
+    }
+  },
+
+  clearPhaseTimerInterval() {
+    if (this.phaseTimerInterval) {
+      clearInterval(this.phaseTimerInterval);
+      this.phaseTimerInterval = null;
+    }
   },
 
   stopBreathingGuide(options = {}) {
@@ -2079,13 +2136,20 @@ Page({
 
     this.clearBreathingLongPressTimer();
     this.clearBreathingPhaseTimer();
+    this.clearBreathingTimer();
+    this.clearPhaseTimerInterval();
+    this.clearBreathingStartProgressInterval();
 
     this.setData({
       isBreathingActive: false,
+      showBreathingStartScreen: false,
       breathingPhase: 'idle',
       breathingCycleCount: 0,
       breathingGuideText: '',
-      breathingDisplayRound: 1
+      breathingDisplayRound: 1,
+      breathingTimer: '00:00',
+      phaseTimer: '',
+      breathingStartProgress: 0
     });
 
     this.restoreCompanionStateByInput();
@@ -2099,10 +2163,53 @@ Page({
   },
 
   toggleBreathingGuide() {
-    if (this.data.isBreathingActive) {
+    if (this.data.isBreathingActive || this.data.showBreathingStartScreen) {
       this.stopBreathingGuide();
     } else {
-      this.startBreathingGuide();
+      this.showBreathingStartScreen();
+    }
+  },
+
+  showBreathingStartScreen() {
+    this.setData({
+      showBreathingStartScreen: true,
+      breathingStartProgress: 0
+    });
+  },
+
+  onTapBreathingIsland() {
+    this.stopBreathingGuide();
+  },
+
+  onBreathingStartTouchStart() {
+    this.breathingStartTouchStartTime = Date.now();
+    this.breathingStartProgressInterval = setInterval(() => {
+      const elapsed = Date.now() - this.breathingStartTouchStartTime;
+      const progress = Math.min((elapsed / 2000) * 100, 100);
+      
+      this.setData({
+        breathingStartProgress: progress
+      });
+      
+      if (progress >= 100) {
+        this.clearBreathingStartProgressInterval();
+        this.startBreathingGuide();
+      }
+    }, 50);
+  },
+
+  onBreathingStartTouchEnd() {
+    this.clearBreathingStartProgressInterval();
+    this.setData({
+      breathingStartProgress: 0,
+      showBreathingStartScreen: false
+    });
+  },
+
+  clearBreathingStartProgressInterval() {
+    if (this.breathingStartProgressInterval) {
+      clearInterval(this.breathingStartProgressInterval);
+      this.breathingStartProgressInterval = null;
     }
   },
 
@@ -2125,13 +2232,20 @@ Page({
       return;
     }
 
-    wx.showActionSheet({
-      itemList: ['仅自己可见（本地私密）', '发布到广场（公开）'],
-      success: (res) => {
-        const visibility = res.tapIndex === 1 ? 'public' : 'private';
-        this.publishPost({ visibility });
-      }
-    });
+    this.openToolPanel('package', { anchorId: 'toolEntryPublish' });
+  },
+
+  onPackageAction(e) {
+    const action = e.currentTarget.dataset.action;
+    if (!action) return;
+
+    this.closeToolPanel();
+
+    if (action === 'save') {
+      this.publishPost({ visibility: 'private' });
+    } else if (action === 'publish') {
+      this.publishPost({ visibility: 'public' });
+    }
   },
 
   // 发布内容
@@ -2890,6 +3004,10 @@ Page({
     const isAudioPlaying = app.toggleAudio();
     this.setData({ isAudioPlaying });
 
+    if (isAudioPlaying) {
+      this.openToolPanel('volume', { anchorId: 'toolEntryAudio' });
+    }
+
     this.triggerCompanionMoment({
       state: isAudioPlaying ? 'happy' : 'idle',
       text: isAudioPlaying ? '我把白噪音开好了。' : '先安静一下也很好。',
@@ -3035,9 +3153,8 @@ Page({
     ];
     const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
 
-    // 在入口侧弹窗内完成开盒动画
+    // 先设置基础状态
     this.setData({
-      isFlipping: true,
       showQuote: false,
       currentQuote: randomQuote,
       isAmbientSubtitleAnimating: false,
@@ -3051,40 +3168,52 @@ Page({
       restoreAfter: false
     });
 
-    // 先播放开盒，再展示结果（仍停留在入口弹窗内）
-    this.blindBoxRevealTimer = setTimeout(() => {
-      this.setData({
-        showQuote: true
-      });
-
-      this.triggerCompanionMoment({
-        state: 'happy',
-        text: '收下这句温柔吧 ✨',
-        duration: 1600,
-        restoreAfter: true
-      });
-
-      // 结果展示 1.5 秒后，收束到挂件下方副标题
-      this.blindBoxOverlayTimer = setTimeout(() => {
+    // 触发抖动动画
+    this.setData({
+      blindBoxEntryShaking: true
+    });
+    this.blindBoxEntryShakeTimer = setTimeout(() => {
+      this.setData({ blindBoxEntryShaking: false });
+      this.blindBoxEntryShakeTimer = null;
+      
+      // 抖动动画结束后，执行翻转动画
+      this.setData({ isFlipping: true });
+      
+      // 翻转后展示结果
+      this.blindBoxRevealTimer = setTimeout(() => {
         this.setData({
-          isAmbientSubtitleAnimating: true,
-          writingAmbientSubtitle: randomQuote
+          showQuote: true
         });
 
-        this.ambientSubtitleAnimTimer = setTimeout(() => {
+        this.triggerCompanionMoment({
+          state: 'happy',
+          text: '收下这句温柔吧 ✨',
+          duration: 1600,
+          restoreAfter: true
+        });
+
+        // 结果展示 1.5 秒后，收束到挂件下方副标题
+        this.blindBoxOverlayTimer = setTimeout(() => {
           this.setData({
-            isAmbientSubtitleAnimating: false,
-            isFlipping: false
+            isAmbientSubtitleAnimating: true,
+            writingAmbientSubtitle: randomQuote
           });
-          this.closeToolPanel();
-          this.ambientSubtitleAnimTimer = null;
-          this.isBlindBoxAnimating = false;
-        }, 700);
 
-        this.blindBoxOverlayTimer = null;
-      }, 1500);
+          this.ambientSubtitleAnimTimer = setTimeout(() => {
+            this.setData({
+              isAmbientSubtitleAnimating: false,
+              isFlipping: false
+            });
+            this.closeToolPanel();
+            this.ambientSubtitleAnimTimer = null;
+            this.isBlindBoxAnimating = false;
+          }, 700);
 
-      this.blindBoxRevealTimer = null;
-    }, 450);
+          this.blindBoxOverlayTimer = null;
+        }, 1500);
+
+        this.blindBoxRevealTimer = null;
+      }, 450);
+    }, 800);
   }
 });

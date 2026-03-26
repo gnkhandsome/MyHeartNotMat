@@ -101,6 +101,7 @@ Page({
     });
 
     this.applySceneFromPackage(scenePackage);
+    this.updateNavigationBarColor();
     wx.setNavigationBarTitle({ title: `${post.typeLabel || '内容'}详情` });
   },
 
@@ -304,5 +305,43 @@ Page({
         time: '5分钟前'
       }
     ];
+  },
+
+  updateNavigationBarColor() {
+    const { theme } = this.data;
+    if (theme && theme.bgColor) {
+      const rgb = (() => {
+        const value = String(theme.bgColor || '').trim();
+        if (value.startsWith('#')) {
+          const hex = value.slice(1);
+          if (hex.length === 3) {
+            return {
+              r: parseInt(hex[0] + hex[0], 16),
+              g: parseInt(hex[1] + hex[1], 16),
+              b: parseInt(hex[2] + hex[2], 16)
+            };
+          }
+          if (hex.length >= 6) {
+            return {
+              r: parseInt(hex.slice(0, 2), 16),
+              g: parseInt(hex.slice(2, 4), 16),
+              b: parseInt(hex.slice(4, 6), 16)
+            };
+          }
+        }
+        const rgbMatch = value.match(/rgba?\(([^)]+)\)/i);
+        if (!rgbMatch) return null;
+        const [r, g, b] = rgbMatch[1].split(',').map((item) => Number(item.trim()));
+        if (![r, g, b].every(Number.isFinite)) return null;
+        return { r, g, b };
+      })();
+      const isDarkBg = rgb
+        ? ((0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255) < 0.52
+        : false;
+      wx.setNavigationBarColor({
+        frontColor: isDarkBg ? '#ffffff' : '#000000',
+        backgroundColor: theme.bgColor
+      });
+    }
   }
 });

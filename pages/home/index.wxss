@@ -128,7 +128,7 @@
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 6;
+  z-index: 15;
   overflow: hidden;
 }
 
@@ -136,7 +136,7 @@
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 5;
+  z-index: 14;
   overflow: hidden;
 }
 
@@ -144,7 +144,7 @@
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 7;
+  z-index: 16;
   opacity: 0.52;
   transform-origin: center center;
   will-change: opacity, transform;
@@ -616,12 +616,12 @@
   min-height: 0;
   position: relative;
   display: flex;
-  padding: 14rpx 12rpx calc(16rpx + env(safe-area-inset-bottom) + 120rpx);
+  padding: 14rpx 12rpx 20rpx;
   box-sizing: border-box;
 }
 
 .writing-left-rail {
-  position: absolute;
+  position: fixed;
   left: 22rpx;
   top: 50%;
   transform: translateY(-50%);
@@ -775,7 +775,7 @@
 }
 
 .blind-box-icon.shake {
-  animation: blindbox-entry-shake 0.52s ease-in-out;
+  animation: blindbox-entry-shake 1.2s ease-in-out;
 }
 
 .writing-left-rail .left-entry-card:nth-child(2) {
@@ -996,17 +996,19 @@
   min-width: 0;
   position: relative;
   z-index: 10;
+  display: flex;
+  flex-direction: column;
 }
 
 .writing-light-fx-layer {
-  position: absolute;
-  top: -10vh;
-  right: -8vw;
-  bottom: -8vh;
-  left: -8vw;
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   pointer-events: none;
   overflow: hidden;
-  z-index: 3;
+  z-index: 1;
   background: transparent !important;
 }
 
@@ -1017,25 +1019,38 @@
 }
 
 .writing-light-beam {
-  top: -42vh;
-  height: 248vh;
-  border-radius: 0 0 48vw 48vw;
-  transform-origin: top center;
-  will-change: transform, opacity, filter;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  transform-origin: center;
+  will-change: opacity, filter;
 }
 
 .writing-light-glow {
-  top: -18vh;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   will-change: opacity;
 }
 
 .writing-paper {
+  flex: 1;
+  min-height: 0;
   position: relative;
   z-index: 2;
 }
 
+.writing-workspace.writing-light-enabled .writing-paper {
+  background-color: rgba(255, 255, 255, 0.9);
+}
+
+
+
 .writing-right-rail {
-  position: absolute;
+  position: fixed;
   right: 22rpx;
   top: 50%;
   transform: translateY(-50%);
@@ -1049,6 +1064,72 @@
 .right-entry-card {
   min-height: 76rpx;
   justify-content: center;
+}
+
+.publish-entry-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6rpx;
+  min-height: 94rpx;
+  padding: 8rpx 4rpx;
+  box-sizing: border-box;
+}
+
+.publish-entry-text {
+  font-size: 22rpx;
+  font-weight: 500;
+  text-align: center;
+}
+
+.publish-entry-card.enabled {
+  transform: translateY(-2rpx) scale(1.04) !important;
+  filter: saturate(1.2) !important;
+  background: rgba(99, 102, 241, 0.1) !important;
+  border-radius: 18rpx !important;
+  border: 2rpx solid rgba(99, 102, 241, 0.6) !important;
+  box-shadow: 0 0 20rpx rgba(99, 102, 241, 0.4) !important;
+}
+
+.publish-entry-card.enabled .left-entry-icon {
+  transform: scale(1.06) !important;
+  box-shadow:
+    0 10rpx 22rpx rgba(99, 102, 241, 0.3),
+    0 0 22rpx rgba(99, 102, 241, 0.4) !important;
+}
+
+/* 确保只有发布按钮高亮，其他按钮变灰 */
+.writing-workspace.writing-focused .writing-right-rail {
+  transform: translateY(-50%) scale(0.96);
+}
+
+.writing-workspace.writing-focused .writing-right-rail .left-entry-card:not(.publish-entry-card) {
+  opacity: 0.46;
+}
+
+.writing-workspace.writing-focused .publish-entry-card {
+  opacity: 1 !important;
+  transform: none !important;
+  filter: saturate(1) !important;
+}
+
+.writing-workspace.writing-focused .publish-entry-card.enabled {
+  opacity: 1 !important;
+  transform: translateY(-2rpx) scale(1.04) !important;
+  filter: saturate(1.2) !important;
+  background: rgba(99, 102, 241, 0.1) !important;
+  border: 2rpx solid rgba(99, 102, 241, 0.6) !important;
+  box-shadow: 0 0 20rpx rgba(99, 102, 241, 0.4) !important;
+}
+
+.writing-workspace.writing-focused .publish-entry-card.enabled .left-entry-icon {
+  opacity: 1 !important;
+  transform: scale(1.06) !important;
+  filter: none !important;
+  box-shadow:
+    0 10rpx 22rpx rgba(99, 102, 241, 0.3),
+    0 0 22rpx rgba(99, 102, 241, 0.4) !important;
 }
 
 @keyframes side-entry-breathe {
@@ -1065,15 +1146,15 @@
 
 @keyframes blindbox-entry-shake {
   0% { transform: rotate(0deg) scale(1); }
-  20% { transform: rotate(-10deg) scale(1.08); }
-  40% { transform: rotate(10deg) scale(1.08); }
-  60% { transform: rotate(-8deg) scale(1.06); }
-  80% { transform: rotate(8deg) scale(1.04); }
+  20% { transform: rotate(-6deg) scale(1.03); }
+  40% { transform: rotate(6deg) scale(1.03); }
+  60% { transform: rotate(-4deg) scale(1.02); }
+  80% { transform: rotate(4deg) scale(1.01); }
   100% { transform: rotate(0deg) scale(1); }
 }
 
 .mini-tool-mask {
-  position: absolute;
+  position: fixed;
   inset: 0;
   z-index: 60;
 }
@@ -1201,6 +1282,18 @@
 .ornament-option-label {
   font-size: 18rpx;
   color: #475569;
+}
+
+.scene-intensity-section {
+  margin-top: 20rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx solid rgba(148, 163, 184, 0.16);
+}
+
+.scene-intensity-section .scene-intensity-label {
+  font-size: 18rpx;
+  margin-bottom: 8rpx;
+  display: block;
 }
 
 .ornament-confirm-btn {
@@ -2019,9 +2112,8 @@
 
 .paper-textarea {
   width: 100%;
-  flex: 1;
-  min-height: 100%;
-  height: 100%;
+  min-height: 600rpx;
+  max-height: 1200rpx;
   border: none;
   background: transparent !important;
   padding: 6rpx 120rpx 60rpx 120rpx;
@@ -2059,6 +2151,45 @@
 
 .paper-footer.type-diary {
   border-top: none;
+}
+
+/* 发布按钮样式 */
+.publish-button-container {
+  margin-top: 60rpx;
+  margin-bottom: 60rpx;
+  display: flex;
+  justify-content: center;
+  z-index: 100;
+  padding: 0 20rpx;
+}
+
+.publish-button {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 24rpx 50rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, #6366f1, #818cf8);
+  box-shadow: 0 20rpx 50rpx rgba(99, 102, 241, 0.6);
+  transition: all 0.3s ease;
+  min-width: 240rpx;
+  justify-content: center;
+  border: 2rpx solid rgba(255, 255, 255, 0.3);
+}
+
+.publish-button:active {
+  transform: translateY(-2rpx);
+  box-shadow: 0 16rpx 40rpx rgba(99, 102, 241, 0.5);
+}
+
+.publish-button-icon {
+  font-size: 28rpx;
+}
+
+.publish-button-text {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #fff;
 }
 
 
@@ -2429,19 +2560,27 @@
   line-height: 1.55;
 }
 
+.square-subtitle.top-fixed {
+  text-align: center;
+  padding: 20rpx;
+  margin-bottom: 10rpx;
+}
+
 .square-subtitle.bottom-fixed {
-  position: absolute;
-  bottom: calc(20rpx + env(safe-area-inset-bottom));
+  position: fixed;
+  bottom: calc(144rpx + env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%);
   text-align: center;
   padding: 0 20rpx;
+  z-index: 10;
 }
 
 .square-post-list {
   flex: 1;
-  padding: 4rpx 0 calc(80rpx + env(safe-area-inset-bottom));
+  padding: 20rpx 0 0 0;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .post-card {
@@ -2450,6 +2589,10 @@
   border-radius: 22rpx;
   border: 1rpx solid rgba(255, 255, 255, 0.5);
   transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.square-post-list .post-card:last-child {
+  margin-bottom: 0;
 }
 
 .post-card.type-letter {
@@ -3001,34 +3144,221 @@
   font-weight: bold;
 }
 
-.breathing-guide-panel {
+/* 呼吸岛屿启动界面 */
+.breathing-start-overlay {
   position: fixed;
-  left: 22rpx;
-  right: 22rpx;
-  bottom: calc(112rpx + env(safe-area-inset-bottom));
-  border-radius: 24rpx;
-  padding: 18rpx 20rpx;
-  z-index: 1100;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(20rpx);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.breathing-start-container {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 6rpx;
+  align-items: center;
+  gap: 40rpx;
+  padding: 80rpx 60rpx;
+  border-radius: 32rpx;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1rpx solid rgba(255, 255, 255, 0.16);
+  box-shadow: 
+    0 20rpx 48rpx rgba(15, 23, 42, 0.4),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.12);
 }
 
-.breathing-guide-title {
-  font-size: 22rpx;
-  font-weight: 600;
-  color: #6b7280;
+.breathing-island-subtitle {
+  font-size: 28rpx;
+  color: rgba(255, 255, 255, 0.8);
 }
 
-.breathing-guide-phase {
-  font-size: 32rpx;
+.breathing-start-button-container {
+  position: relative;
+  width: 180rpx;
+  height: 180rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.breathing-start-progress-circle {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: visible;
+}
+
+.breathing-start-progress {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 6rpx solid transparent;
+  border-top-color: #818cf8;
+  border-right-color: #818cf8;
+  transform-origin: center;
+  transition: transform 0.1s ease;
+}
+
+.breathing-start-button {
+  position: relative;
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 50%;
+  background: rgba(129, 140, 248, 0.2);
+  border: 2rpx solid rgba(129, 140, 248, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  transition: all 0.3s ease;
+}
+
+.breathing-start-button:active {
+  transform: scale(0.95);
+}
+
+.breathing-start-icon {
+  font-size: 64rpx;
+  z-index: 1;
+}
+
+/* 呼吸岛屿沉浸式引导 */
+.breathing-island-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(20rpx);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.breathing-island-timer-fixed {
+  position: fixed;
+  top: 80rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 72rpx;
   font-weight: 700;
-  color: #111827;
+  color: #818cf8;
+  text-shadow: 0 8rpx 24rpx rgba(129, 140, 248, 0.6);
+  z-index: 2001;
 }
 
-.breathing-guide-tip {
+.breathing-island-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.breathing-island-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32rpx;
+  padding: 60rpx 60rpx;
+  border-radius: 32rpx;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1rpx solid rgba(255, 255, 255, 0.16);
+  box-shadow: 
+    0 20rpx 48rpx rgba(15, 23, 42, 0.4),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.12);
+  width: 80vw;
+  max-width: 600rpx;
+  min-height: 400rpx;
+}
+
+.breathing-island-phase-timer-container {
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.breathing-island-close {
+  position: absolute;
+  top: 32rpx;
+  right: 32rpx;
+  font-size: 32rpx;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  z-index: 10;
+  transition: color 0.3s ease;
+}
+
+.breathing-island-close:active {
+  color: rgba(255, 255, 255, 1);
+}
+
+.breathing-island-title {
+  font-size: 48rpx;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 4rpx 16rpx rgba(129, 140, 248, 0.4);
+}
+
+.breathing-island-round {
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.breathing-island-phase {
+  font-size: 40rpx;
+  font-weight: 600;
+  color: #fff;
+  text-shadow: 0 4rpx 16rpx rgba(129, 140, 248, 0.4);
+  animation: breathing-phase-pulse 4s ease-in-out infinite;
+}
+
+.breathing-island-phase-timer {
+  font-size: 64rpx;
+  font-weight: 700;
+  color: #818cf8;
+  text-shadow: 0 8rpx 24rpx rgba(129, 140, 248, 0.6);
+  animation: breathing-phase-timer-pulse 1s ease-in-out infinite;
+}
+
+.breathing-island-timer {
+  font-size: 72rpx;
+  font-weight: 700;
+  color: #818cf8;
+  text-shadow: 0 8rpx 24rpx rgba(129, 140, 248, 0.6);
+}
+
+@keyframes breathing-phase-timer-pulse {
+  0%, 100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+.breathing-island-tip {
   font-size: 20rpx;
-  color: #9ca3af;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+@keyframes breathing-phase-pulse {
+  0%, 100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
 }
 
 .companion-wrapper {
@@ -3457,8 +3787,7 @@
   }
 
   .paper-textarea {
-    min-height: 100%;
-    height: 100%;
+    height: 800rpx;
     font-size: 27rpx;
     padding: 10rpx 100rpx 140rpx 100rpx;
     line-height: 1.5;

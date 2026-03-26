@@ -41,8 +41,24 @@
     <view wx:if="{{currentPage === 0}}">
       <view class="page-container">
         <!-- 写作场景 -->
-        <view class="writing-workspace theme-{{activeThemeType}} {{isWritingFocused ? 'writing-focused' : ''}}">
+        <view class="writing-workspace theme-{{activeThemeType}} {{isWritingFocused ? 'writing-focused' : ''}} {{writingLightEnabled ? 'writing-light-enabled' : ''}}">
           <view class="writing-left-rail">
+            <view id="toolEntryTheme" class="left-entry-card {{activeToolPanel === 'theme' ? 'is-active' : ''}}" bindtap="onTapToolTheme">
+              <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{activeToolPanel === 'theme' ? 14 : 8}}rpx {{theme.primaryColor}});">🎨</text>
+            </view>
+
+            <view id="toolEntryOrnament" class="left-entry-card {{activeToolPanel === 'ornament' ? 'is-active' : ''}}" bindtap="onSelectHangingOrnament">
+              <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{activeToolPanel === 'ornament' ? 14 : 8}}rpx {{theme.primaryColor}});">🪢</text>
+            </view>
+
+            <view id="toolEntryBlindbox" class="left-entry-card {{activeToolPanel === 'blindbox' ? 'is-active' : ''}}" bindtap="onTapToolBlindBox">
+              <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{activeToolPanel === 'blindbox' ? 14 : 8}}rpx {{theme.primaryColor}});">🎁</text>
+            </view>
+
+            <view class="left-entry-card" bindtap="toggleBreathingGuide">
+              <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{isBreathingActive ? 14 : 8}}rpx {{theme.primaryColor}});">🧘</text>
+            </view>
+
             <view
               id="companionNestSlot"
               class="left-entry-card companion-nest-card {{companionNestHighlighted ? 'is-highlighted' : ''}}"
@@ -56,26 +72,6 @@
                 <text wx:else class="companion-nest-emoji">🏡</text>
               </view>
               <text class="companion-nest-label" style="color: {{textPalette.subtitle}};">{{companionInNest ? '休息中' : '点击回窝'}}</text>
-            </view>
-
-            <view id="toolEntryOrnament" class="left-entry-card {{activeToolPanel === 'ornament' ? 'is-active' : ''}}" bindtap="onSelectHangingOrnament">
-              <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{activeToolPanel === 'ornament' ? 14 : 8}}rpx {{theme.primaryColor}});">🪢</text>
-            </view>
-
-            <view id="toolEntryTheme" class="left-entry-card {{activeToolPanel === 'theme' ? 'is-active' : ''}}" bindtap="onTapToolTheme">
-              <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{activeToolPanel === 'theme' ? 14 : 8}}rpx {{theme.primaryColor}});">🎨</text>
-            </view>
-
-            <view id="toolEntryBlindbox" class="left-entry-card {{activeToolPanel === 'blindbox' ? 'is-active' : ''}}" bindtap="onTapToolBlindBox">
-              <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{activeToolPanel === 'blindbox' ? 14 : 8}}rpx {{theme.primaryColor}});">🎁</text>
-            </view>
-
-            <view id="toolEntryPackage" class="left-entry-card {{activeToolPanel === 'package' ? 'is-active' : ''}}" bindtap="onTapToolPackage">
-              <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{activeToolPanel === 'package' ? 14 : 8}}rpx {{theme.primaryColor}});">📦</text>
-            </view>
-
-            <view class="left-entry-card" bindtap="toggleBreathingGuide">
-              <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{isBreathingActive ? 14 : 8}}rpx {{theme.primaryColor}});">🧘</text>
             </view>
           </view>
 
@@ -153,29 +149,35 @@
                     style="color: {{textPalette.body}};"
                     maxlength="-1"
                   ></textarea>
+
+                  <view class="paper-footer type-{{activePostType}}" wx:if="{{activePostType === 'letter'}}">
+                    <text class="paper-footer-line" style="color: {{textPalette.body}};">此致</text>
+                    <text class="paper-footer-line" style="color: {{textPalette.body}};">敬礼</text>
+                    <input
+                      class="letter-signature-input"
+                      placeholder="落款（如：—— 深夜里的你）"
+                      value="{{letterSignature}}"
+                      bindinput="onLetterSignatureInput"
+                    />
+                  </view>
+
+                  <view class="paper-footer type-{{activePostType}}" wx:if="{{activePostType === 'postcard'}}">
+                    <text class="paper-footer-line" style="color: {{textPalette.subtitle}};">寄出地：{{postcardLocation || '未填写'}}</text>
+                  </view>
+
+                  <view class="paper-footer type-{{activePostType}}" wx:if="{{activePostType === 'diary'}}">
+                    <text class="paper-footer-line" style="color: {{textPalette.subtitle}};">天气：{{diaryWeather || '未填写'}} · 心情分：{{diaryMoodScore}}/10</text>
+                  </view>
+
+                  <!-- 发布按钮 -->
+                  <view wx:if="{{postContent.trim()}}" class="publish-button-container">
+                    <view class="publish-button" bindtap="onPackagePost">
+                      <text class="publish-button-icon">📤</text>
+                      <text class="publish-button-text">发布</text>
+                    </view>
+                  </view>
                 </view>
               </scroll-view>
-
-              <view class="paper-footer type-{{activePostType}}" wx:if="{{activePostType === 'letter'}}">
-                <text class="paper-footer-line" style="color: {{textPalette.body}};">此致</text>
-                <text class="paper-footer-line" style="color: {{textPalette.body}};">敬礼</text>
-                <input
-                  class="letter-signature-input"
-                  placeholder="落款（如：—— 深夜里的你）"
-                  value="{{letterSignature}}"
-                  bindinput="onLetterSignatureInput"
-                />
-              </view>
-
-              <view class="paper-footer type-{{activePostType}}" wx:if="{{activePostType === 'postcard'}}">
-                <text class="paper-footer-line" style="color: {{textPalette.subtitle}};">寄出地：{{postcardLocation || '未填写'}}</text>
-              </view>
-
-              <view class="paper-footer type-{{activePostType}}" wx:if="{{activePostType === 'diary'}}">
-                <text class="paper-footer-line" style="color: {{textPalette.subtitle}};">天气：{{diaryWeather || '未填写'}} · 心情分：{{diaryMoodScore}}/10</text>
-              </view>
-
-
 
             </view>
           </view>
@@ -185,28 +187,27 @@
               <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{activeToolPanel === 'template' ? 14 : 8}}rpx {{theme.primaryColor}});">🧩</text>
             </view>
 
-            <view class="left-entry-card right-entry-card {{isAudioPlaying ? 'is-active' : ''}}" bindtap="toggleAudioPlay">
+            <view id="toolEntryAudio" class="left-entry-card right-entry-card {{isAudioPlaying ? 'is-active' : ''}}" bindtap="toggleAudioPlay">
               <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{isAudioPlaying ? 14 : 8}}rpx {{theme.primaryColor}});">{{isAudioPlaying ? '⏸' : '▶'}}</text>
             </view>
 
-            <view class="left-entry-card right-entry-card {{isRainModeEnabled ? 'is-active' : ''}}" bindtap="toggleRainMode">
-              <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{isRainModeEnabled ? 14 : 8}}rpx {{theme.primaryColor}});">🌧️</text>
-            </view>
 
-            <view id="toolEntryVolume" class="left-entry-card right-entry-card {{activeToolPanel === 'volume' ? 'is-active' : ''}}" bindtap="onTapToolVolume">
-              <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{activeToolPanel === 'volume' ? 14 : 8}}rpx {{theme.primaryColor}});">🔊</text>
-            </view>
+
+
 
             <view id="toolEntryScene" class="left-entry-card right-entry-card {{activeToolPanel === 'scene' ? 'is-active' : ''}}" bindtap="onTapToolScene">
               <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{activeToolPanel === 'scene' ? 14 : 8}}rpx {{theme.primaryColor}});">🌌</text>
             </view>
 
-            <view id="toolEntryIntensity" class="left-entry-card right-entry-card {{activeToolPanel === 'intensity' ? 'is-active' : ''}}" bindtap="onTapToolIntensity">
-              <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{activeToolPanel === 'intensity' ? 14 : 8}}rpx {{theme.primaryColor}});">🎚️</text>
-            </view>
+
 
             <view id="toolEntryLight" class="left-entry-card right-entry-card {{activeToolPanel === 'light' ? 'is-active' : ''}}" bindtap="onTapToolLight">
               <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{activeToolPanel === 'light' ? 14 : 8}}rpx {{theme.primaryColor}});">💡</text>
+            </view>
+
+            <view id="toolEntryPublish" class="left-entry-card right-entry-card publish-entry-card {{postContent && postContent.trim().length > 0 ? 'enabled' : ''}}" bindtap="onPackagePost">
+              <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{postContent && postContent.trim().length > 0 ? 14 : 8}}rpx {{postContent && postContent.trim().length > 0 ? theme.primaryColor : textPalette.body}});">📤</text>
+              <text class="publish-entry-text" style="color: {{textPalette.body}};">发布</text>
             </view>
           </view>
 
@@ -214,7 +215,7 @@
 
           <view wx:if="{{activeToolPanel === 'template' || activeToolPanel === 'volume' || activeToolPanel === 'scene' || activeToolPanel === 'intensity' || activeToolPanel === 'light'}}" class="mini-tool-pop right panel-{{activeToolPanel}}" catchtap="onTapToolPanelBody" style="top: {{miniToolTopPx}}px; background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
             <view class="mini-tool-head">
-              <text class="mini-tool-title" style="color: {{textPalette.title}};">{{activeToolPanel === 'template' ? '写作' : (activeToolPanel === 'volume' ? '音量' : (activeToolPanel === 'scene' ? '场景' : (activeToolPanel === 'intensity' ? '强度' : '灯光')))}}</text>
+              <text class="mini-tool-title" style="color: {{textPalette.title}};">{{activeToolPanel === 'template' ? '写作' : (activeToolPanel === 'volume' ? '音量' : (activeToolPanel === 'scene' ? '天气场景' : (activeToolPanel === 'intensity' ? '强度' : '灯光')))}}</text>
               <text class="mini-tool-close" bindtap="closeToolPanel" style="color: {{theme.primaryColor}};">收起</text>
             </view>
 
@@ -268,23 +269,7 @@
               </view>
             </view>
 
-            <view wx:if="{{activeToolPanel === 'intensity'}}" class="mini-tool-body">
-              <view class="scene-intensity-row compact">
-                <slider
-                  class="scene-intensity-slider"
-                  min="20"
-                  max="100"
-                  step="5"
-                  value="{{sceneIntensity}}"
-                  activeColor="{{theme.primaryColor}}"
-                  backgroundColor="#E5E7EB"
-                  block-size="16"
-                  bindchanging="onSceneIntensityChange"
-                  bindchange="onSceneIntensityChange"
-                />
-                <text class="scene-intensity-value" style="color: {{textPalette.subtitle}};">{{sceneIntensity}}%</text>
-              </view>
-            </view>
+
 
             <view wx:if="{{activeToolPanel === 'light'}}" class="mini-tool-body mini-tool-body-light">
               <view class="writing-light-option-row writing-light-switch-row">
@@ -304,13 +289,7 @@
                 </view>
               </view>
 
-              <view class="writing-light-option-row">
-                <text class="writing-light-option-label" style="color: {{textPalette.subtitle}};">方向</text>
-                <view class="writing-light-chip-group">
-                  <view class="writing-light-chip {{writingLightFromSide === 'left' ? 'active' : ''}}" data-side="left" bindtap="onSwitchWritingLightSide">左上</view>
-                  <view class="writing-light-chip {{writingLightFromSide === 'right' ? 'active' : ''}}" data-side="right" bindtap="onSwitchWritingLightSide">右上</view>
-                </view>
-              </view>
+
 
             </view>
           </view>
@@ -339,25 +318,20 @@
             </view>
           </view>
 
-          <view wx:if="{{activeToolPanel === 'package'}}" class="mini-tool-pop left package panel-package" catchtap="onTapToolPanelBody" style="top: {{miniToolTopPx}}px; background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+          <view wx:if="{{activeToolPanel === 'package'}}" class="mini-tool-pop right package panel-package" catchtap="onTapToolPanelBody" style="top: {{miniToolTopPx}}px; background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
             <view class="mini-tool-head">
               <text class="mini-tool-title" style="color: {{textPalette.title}};">完成写作</text>
               <text class="mini-tool-close" bindtap="closeToolPanel" style="color: {{theme.primaryColor}};">收起</text>
             </view>
             <view class="mini-tool-body package-tool-grid">
-              <view class="package-tool-item" data-type="letter" bindtap="onSelectPackageType">
-                <text class="package-tool-icon">✉️</text>
-                <text class="package-tool-label">封装信封</text>
+              <view class="package-tool-item" data-action="save" bindtap="onPackageAction">
+                <text class="package-tool-icon">💾</text>
+                <text class="package-tool-label">保存到本地</text>
               </view>
-              <view class="package-tool-item" data-type="postcard" bindtap="onSelectPackageType">
-                <text class="package-tool-icon">🪪</text>
-                <text class="package-tool-label">封装卡片</text>
+              <view class="package-tool-item" data-action="publish" bindtap="onPackageAction">
+                <text class="package-tool-icon">�</text>
+                <text class="package-tool-label">发布到广场</text>
               </view>
-              <view class="package-tool-item" data-type="diary" bindtap="onSelectPackageType">
-                <text class="package-tool-icon">📓</text>
-                <text class="package-tool-label">封装日志</text>
-              </view>
-
             </view>
           </view>
 
@@ -406,6 +380,26 @@
                   <text class="ornament-option-label">{{item.label}}</text>
                 </view>
               </view>
+
+              <!-- 风力强度调整 -->
+              <view class="scene-intensity-section">
+                <text class="scene-intensity-label" style="color: {{textPalette.subtitle}};">风力强度</text>
+                <view class="scene-intensity-row compact">
+                  <slider
+                    class="scene-intensity-slider"
+                    min="20"
+                    max="100"
+                    step="5"
+                    value="{{sceneIntensity}}"
+                    activeColor="{{theme.primaryColor}}"
+                    backgroundColor="#E5E7EB"
+                    block-size="16"
+                    bindchanging="onSceneIntensityChange"
+                    bindchange="onSceneIntensityChange"
+                  />
+                  <text class="scene-intensity-value" style="color: {{textPalette.subtitle}};">{{sceneIntensity}}%</text>
+                </view>
+              </view>
             </view>
           </view>
 
@@ -452,7 +446,6 @@
             </view>
           </view>
         </scroll-view>
-        <text class="square-subtitle bottom-fixed" style="color: {{textPalette.subtitle}};">分享你的心情，倾听他人的故事</text>
       </view>
     </view>
     
@@ -528,10 +521,43 @@
     </view>
   </view>
 
-  <view wx:if="{{isBreathingActive}}" class="breathing-guide-panel" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
-    <text class="breathing-guide-title" style="color: {{textPalette.subtitle}};">呼吸岛屿 · 第{{breathingDisplayRound}}轮</text>
-    <text class="breathing-guide-phase" style="color: {{textPalette.title}};">{{breathingGuideText}}</text>
-    <text class="breathing-guide-tip" style="color: {{textPalette.tertiary}};">长按发布按钮保持引导，松手即可结束</text>
+  <!-- 呼吸岛屿启动界面 -->
+  <view wx:if="{{showBreathingStartScreen}}" class="breathing-start-overlay">
+    <view class="breathing-start-container">
+      <text class="breathing-island-close" bindtap="stopBreathingGuide">✕</text>
+      <text class="breathing-island-title">呼吸岛屿</text>
+      <text class="breathing-island-subtitle">长按开始呼吸引导</text>
+      <view class="breathing-start-button-container">
+        <view class="breathing-start-progress-circle">
+          <view class="breathing-start-progress" style="transform: rotate({{(breathingStartProgress / 100) * 360 - 90}}deg);"></view>
+        </view>
+        <view 
+          class="breathing-start-button" 
+          bindtouchstart="onBreathingStartTouchStart" 
+          bindtouchend="onBreathingStartTouchEnd" 
+          bindtouchcancel="onBreathingStartTouchEnd"
+        >
+          <text class="breathing-start-icon">🧘</text>
+        </view>
+      </view>
+      <text class="breathing-island-tip">长按按钮开始，松手即可取消</text>
+    </view>
+  </view>
+
+  <!-- 呼吸岛屿沉浸式引导 -->
+  <view wx:if="{{isBreathingActive}}" class="breathing-island-overlay" bindtap="stopBreathingGuide">
+    <text class="breathing-island-timer-fixed">{{breathingTimer}}</text>
+    <view class="breathing-island-content" catchtap="onTapBreathingIsland">
+      <view class="breathing-island-container">
+        <text class="breathing-island-title">呼吸岛屿</text>
+        <text class="breathing-island-round">第{{breathingDisplayRound}}轮</text>
+        <text class="breathing-island-phase">{{breathingGuideText}}</text>
+        <view class="breathing-island-phase-timer-container">
+          <text wx:if="{{phaseTimer}}" class="breathing-island-phase-timer">{{phaseTimer}}</text>
+        </view>
+        <text class="breathing-island-tip">点击屏幕任意位置结束</text>
+      </view>
+    </view>
   </view>
 
   <view wx:if="{{!companionInNest}}" class="companion-trail-layer" aria-hidden="true">
