@@ -35,10 +35,10 @@
     {{sceneRestoreHintText}}
   </view>
 
-  <!-- 页面容器 -->
-  <swiper class="page-swiper" current="{{currentPage}}" bindchange="onPageChange" duration="0" disable-touch="true">
+  <!-- 页面容器（改为非 swiper，彻底禁用跟手横滑） -->
+  <view class="page-swiper">
     <!-- 心语页面 -->
-    <swiper-item>
+    <view wx:if="{{currentPage === 0}}">
       <view class="page-container">
         <!-- 写作场景 -->
         <view class="writing-workspace theme-{{activeThemeType}} {{isWritingFocused ? 'writing-focused' : ''}}">
@@ -67,7 +67,7 @@
             </view>
 
             <view id="toolEntryBlindbox" class="left-entry-card {{activeToolPanel === 'blindbox' ? 'is-active' : ''}}" bindtap="onTapToolBlindBox">
-              <text class="left-entry-icon {{blindBoxEntryShaking ? 'shake' : ''}}" style="filter: drop-shadow(0 0 {{activeToolPanel === 'blindbox' ? 14 : 8}}rpx {{theme.primaryColor}});">🎁</text>
+              <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{activeToolPanel === 'blindbox' ? 14 : 8}}rpx {{theme.primaryColor}});">🎁</text>
             </view>
 
             <view id="toolEntryPackage" class="left-entry-card {{activeToolPanel === 'package' ? 'is-active' : ''}}" bindtap="onTapToolPackage">
@@ -95,7 +95,6 @@
             </view>
 
             <view wx:if="{{writingLightEnabled}}" class="writing-light-fx-layer" aria-hidden="true">
-              <view class="writing-light-shadow-mask" style="{{writingLightShadowStyle}}"></view>
               <view class="writing-light-beam" style="{{writingLightBeamStyle}}"></view>
               <view class="writing-light-glow" style="{{writingLightGlowStyle}}"></view>
             </view>
@@ -259,7 +258,7 @@
                 <view
                   wx:for="{{sceneOptions}}"
                   wx:key="key"
-                  class="scene-type-chip {{activeScene === item.key ? 'active' : ''}}"
+                  class="scene-type-chip scene-{{item.key}} {{activeScene === item.key ? 'active' : ''}}"
                   bindtap="onSceneChange"
                   data-scene="{{item.key}}"
                 >
@@ -287,7 +286,7 @@
               </view>
             </view>
 
-            <view wx:if="{{activeToolPanel === 'light'}}" class="mini-tool-body">
+            <view wx:if="{{activeToolPanel === 'light'}}" class="mini-tool-body mini-tool-body-light">
               <view class="writing-light-option-row writing-light-switch-row">
                 <text class="writing-light-option-label" style="color: {{textPalette.subtitle}};">灯光</text>
                 <switch
@@ -313,20 +312,6 @@
                 </view>
               </view>
 
-              <view class="writing-light-slider-row">
-                <text class="writing-light-option-label" style="color: {{textPalette.subtitle}};">强度 {{writingLightIntensity}}%</text>
-                <slider min="0" max="100" step="1" value="{{writingLightIntensity}}" activeColor="{{theme.primaryColor}}" backgroundColor="#E5E7EB" block-size="16" bindchange="onWritingLightIntensityChange" />
-              </view>
-
-              <view class="writing-light-slider-row">
-                <text class="writing-light-option-label" style="color: {{textPalette.subtitle}};">角度 {{writingLightAngle}}°</text>
-                <slider min="0" max="65" step="1" value="{{writingLightAngle}}" activeColor="{{theme.primaryColor}}" backgroundColor="#E5E7EB" block-size="16" bindchange="onWritingLightAngleChange" />
-              </view>
-
-              <view class="writing-light-slider-row">
-                <text class="writing-light-option-label" style="color: {{textPalette.subtitle}};">聚光 {{writingLightFocus}}%</text>
-                <slider min="20" max="100" step="1" value="{{writingLightFocus}}" activeColor="{{theme.primaryColor}}" backgroundColor="#E5E7EB" block-size="16" bindchange="onWritingLightFocusChange" />
-              </view>
             </view>
           </view>
 
@@ -385,7 +370,7 @@
               <view class="blind-box-content" bindtap="onOpenBlindBoxFromPanel">
                 <view class="blind-box-card {{isFlipping ? 'flipping' : ''}}">
                   <view class="blind-box-front" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
-                    <text class="blind-box-icon">🎁</text>
+                    <text class="blind-box-icon {{blindBoxEntryShaking ? 'shake' : ''}}">🎁</text>
                     <text class="blind-box-text" style="color: {{textPalette.subtitle}};">点我抽一句</text>
                   </view>
                   <view class="blind-box-back" wx:if="{{showQuote}}" style="background-color: {{theme.primaryColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
@@ -426,10 +411,10 @@
 
         </view>
       </view>
-    </swiper-item>
+    </view>
     
     <!-- 广场页面 -->
-    <swiper-item>
+    <view wx:if="{{currentPage === 1}}">
       <view class="page-container">
         <scroll-view class="square-post-list" scroll-y="true" scrollbar-hidden="true">
           <view class="post-card type-{{item.type}}" wx:for="{{squarePostList}}" wx:key="id" id="home-card-{{item.id}}" bindtap="onOpenSquarePostDetail" data-id="{{item.id}}" data-tab="square" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; border-radius: {{theme.borderRadius}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
@@ -469,10 +454,10 @@
         </scroll-view>
         <text class="square-subtitle bottom-fixed" style="color: {{textPalette.subtitle}};">分享你的心情，倾听他人的故事</text>
       </view>
-    </swiper-item>
+    </view>
     
     <!-- 我的页面 -->
-    <swiper-item>
+    <view wx:if="{{currentPage === 2}}">
       <view class="page-container">
         <!-- 大留白用户信息区 -->
         <view class="user-info">
@@ -505,8 +490,8 @@
           </view>
         </view>
       </view>
-    </swiper-item>
-  </swiper>
+    </view>
+  </view>
 
   <view wx:if="{{showPackageConfirmDialog}}" class="package-dialog-mask" bindtap="closePackageConfirmDialog">
     <view class="package-dialog-card" catchtap="onTapToolPanelBody" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">

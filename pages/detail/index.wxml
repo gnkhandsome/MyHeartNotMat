@@ -18,7 +18,7 @@
   </view>
 
   <scroll-view class="detail-scroll" scroll-y="true" scrollbar-hidden="true">
-    <view class="scene-head" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+    <view class="scene-head" style="background-color: {{theme.cardColor}}; background-image: linear-gradient(160deg, {{theme.cardColor}}, {{theme.bgColor}}); box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
       <text class="scene-title" style="color: {{textPalette.title}};">{{sceneLabel}} · {{sceneIntensity}}%</text>
       <text class="scene-desc" style="color: {{textPalette.subtitle}};">{{sceneDescription}}</text>
     </view>

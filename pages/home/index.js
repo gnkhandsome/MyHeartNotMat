@@ -183,6 +183,7 @@ const WRITING_LIGHT_COLOR_META = {
 
 const LOW_PERF_BENCHMARK_THRESHOLD = 20;
 const HOME_TOOLBAR_SETTINGS_KEY = 'homeToolbarSettings';
+const TOOL_PANEL_AUTO_CLOSE_MS = 10000;
 
 function resolvePerfLevelByBenchmark(benchmarkLevel) {
   const level = Number(benchmarkLevel || 0);
@@ -339,12 +340,11 @@ Page({
     writingLightEnabled: true,
     writingLightColorMode: 'warm',
     writingLightFromSide: 'right',
-    writingLightIntensity: 72,
-    writingLightAngle: 26,
-    writingLightFocus: 64,
+    writingLightIntensity: 86,
+    writingLightAngle: 34,
+    writingLightFocus: 38,
     writingLightBeamStyle: '',
     writingLightGlowStyle: '',
-    writingLightShadowStyle: '',
     companionState: 'idle',
     companionVisualType: 'cloud',
     companionBubbleText: '',
@@ -777,29 +777,100 @@ Page({
   buildSceneParticles(sceneKey = 'rainy') {
     const isLowPerf = this.data.scenePerfLevel === 'low';
     const intensityFactor = Math.max(0.2, Math.min(1, Number(this.data.sceneIntensity || 65) / 100));
-    const baseCount = isLowPerf ? 10 : 20;
-    const count = Math.max(6, Math.round(baseCount * (0.62 + intensityFactor * 0.88)));
-    const kindMap = {
-      sunny: 'sun',
-      cloudy: 'cloud',
-      rainy: 'rain',
-      windy: 'wind',
-      snowy: 'snow',
-      stream: 'leaf'
+    const profileMap = {
+      sunny: {
+        kinds: ['sun', 'sun', 'cloud'],
+        baseCount: isLowPerf ? 8 : 14,
+        baseSize: isLowPerf ? 12 : 14,
+        sizeRange: isLowPerf ? 10 : 16,
+        opacityMin: 0.24,
+        opacityRange: 0.42,
+        durationBase: isLowPerf ? 4200 : 3200,
+        durationRange: 1800,
+        driftXRange: 40,
+        driftYBase: 30,
+        driftYRange: 60
+      },
+      cloudy: {
+        kinds: ['cloud', 'cloud', 'wind'],
+        baseCount: isLowPerf ? 8 : 15,
+        baseSize: isLowPerf ? 12 : 15,
+        sizeRange: isLowPerf ? 12 : 20,
+        opacityMin: 0.18,
+        opacityRange: 0.34,
+        durationBase: isLowPerf ? 5600 : 4600,
+        durationRange: 2400,
+        driftXRange: 72,
+        driftYBase: 22,
+        driftYRange: 44
+      },
+      rainy: {
+        kinds: ['rain', 'rain', 'cloud'],
+        baseCount: isLowPerf ? 10 : 22,
+        baseSize: isLowPerf ? 9 : 10,
+        sizeRange: isLowPerf ? 10 : 14,
+        opacityMin: 0.2,
+        opacityRange: 0.42,
+        durationBase: isLowPerf ? 3600 : 2800,
+        durationRange: 1400,
+        driftXRange: 26,
+        driftYBase: 62,
+        driftYRange: 90
+      },
+      windy: {
+        kinds: ['wind', 'leaf', 'cloud'],
+        baseCount: isLowPerf ? 9 : 18,
+        baseSize: isLowPerf ? 10 : 12,
+        sizeRange: isLowPerf ? 12 : 18,
+        opacityMin: 0.2,
+        opacityRange: 0.4,
+        durationBase: isLowPerf ? 4200 : 3400,
+        durationRange: 1800,
+        driftXRange: 110,
+        driftYBase: 28,
+        driftYRange: 52
+      },
+      snowy: {
+        kinds: ['snow', 'snow', 'cloud'],
+        baseCount: isLowPerf ? 10 : 20,
+        baseSize: isLowPerf ? 10 : 12,
+        sizeRange: isLowPerf ? 10 : 16,
+        opacityMin: 0.26,
+        opacityRange: 0.5,
+        durationBase: isLowPerf ? 6200 : 5200,
+        durationRange: 2800,
+        driftXRange: 48,
+        driftYBase: 18,
+        driftYRange: 40
+      },
+      stream: {
+        kinds: ['leaf', 'wind', 'cloud'],
+        baseCount: isLowPerf ? 9 : 16,
+        baseSize: isLowPerf ? 10 : 12,
+        sizeRange: isLowPerf ? 12 : 18,
+        opacityMin: 0.2,
+        opacityRange: 0.36,
+        durationBase: isLowPerf ? 5000 : 3800,
+        durationRange: 1900,
+        driftXRange: 84,
+        driftYBase: 34,
+        driftYRange: 64
+      }
     };
-    const kind = kindMap[sceneKey] || 'rain';
+    const profile = profileMap[sceneKey] || profileMap.rainy;
+    const count = Math.max(6, Math.round(profile.baseCount * (0.62 + intensityFactor * 0.88)));
 
     return Array.from({ length: count }, (_, idx) => ({
       id: `scene-${sceneKey}-${idx}`,
-      kind,
+      kind: profile.kinds[idx % profile.kinds.length],
       left: Math.round(Math.random() * 100),
       top: Math.round(Math.random() * 100),
-      size: Math.round((isLowPerf ? 10 : 12) + Math.random() * (isLowPerf ? 10 : 16)),
-      opacity: Number((0.2 + Math.random() * 0.5).toFixed(2)),
-      duration: Math.round((isLowPerf ? 5400 : 4200) + Math.random() * 2200),
+      size: Math.round(profile.baseSize + Math.random() * profile.sizeRange),
+      opacity: Number((profile.opacityMin + Math.random() * profile.opacityRange).toFixed(2)),
+      duration: Math.round(profile.durationBase + Math.random() * profile.durationRange),
       delay: Math.round(Math.random() * 1800),
-      driftX: Math.round((Math.random() - 0.5) * 60),
-      driftY: Math.round(40 + Math.random() * 80)
+      driftX: Math.round((Math.random() - 0.5) * profile.driftXRange),
+      driftY: Math.round(profile.driftYBase + Math.random() * profile.driftYRange)
     }));
   },
 
@@ -1146,28 +1217,52 @@ Page({
     const { anchorId = '' } = options || {};
     const isSameMiniPanel = this.data.activeToolPanel === panel && !this.data.showToolPanel;
     if (isSameMiniPanel) {
+      this.clearToolPanelAutoCloseTimer();
       this.setData({
         showToolPanel: false,
         activeToolPanel: ''
       });
       return;
     }
+
+    this.clearToolPanelAutoCloseTimer();
     this.setData({ activeToolPanel: '' }, () => {
       this.updateMiniToolTopByAnchor(anchorId, panel).then(() => {
         this.setData({
           showToolPanel: false,
           activeToolPanel: panel
+        }, () => {
+          this.startToolPanelAutoCloseTimer(panel);
         });
       });
     });
   },
 
   closeToolPanel() {
+    this.clearToolPanelAutoCloseTimer();
     this.resetOrnamentDrag();
     this.setData({
       showToolPanel: false,
       activeToolPanel: ''
     });
+  },
+
+  startToolPanelAutoCloseTimer(panel = '') {
+    this.clearToolPanelAutoCloseTimer();
+    if (!panel) return;
+
+    this.toolPanelAutoCloseTimer = setTimeout(() => {
+      if (this.data.activeToolPanel === panel) {
+        this.closeToolPanel();
+      }
+    }, TOOL_PANEL_AUTO_CLOSE_MS);
+  },
+
+  clearToolPanelAutoCloseTimer() {
+    if (this.toolPanelAutoCloseTimer) {
+      clearTimeout(this.toolPanelAutoCloseTimer);
+      this.toolPanelAutoCloseTimer = null;
+    }
   },
 
   onTapToolPanelBody() {},
@@ -1217,8 +1312,7 @@ Page({
     if (!writingLightEnabled) {
       this.setData({
         writingLightBeamStyle: '',
-        writingLightGlowStyle: '',
-        writingLightShadowStyle: ''
+        writingLightGlowStyle: ''
       });
       return;
     }
@@ -1230,18 +1324,16 @@ Page({
     const safeAngle = Math.max(0, Math.min(65, Number(writingLightAngle) || 20));
     const rotateDeg = direction * safeAngle;
 
-    const beamOpacity = (0.16 + intensityRatio * 0.42).toFixed(3);
-    const edgeOpacity = (0.02 + intensityRatio * 0.14).toFixed(3);
-    const beamWidth = Math.round(34 + (1 - focusRatio) * 58);
-    const beamBlur = Math.round(8 + (1 - focusRatio) * 18);
-    const beamX = writingLightFromSide === 'right' ? 'right: -16vw;' : 'left: -16vw;';
+    const beamOpacity = (0.20 + intensityRatio * 0.48).toFixed(3);
+    const edgeOpacity = (0.04 + intensityRatio * 0.18).toFixed(3);
+    const tailOpacity = (0.01 + intensityRatio * 0.08).toFixed(3);
+    const beamWidth = Math.round(96 + (1 - focusRatio) * 104);
+    const beamBlur = Math.round(14 + (1 - focusRatio) * 28);
+    const beamX = writingLightFromSide === 'right' ? 'right: -38vw;' : 'left: -38vw;';
 
-    const glowOpacity = (0.2 + intensityRatio * 0.4).toFixed(3);
-    const glowSize = Math.round(180 + intensityRatio * 180);
-    const glowX = writingLightFromSide === 'right' ? 'right: -6vw;' : 'left: -6vw;';
-
-    const shadowOpacity = (0.14 + intensityRatio * 0.3).toFixed(3);
-    const lightExit = writingLightFromSide === 'right' ? '20% 0%' : '80% 0%';
+    const glowOpacity = (0.28 + intensityRatio * 0.50).toFixed(3);
+    const glowSize = Math.round(360 + intensityRatio * 420);
+    const glowX = writingLightFromSide === 'right' ? 'right: -20vw;' : 'left: -20vw;';
 
     const writingLightBeamStyle = [
       beamX,
@@ -1249,7 +1341,7 @@ Page({
       `opacity: ${beamOpacity};`,
       `filter: blur(${beamBlur}rpx);`,
       `transform: rotate(${rotateDeg}deg);`,
-      `background: linear-gradient(to bottom, rgba(${palette.beamCore}, ${beamOpacity}), rgba(${palette.beamEdge}, ${edgeOpacity}));`
+      `background: linear-gradient(to bottom, rgba(${palette.beamCore}, ${beamOpacity}) 0%, rgba(${palette.beamCore}, ${beamOpacity}) 20%, rgba(${palette.beamEdge}, ${edgeOpacity}) 55%, rgba(${palette.beamEdge}, ${tailOpacity}) 85%, rgba(${palette.beamEdge}, 0) 100%);`
     ].join(' ');
 
     const writingLightGlowStyle = [
@@ -1260,12 +1352,9 @@ Page({
       `background: radial-gradient(circle, rgba(${palette.glow}, ${glowOpacity}), rgba(${palette.glow}, 0));`
     ].join(' ');
 
-    const writingLightShadowStyle = '';
-
     this.setData({
       writingLightBeamStyle,
-      writingLightGlowStyle,
-      writingLightShadowStyle
+      writingLightGlowStyle
     });
   },
 
@@ -1621,6 +1710,7 @@ Page({
     this.clearSuppressedTapTimer = null;
     this.shouldSuppressNextPublishTap = false;
     this.companionTouchStartPoint = null;
+    this.clearToolPanelAutoCloseTimer();
     this.clearBlindBoxTimers();
     this.stopCompanionAmbientLoop();
     clearTimeout(this.packageAnimationTimer);
@@ -1647,6 +1737,7 @@ Page({
     this.clearSuppressedTapTimer = null;
     this.shouldSuppressNextPublishTap = false;
     this.companionTouchStartPoint = null;
+    this.clearToolPanelAutoCloseTimer();
     this.clearBlindBoxTimers();
     this.stopCompanionAmbientLoop();
     clearTimeout(this.packageAnimationTimer);
@@ -1900,16 +1991,6 @@ Page({
       });
     }
   },
-
-
-
-  // 处理页面滑动事件
-  onPageChange(e) {
-    const current = e.detail.current;
-    this.setData({ currentPage: current });
-    this.initMovableFab({ keepPosition: true });
-  },
-
   // 切换页面
   switchPage(e) {
     const page = parseInt(e.currentTarget.dataset.page);
