@@ -1,0 +1,188 @@
+.container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-content-list {
+  flex: 1;
+  height: 0;
+  min-height: 0;
+  padding: 24rpx 20rpx 0;
+  box-sizing: border-box;
+}
+
+.profile-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 120rpx 32rpx;
+}
+
+.profile-empty-text {
+  font-size: 28rpx;
+  margin-bottom: 40rpx;
+}
+
+/* 广场页面新样式 - 微信朋友圈风格 */
+.square-post-item {
+  padding: 24rpx 0;
+  background: transparent;
+  border-bottom: 1rpx solid rgba(148, 163, 184, 0.12);
+}
+
+.square-post-header,
+.square-post-footer {
+  padding: 0 32rpx;
+}
+
+.square-post-header {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 16rpx;
+}
+
+.square-user-avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 20rpx;
+  border: 1rpx solid rgba(0, 0, 0, 0.08);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.square-avatar-text {
+  font-size: 32rpx;
+  font-weight: 600;
+}
+
+.square-user-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.square-user-nickname {
+  font-size: 30rpx;
+  font-weight: 600;
+  margin-bottom: 4rpx;
+}
+
+.square-post-time {
+  font-size: 24rpx;
+}
+
+.square-post-content {
+  margin-bottom: 16rpx;
+}
+
+.square-post-content-inner {
+  margin-left: 100rpx;
+}
+
+.square-post-footer-inner {
+  margin-left: 100rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: calc(100% - 100rpx);
+}
+
+.square-post-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 32rpx;
+}
+
+.action-text {
+  font-size: 22rpx;
+  margin-left: 4rpx;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.square-post-time-footer {
+  font-size: 24rpx;
+  flex-shrink: 0;
+}
+
+.square-post-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  margin-bottom: 12rpx;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.square-post-title-bar {
+  width: 6rpx;
+  height: 32rpx;
+  border-radius: 3rpx;
+  flex-shrink: 0;
+}
+
+.square-post-text {
+  font-size: 28rpx;
+  line-height: 1.6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.square-post-location {
+  font-size: 24rpx;
+  margin-top: 12rpx;
+}
+
+.square-post-quote {
+  font-size: 26rpx;
+  margin-top: 12rpx;
+  font-style: italic;
+}
+
+.square-post-footer {
+  display: flex;
+  align-items: center;
+  gap: 32rpx;
+  margin-bottom: 8rpx;
+  margin-top: 32rpx;
+}
+
+.square-post-action {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 8rpx 0;
+  transition: all 0.2s ease;
+}
+
+.action-icon {
+  font-size: 28rpx;
+}
+
+.action-text {
+  font-size: 22rpx;
+  margin-left: 4rpx;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.action-count {
+  font-size: 24rpx;
+}

@@ -254,7 +254,7 @@ Page({
     }
 
     wx.showActionSheet({
-      itemList: ['仅自己可见（本地私密）', '发布到广场（公开）'],
+      itemList: ['本地私密', '发布到广场（公开）'],
       success: (res) => {
         const visibility = res.tapIndex === 1 ? 'public' : 'private';
         this.publishPost({ visibility });
@@ -308,7 +308,7 @@ Page({
     });
 
     const actionMeta = this.getPostActionMeta(activePostType);
-    const visibilityText = visibility === 'public' ? '并标记为公开' : '仅自己可见';
+    const visibilityText = visibility === 'public' ? '并标记为公开' : '本地私密';
     wx.showToast({
       title: `${actionMeta.done}，${visibilityText}`,
       icon: 'none'

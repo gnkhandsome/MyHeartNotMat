@@ -1,159 +1,129 @@
-<view class="container scene-{{activeScene}}" style="background-color: {{theme.bgColor}};">
-  <view class="immersive-scene-overlay" aria-hidden="true">
-    <view
-      wx:for="{{sceneParticles}}"
-      wx:key="id"
-      class="scene-particle kind-{{item.kind}}"
-      style="left: {{item.left}}%; top: {{item.top}}%; width: {{item.size}}rpx; height: {{item.size}}rpx; opacity: {{item.opacity}}; animation-duration: {{item.duration}}ms; animation-delay: {{item.delay}}ms;"
-    ></view>
-  </view>
-
-  <view wx:if="{{activeScene === 'rainy'}}" class="rain-overlay" aria-hidden="true">
-    <view
-      wx:for="{{rainDrops}}"
-      wx:key="id"
-      class="rain-drop"
-      style="left: {{item.left}}%; height: {{item.height}}rpx; animation-duration: {{item.duration}}ms; animation-delay: {{item.delay}}ms; opacity: {{item.opacity}};"
-    ></view>
-  </view>
-
-  <scroll-view class="detail-scroll" scroll-y="true" scrollbar-hidden="true">
-    <view class="scene-head" style="background-color: {{theme.cardColor}}; background-image: linear-gradient(160deg, {{theme.cardColor}}, {{theme.bgColor}}); box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
-      <text class="scene-title" style="color: {{textPalette.title}};">{{sceneLabel}} · {{sceneIntensity}}%</text>
-      <text class="scene-desc" style="color: {{textPalette.subtitle}};">{{sceneDescription}}</text>
+<view class="container" style="background-color: {{theme.bgColor}}; {{post.scenePackage && post.scenePackage.customBackground ? 'background-image: url(' + post.scenePackage.customBackground + '); background-size: cover; background-position: center;' : ''}}">
+  <!-- 自定义背景蒙层 -->
+  <view wx:if="{{post.scenePackage && post.scenePackage.customBackground}}" class="custom-background-overlay"></view>
+  
+  <!-- 顶部导航栏 -->
+  <view class="detail-nav" style="padding-top: {{menuButtonInfo ? menuButtonInfo.top + 'px' : 'env(safe-area-inset-top)'}}; background-color: {{theme.bgColor}};">
+    <view class="nav-left" style="height: {{menuButtonInfo ? menuButtonInfo.height + 'px' : '64rpx'}};">
+      <view class="nav-back" bindtap="goBack">
+        <text class="nav-back-icon" style="color: {{textPalette.title}};">‹</text>
+      </view>
+      <view class="nav-user-info">
+        <view class="nav-user-avatar" style="background: linear-gradient(145deg, {{theme.primaryColor}}, {{theme.primaryColor}}cc);">
+          <text class="nav-user-avatar-text">{{post.nickname ? post.nickname.charAt(0) : '匿'}}</text>
+        </view>
+        <text class="nav-user-nickname" style="color: {{textPalette.title}};">{{post.nickname || '匿名用户'}}</text>
+      </view>
     </view>
+    <!-- 顶部标题区域不显示任何内容 -->
+    <view class="nav-center"></view>
+    <view class="nav-right"></view>
+  </view>
 
-    <view wx:if="{{isOwnerPost}}" class="owner-toolbar" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
-      <view class="owner-toolbar-head">
-        <text class="owner-toolbar-title" style="color: {{textPalette.title}};">我的内容工具栏</text>
-        <view class="owner-toolbar-actions">
-          <text class="owner-toolbar-btn" bindtap="onToggleEditMode" style="color: {{theme.primaryColor}};">{{isEditing ? '取消编辑' : '编辑内容'}}</text>
-          <text wx:if="{{isEditing}}" class="owner-toolbar-btn primary" bindtap="onSavePostEdit">保存</text>
+  <scroll-view class="detail-scroll" scroll-y="true" scrollbar-hidden="true" style="padding-bottom: 140rpx; padding-top: {{menuButtonInfo ? (menuButtonInfo.top + menuButtonInfo.height + 48) + 'px' : 'calc(88rpx + env(safe-area-inset-top) + 32rpx)'}};">
+
+    <!-- 内容区域 -->
+    <view class="detail-content-section">
+      <!-- 标题 -->
+      <view class="detail-title-section">
+        <view wx:if="{{post.title}}" class="detail-title" style="color: {{post.showTitleInNav ? 'transparent' : textPalette.title}};">
+          {{post.title}}
         </view>
       </view>
 
-      <view wx:if="{{isEditing}}" class="owner-scene-panel">
-        <text class="owner-scene-label" style="color: {{textPalette.subtitle}};">场景</text>
-        <view class="owner-scene-chip-group">
-          <view
-            wx:for="{{sceneOptions}}"
-            wx:key="key"
-            class="owner-scene-chip {{activeScene === item.key ? 'active' : ''}}"
-            data-scene="{{item.key}}"
-            bindtap="onSceneChange"
-          >
-            {{item.label}}
-          </view>
-        </view>
+      <!-- 内容 -->
+      <text class="detail-content-text" style="color: {{textPalette.body}};">{{post.content}}</text>
 
-        <view class="owner-scene-intensity-row">
-          <text class="owner-scene-label" style="color: {{textPalette.subtitle}};">场景强度 {{sceneIntensity}}%</text>
-          <slider
-            min="20"
-            max="100"
-            step="5"
-            value="{{sceneIntensity}}"
-            activeColor="{{theme.primaryColor}}"
-            backgroundColor="#E5E7EB"
-            block-size="16"
-            bindchanging="onSceneIntensityChange"
-            bindchange="onSceneIntensityChange"
-          />
-        </view>
+      <!-- 写作时间 -->
+      <view wx:if="{{post.writingTimeText}}" class="detail-writing-time">
+        <text style="color: {{textPalette.tertiary}};">{{post.writingTimeText}}</text>
       </view>
-    </view>
 
-    <view class="detail-card" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
-      <view class="detail-card-head">
-        <text class="detail-type-pill" style="color: {{textPalette.body}};">{{post.typeIcon}} {{post.typeLabel}}</text>
+      <!-- 盲盒文案 -->
+      <view wx:if="{{post.blindBoxQuote}}" class="detail-quote" style="color: {{theme.primaryColor}};">「{{post.blindBoxQuote}}」</view>
+
+      <!-- 时间和位置 -->
+      <view class="detail-meta-bottom">
+        <view wx:if="{{post.location}}" class="detail-location" style="color: {{textPalette.subtitle}};">
+          <text class="location-icon">📍</text>
+          <text>{{post.location}}</text>
+        </view>
         <text class="detail-time" style="color: {{textPalette.tertiary}};">{{post.time}}</text>
       </view>
+    </view>
 
-      <textarea
-        wx:if="{{isOwnerPost && isEditing}}"
-        class="detail-content-input"
-        auto-height="true"
-        maxlength="-1"
-        value="{{post.content}}"
-        bindinput="onPostContentInput"
-        style="color: {{textPalette.body}};"
-      />
-      <text wx:else class="detail-content" style="color: {{textPalette.body}};">{{post.content}}</text>
-
-      <view wx:if="{{post.type === 'letter'}}" class="detail-meta-group letter-edit-group">
-        <block wx:if="{{isOwnerPost && isEditing}}">
-          <input
-            class="detail-meta-input"
-            value="{{post.letterSalutation}}"
-            placeholder="称呼"
-            bindinput="onLetterSalutationInput"
-          />
-          <input
-            class="detail-meta-input"
-            value="{{post.letterSignature}}"
-            placeholder="落款"
-            bindinput="onLetterSignatureInput"
-          />
-        </block>
-        <block wx:else>
-          <text class="detail-meta" style="color: {{textPalette.subtitle}};">{{post.letterSalutation || '亲爱的你'}}：</text>
-          <text class="detail-meta" style="color: {{textPalette.subtitle}};">{{post.letterSignature || '—— 今晚的你'}}</text>
-        </block>
-      </view>
-
-      <view wx:if="{{post.type === 'postcard'}}" class="detail-meta-group">
-        <input
-          wx:if="{{isOwnerPost && isEditing}}"
-          class="detail-meta-input"
-          value="{{post.postcardLocation}}"
-          placeholder="地点"
-          bindinput="onPostcardLocationInput"
-        />
-        <text wx:elif="{{post.postcardLocation}}" class="detail-meta-pill" style="color: {{textPalette.subtitle}};">📍 {{post.postcardLocation}}</text>
-      </view>
-
-      <view wx:if="{{post.type === 'diary'}}" class="detail-meta-group">
-        <block wx:if="{{isOwnerPost && isEditing}}">
-          <input
-            class="detail-meta-input"
-            value="{{post.diaryWeather}}"
-            placeholder="天气"
-            bindinput="onDiaryWeatherInput"
-          />
-          <view class="owner-scene-intensity-row">
-            <text class="owner-scene-label" style="color: {{textPalette.subtitle}};">心情 {{post.diaryMoodScore || 5}}/10</text>
-            <slider
-              min="1"
-              max="10"
-              step="1"
-              value="{{post.diaryMoodScore || 5}}"
-              activeColor="{{theme.primaryColor}}"
-              backgroundColor="#E5E7EB"
-              block-size="16"
-              bindchange="onDiaryMoodScoreChange"
-            />
-          </view>
-        </block>
-        <block wx:else>
-          <text wx:if="{{post.diaryWeather}}" class="detail-meta-pill" style="color: {{textPalette.subtitle}};">☁️ {{post.diaryWeather}}</text>
-          <text wx:if="{{post.diaryMoodScore}}" class="detail-meta-pill" style="color: {{textPalette.subtitle}};">💚 心情 {{post.diaryMoodScore}}/10</text>
-        </block>
-      </view>
-
-      <view wx:if="{{post.type === 'vlog' && post.vlogShots && post.vlogShots.length}}" class="detail-meta-group vlog-shot-list">
-        <text wx:for="{{post.vlogShots}}" wx:key="index" class="detail-shot-line" style="color: {{textPalette.subtitle}};">• {{item}}</text>
+    <!-- 互动区域 -->
+    <view class="interaction-section">
+      <view class="interaction-actions">
+        <view class="interaction-action" catchtap="onToggleLike" data-id="{{post.id}}">
+          <text class="action-icon">{{post.isLiked ? '❤️' : '🤍'}}</text>
+        </view>
+        <view class="interaction-action" catchtap="onToggleCollect" data-id="{{post.id}}">
+          <text class="action-icon {{post.isCollected ? '' : 'white-star'}}">{{post.isCollected ? '⭐' : '⭐'}}</text>
+        </view>
       </view>
     </view>
 
-    <view class="comment-section" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
-      <text class="comment-title" style="color: {{textPalette.title}};">评论 {{comments.length}}</text>
-      <view wx:for="{{comments}}" wx:key="id" class="comment-item">
-        <view class="comment-head">
-          <text class="comment-user" style="color: {{textPalette.body}};">{{item.nickname}}</text>
-          <text class="comment-time" style="color: {{textPalette.tertiary}};">{{item.time}}</text>
+    <!-- 评论区域 -->
+    <view class="comment-section">
+      <view class="comment-header">
+        <text class="comment-title" style="color: {{textPalette.title}};">评论 {{comments.length}}</text>
+      </view>
+      
+      <view class="comment-list">
+        <view wx:for="{{comments}}" wx:key="id" class="comment-item" catchtap="onReplyToComment" data-comment="{{item}}">
+          <view class="comment-avatar">
+            <text class="comment-avatar-text">{{item.nickname ? item.nickname.charAt(0) : '匿'}}</text>
+          </view>
+          <view class="comment-content-wrapper">
+            <view class="comment-head">
+              <text class="comment-user" style="color: {{textPalette.body}};">{{item.nickname}}</text>
+              <text class="comment-time" style="color: {{textPalette.tertiary}};">{{item.time}}</text>
+            </view>
+            <text class="comment-text" style="color: {{textPalette.subtitle}};">{{item.content}}</text>
+
+            <!-- 二级评论 -->
+            <view wx:if="{{item.replies && item.replies.length > 0}}" class="comment-replies">
+              <view wx:for="{{item.replies}}" wx:for-item="reply" wx:key="id" class="reply-item" catchtap="onReplyToComment" data-comment="{{reply}}">
+                <view class="reply-avatar">
+                  <text class="reply-avatar-text">{{reply.nickname ? reply.nickname.charAt(0) : '匿'}}</text>
+                </view>
+                <view class="reply-content-wrapper">
+                  <view class="reply-head">
+                    <text class="reply-user" style="color: {{textPalette.body}};">{{reply.nickname}}</text>
+                    <text wx:if="{{reply.toUser}}" class="reply-to" style="color: {{theme.primaryColor}};">回复 {{reply.toUser}}</text>
+                    <text class="reply-time" style="color: {{textPalette.tertiary}};">{{reply.time}}</text>
+                  </view>
+                  <text class="reply-text" style="color: {{textPalette.subtitle}};">{{reply.content}}</text>
+                </view>
+              </view>
+            </view>
+          </view>
         </view>
-        <text class="comment-content" style="color: {{textPalette.subtitle}};">{{item.content}}</text>
       </view>
     </view>
   </scroll-view>
+
+  <!-- 底部固定评论输入框 -->
+  <view class="comment-input-section" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}};">
+    <view class="comment-input-wrapper">
+      <input
+        class="comment-input"
+        focus="{{inputFocus}}"
+        cursor-spacing="20"
+        placeholder="{{replyTo ? '回复 ' + replyTo.nickname : '写下你的评论...'}}"
+        placeholder-style="color: {{textPalette.tertiary}};"
+        value="{{commentText}}"
+        bindinput="onCommentInput"
+        bindblur="onCommentBlur"
+        style="color: {{textPalette.body}};"
+      />
+      <view wx:if="{{replyTo}}" class="cancel-reply" bindtap="cancelReply">
+        <text class="cancel-reply-text">取消</text>
+      </view>
+      <view class="send-btn" bindtap="sendComment" style="background-color: {{commentText ? theme.primaryColor : 'rgba(99, 102, 241, 0.3)'}};">
+        <text class="send-btn-text">发送</text>
+      </view>
+    </view>
+  </view>
 </view>

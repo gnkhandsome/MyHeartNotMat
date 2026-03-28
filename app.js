@@ -40,6 +40,114 @@ const SCENE_SOUND_PROFILES = {
   }
 };
 
+// 随机用户信息生成
+const RANDOM_NICKNAMES = [
+  '晚风', '星辰', '旧梦', '青柠', '岛屿', '浅唱', '未央', '安然',
+  '沐风', '听海', '忘忧', '逐光', '忆梦', '暖夏', '微凉', '清欢',
+  '云游', '花语', '月明', '星落', '风吹', '雨落', '雪飘', '雾起'
+];
+
+const RANDOM_MOODS = [
+  '今天心情不错', '在自己的世界里漫游', '记录当下的美好',
+  '与自己对话', '寻找内心的平静', '享受独处时光',
+  '被温柔包围着', '在文字里取暖', '让思绪自由飘荡',
+  '珍惜每一个瞬间', '生活明朗，万物可爱', '人间值得，未来可期'
+];
+
+function getRandomItem(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function generateRandomNickname() {
+  const nickname = getRandomItem(RANDOM_NICKNAMES);
+  const suffix = Math.floor(Math.random() * 1000);
+  const result = nickname + suffix;
+  return result.length > 8 ? nickname : result;
+}
+
+function generateRandomMood() {
+  return getRandomItem(RANDOM_MOODS);
+}
+
+function generateRandomUserInfo() {
+  return {
+    nickname: generateRandomNickname(),
+    mood: generateRandomMood()
+  };
+}
+
+function persistUserInfo(userInfo) {
+  try {
+    wx.setStorageSync('userInfo', userInfo);
+  } catch (e) {
+    console.error('持久化用户信息失败:', e);
+  }
+}
+
+function loadUserInfo() {
+  try {
+    const stored = wx.getStorageSync('userInfo');
+    if (stored && stored.nickname) {
+      return stored;
+    }
+  } catch (e) {
+    console.error('加载用户信息失败:', e);
+  }
+  const newUserInfo = generateRandomUserInfo();
+  persistUserInfo(newUserInfo);
+  return newUserInfo;
+}
+
+function updateUserInfo(newInfo) {
+  const app = getApp();
+  const currentInfo = app.globalData.userInfo || {};
+  const updatedInfo = {
+    ...currentInfo,
+    ...newInfo
+  };
+  app.globalData.userInfo = updatedInfo;
+  persistUserInfo(updatedInfo);
+  
+  // 同步更新所有已发布内容中的用户信息
+  updatePostsUserInfo(updatedInfo);
+  
+  return updatedInfo;
+}
+
+function updatePostsUserInfo(userInfo) {
+  try {
+    const app = getApp();
+    let myDiaryList = app.globalData.diaryList || [];
+    let myPostList = app.globalData.myPostList || [];
+    
+    // 更新所有发布内容中的用户信息
+    myDiaryList = myDiaryList.map(item => ({
+      ...item,
+      nickname: userInfo.nickname
+    }));
+    
+    myPostList = myPostList.map(item => ({
+      ...item,
+      nickname: userInfo.nickname
+    }));
+    
+    // 更新全局数据
+    app.globalData.diaryList = myDiaryList;
+    app.globalData.myPostList = myPostList;
+    
+    // 同时更新 squarePostList（从 myDiaryList 中筛选公开内容）
+    app.globalData.squarePostList = myDiaryList.filter(item => !item.isPrivate);
+    
+    // 保存到本地存储
+    wx.setStorageSync('myDiaryList', myDiaryList);
+    wx.setStorageSync('myPostList', myPostList);
+    
+    console.log('已同步更新所有发布内容的用户信息');
+  } catch (e) {
+    console.error('同步更新用户信息失败:', e);
+  }
+}
+
 function resolveSceneTrackRoleGain(track = {}, intensity = 0.65) {
   const safeIntensity = Math.min(1, Math.max(0.2, Number(intensity) || 0.65));
   const role = track.role || 'balanced';
@@ -61,11 +169,40 @@ App({
   onLaunch() {
     // 小程序启动时执行
     console.log('小程序启动');
+    
+    // 初始化云开发
+    wx.cloud.init({
+      env: 'cloud1-9gcsvsv3821dae9b'
+    });
+    
+    // 初始化数据
+    this.initData();
     // 初始化主题
     this.initTheme();
     // 初始化音频管理
     this.initAudioManager();
     this.initSceneAudioManager();
+  },
+
+  initData() {
+    // 从本地存储加载数据到全局
+    console.log('app.js initData 开始初始化数据');
+    
+    // 初始化用户信息
+    const userInfo = loadUserInfo();
+    this.globalData.userInfo = userInfo;
+    console.log('初始化用户信息成功:', userInfo);
+    
+    try {
+      const myDiaryList = wx.getStorageSync('myDiaryList') || [];
+      this.globalData.diaryList = myDiaryList;
+      console.log('初始化数据成功 - diaryList:', myDiaryList.length, '条');
+      if (myDiaryList.length > 0) {
+        console.log('数据详情:', myDiaryList);
+      }
+    } catch (e) {
+      console.error('初始化数据失败:', e);
+    }
   },
   
   onShow() {
@@ -561,6 +698,13 @@ App({
       }, 240);
     });
   },
+
+  // 用户信息相关
+  generateRandomUserInfo,
+  loadUserInfo,
+  updateUserInfo,
+  persistUserInfo,
+  updatePostsUserInfo,
   
   globalData: {
     userInfo: null,
@@ -577,6 +721,10 @@ App({
     sceneAudioContexts: [],
     sceneAudioProfileKey: 'rainy',
     sceneAudioIntensity: 0.65,
-    sceneAudioEnabled: true
+    sceneAudioEnabled: true,
+    // 新增：内容数据存储
+    myPostList: [],
+    diaryList: [],
+    squarePostList: []
   }
 });

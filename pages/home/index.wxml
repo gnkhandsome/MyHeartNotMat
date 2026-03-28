@@ -1,10 +1,13 @@
-<view class="container ambient-breathing scene-{{activeScene}} ambient-time-{{ambientTimeSlot}} {{isRainModeEnabled ? 'rain-mode-on' : ''}} {{rainPerfLevel === 'low' ? 'rain-perf-low' : ''}} {{isSceneEntering ? 'scene-entering' : ''}}" style="background-color: {{theme.bgColor}};">
+<view class="container ambient-breathing scene-{{activeScene}} ambient-time-{{ambientTimeSlot}} {{isRainModeEnabled ? 'rain-mode-on' : ''}} {{rainPerfLevel === 'low' ? 'rain-perf-low' : ''}} {{isSceneEntering ? 'scene-entering' : ''}}" style="background-color: {{theme.bgColor}}; background-size: cover; background-position: center;">
   <canvas
     wx:if="{{isShredCanvasVisible}}"
     id="homeShredCanvas"
     type="2d"
     class="shred-canvas"
   ></canvas>
+  
+  <!-- 自定义背景蒙层（仅在写作页面显示） -->
+  <view wx:if="{{customBackground && currentPage === 0}}" class="custom-background-overlay"></view>
 
   <view wx:if="{{currentPage === 0}}" class="immersive-scene-overlay" aria-hidden="true">
     <view
@@ -38,10 +41,12 @@
   <!-- 页面容器（改为非 swiper，彻底禁用跟手横滑） -->
   <view class="page-swiper">
     <!-- 心语页面 -->
-    <view wx:if="{{currentPage === 0}}">
+    <view wx:if="{{currentPage === 0}}" class="page-wrapper">
       <view class="page-container">
         <!-- 写作场景 -->
         <view class="writing-workspace theme-{{activeThemeType}} {{isWritingFocused ? 'writing-focused' : ''}} {{writingLightEnabled ? 'writing-light-enabled' : ''}}">
+
+          
           <view class="writing-left-rail">
             <view id="toolEntryTheme" class="left-entry-card {{activeToolPanel === 'theme' ? 'is-active' : ''}}" bindtap="onTapToolTheme">
               <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{activeToolPanel === 'theme' ? 14 : 8}}rpx {{theme.primaryColor}});">🎨</text>
@@ -59,84 +64,61 @@
               <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{isBreathingActive ? 14 : 8}}rpx {{theme.primaryColor}});">🧘</text>
             </view>
 
-            <view
-              id="companionNestSlot"
-              class="left-entry-card companion-nest-card {{companionNestHighlighted ? 'is-highlighted' : ''}}"
-              bindtap="onTapCompanionNest"
-            >
-              <view class="companion-nest-shell">
-                <view wx:if="{{companionInNest}}" class="companion-nest-resting-sprite {{companionVisualType}}" style="background-color: {{theme.primaryColor}};">
-                  <view class="companion-eye left"></view>
-                  <view class="companion-eye right"></view>
-                </view>
-                <text wx:else class="companion-nest-emoji">🏡</text>
-              </view>
-              <text class="companion-nest-label" style="color: {{textPalette.subtitle}};">{{companionInNest ? '休息中' : '点击回窝'}}</text>
+            <view class="left-entry-card post-private-card">
+              <switch
+                checked="{{isPostPrivate}}"
+                color="{{theme.primaryColor}}"
+                bindchange="onPostPrivateChange"
+              />
+              <text class="post-private-label" style="color: {{textPalette.subtitle}};">本地私密</text>
             </view>
           </view>
 
           <view class="writing-main">
-            <view class="hanging-hook-zone {{isOrnamentHookHighlighted ? 'is-highlighted' : ''}}" aria-label="挂件挂钩区域">
-              <view class="hanging-hook"></view>
-              <view class="hanging-line"></view>
-              <view class="hanging-ornament ornament-{{selectedHangingOrnament}}" style="animation-duration: {{ornamentSwayDuration}}s;">
-                <text class="hanging-ornament-core">{{hangingOrnamentSymbol}}</text>
-                <view class="hanging-tassels">
-                  <view class="ornament-tassel-strand left"></view>
-                  <view class="ornament-tassel-strand center"></view>
-                  <view class="ornament-tassel-strand right"></view>
-                </view>
-              </view>
-              <text class="hanging-ornament-label" style="color: {{textPalette.subtitle}};">{{hangingOrnamentLabel}}</text>
-            </view>
-
             <view wx:if="{{writingLightEnabled}}" class="writing-light-fx-layer" aria-hidden="true">
               <view class="writing-light-beam" style="{{writingLightBeamStyle}}"></view>
               <view class="writing-light-glow" style="{{writingLightGlowStyle}}"></view>
             </view>
 
-            <view class="writing-paper {{activePostType}}" style="background-color: {{theme.cardColor}}; background-image: linear-gradient(160deg, {{theme.cardColor}}, {{theme.bgColor}}); box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
-              <view class="paper-header type-{{activePostType}}">
-                <view class="paper-type-banner">
-                  <text class="paper-type-icon">{{activePostType === 'letter' ? '✉️' : (activePostType === 'postcard' ? '🖼️' : (activePostType === 'diary' ? '📔' : '🎬'))}}</text>
-                  <text class="paper-title" style="color: {{textPalette.title}};">{{activePostType === 'letter' ? '写信' : (activePostType === 'postcard' ? '明信片' : (activePostType === 'diary' ? '日记' : '分镜脚本模板'))}}</text>
+            <view class="writing-paper {{activePostType}}" style="background-color: {{theme.cardColor}}; {{customBackground ? 'background-image: url(' + customBackground + ')' : 'background-image: linear-gradient(160deg, ' + theme.cardColor + ', ' + theme.bgColor + ')'}}; background-size: cover; background-position: center; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+              <view class="paper-header">
+                <view class="paper-date-line" style="border-color: {{paperDateLineBorderColor}}; box-shadow: 0 0 20rpx {{paperDateLineShadowColor}};">
+                  <text class="paper-date" style="color: {{textPalette.subtitle}};">{{writingDateText}}</text>
+                  <text class="paper-subtitle {{isAmbientSubtitleAnimating ? 'is-updating' : ''}}" style="color: {{textPalette.subtitle}};">{{writingAmbientSubtitle}}</text>
                 </view>
-                <text class="paper-subtitle {{isAmbientSubtitleAnimating ? 'is-updating' : ''}}" style="color: {{textPalette.subtitle}};">{{writingAmbientSubtitle}}</text>
-
-                <view wx:if="{{activePostType === 'letter'}}">
-                  <text class="diary-date" style="color: {{textPalette.subtitle}};">{{writingDateText}}</text>
-                </view>
-
-                <view wx:if="{{activePostType === 'letter'}}" class="letter-salutation-row">
-                  <input
-                    class="letter-salutation-input"
-                    placeholder="称呼（如：亲爱的自己）"
-                    value="{{letterSalutation}}"
-                    bindinput="onLetterSalutationInput"
-                  />
-                </view>
-
-                <view wx:if="{{activePostType === 'postcard'}}" class="postcard-head-meta">
-                  <text class="postcard-stamp">AIR MAIL</text>
-                  <text class="diary-date" style="color: {{textPalette.subtitle}};">{{writingDateText}}</text>
-                  <input class="immersive-input postcard-location-input" placeholder="地点戳（如：杭州 · 西湖边）" value="{{postcardLocation}}" bindinput="onPostcardLocationInput" />
-                </view>
-
-                <view wx:if="{{activePostType === 'diary'}}" class="diary-head-meta">
-                  <text class="diary-date" style="color: {{textPalette.subtitle}};">{{writingDateText}}</text>
-                  <input class="immersive-input diary-weather-input" placeholder="天气（如：小雨 / 晴天）" value="{{diaryWeather}}" bindinput="onDiaryWeatherInput" />
-                  <view class="mood-score-row diary-mood-row">
-                    <text class="mood-score-label" style="color: {{textPalette.subtitle}};">今日心情</text>
-                    <slider min="1" max="10" step="1" value="{{diaryMoodScore}}" activeColor="{{theme.primaryColor}}" backgroundColor="#E5E7EB" block-size="16" bindchange="onDiaryMoodScoreChange" />
-                    <text class="mood-score-value" style="color: {{textPalette.subtitle}};">{{diaryMoodScore}}/10</text>
+                <view class="hanging-hook-zone {{isOrnamentHookHighlighted ? 'is-highlighted' : ''}}" aria-label="挂件挂钩区域">
+                  <view class="hanging-hook"></view>
+                  <view class="hanging-line"></view>
+                  <view class="hanging-ornament ornament-{{selectedHangingOrnament}}" style="animation-duration: {{ornamentSwayDuration}}s;">
+                    <text class="hanging-ornament-core">{{hangingOrnamentSymbol}}</text>
+                    <view class="hanging-tassels">
+                      <view class="ornament-tassel-strand left"></view>
+                      <view class="ornament-tassel-strand center"></view>
+                      <view class="ornament-tassel-strand right"></view>
+                    </view>
                   </view>
+                  <text class="hanging-ornament-label" style="color: {{textPalette.subtitle}};">{{hangingOrnamentLabel}}</text>
                 </view>
-
-
               </view>
 
               <scroll-view class="paper-body-scroll type-{{activePostType}}" scroll-y="true" scrollbar-hidden="true" style="background: linear-gradient(to bottom, {{theme.cardColor}}, {{theme.bgColor}});">
                 <view class="paper-body {{isPostShattering ? 'post-shattering' : ''}} {{isWritingFocused ? 'writing-focused' : ''}} type-{{activePostType}}" style="background: linear-gradient(160deg, {{theme.cardColor}}, {{theme.bgColor}});">
+                  <!-- 主标题输入框 -->
+                  <view class="post-title-container">
+                    <input
+                      class="post-title-input"
+                      placeholder="标题"
+                      placeholder-style="color: {{textPalette.tertiary}};"
+                      value="{{postTitle}}"
+                      bindinput="onPostTitleInput"
+                      bindfocus="onPostFocus"
+                      bindblur="onPostBlur"
+                      style="color: {{textPalette.title}};"
+                      maxlength="20"
+                    />
+                  </view>
+                  
+                  <!-- 内容输入框 -->
                   <textarea
                     id="homePostInputField"
                     class="paper-textarea input-{{activePostType}}"
@@ -150,30 +132,27 @@
                     maxlength="-1"
                   ></textarea>
 
-                  <view class="paper-footer type-{{activePostType}}" wx:if="{{activePostType === 'letter'}}">
-                    <text class="paper-footer-line" style="color: {{textPalette.body}};">此致</text>
-                    <text class="paper-footer-line" style="color: {{textPalette.body}};">敬礼</text>
-                    <input
-                      class="letter-signature-input"
-                      placeholder="落款（如：—— 深夜里的你）"
-                      value="{{letterSignature}}"
-                      bindinput="onLetterSignatureInput"
-                    />
-                  </view>
-
-                  <view class="paper-footer type-{{activePostType}}" wx:if="{{activePostType === 'postcard'}}">
-                    <text class="paper-footer-line" style="color: {{textPalette.subtitle}};">寄出地：{{postcardLocation || '未填写'}}</text>
-                  </view>
-
-                  <view class="paper-footer type-{{activePostType}}" wx:if="{{activePostType === 'diary'}}">
-                    <text class="paper-footer-line" style="color: {{textPalette.subtitle}};">天气：{{diaryWeather || '未填写'}} · 心情分：{{diaryMoodScore}}/10</text>
-                  </view>
-
-                  <!-- 发布按钮 -->
-                  <view wx:if="{{postContent.trim()}}" class="publish-button-container">
-                    <view class="publish-button" bindtap="onPackagePost">
-                      <text class="publish-button-icon">📤</text>
-                      <text class="publish-button-text">发布</text>
+                  <!-- 地址输入框和发布按钮 -->
+                  <view class="paper-footer-bar">
+                    <view class="location-input-wrapper">
+                      <text class="location-icon">📍</text>
+                      <input
+                        class="post-location-input"
+                        placeholder="位置"
+                        placeholder-style="color: {{textPalette.tertiary}};"
+                        value="{{postLocation}}"
+                        bindinput="onPostLocationInput"
+                        style="color: {{textPalette.body}};"
+                        maxlength="50"
+                      />
+                    </view>
+                    <view
+                      class="paper-publish-btn {{postContent && postContent.trim().length > 0 ? 'enabled' : ''}}"
+                      bindtap="onPackagePost"
+                      style="{{postContent && postContent.trim().length > 0 ? 'background: ' + publishBtnBgColor + '; border-color: ' + publishBtnTextColor + '; box-shadow: 0 0 20rpx ' + paperDateLineShadowColor + ';' : ''}}"
+                    >
+                      <text class="publish-btn-icon">📤</text>
+                      <text class="publish-btn-text" style="color: {{postContent && postContent.trim().length > 0 ? publishBtnTextColor : textPalette.subtitle}};">{{isPostPrivate ? '保存' : '发布'}}</text>
                     </view>
                   </view>
                 </view>
@@ -183,58 +162,64 @@
           </view>
 
           <view class="writing-right-rail">
-            <view id="toolEntryTemplate" class="left-entry-card right-entry-card {{activeToolPanel === 'template' ? 'is-active' : ''}}" bindtap="onTapToolTemplate">
-              <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{activeToolPanel === 'template' ? 14 : 8}}rpx {{theme.primaryColor}});">🧩</text>
+            <view id="toolEntryBackground" class="left-entry-card right-entry-card {{activeToolPanel === 'background' ? 'is-active' : ''}}" bindtap="onTapToolBackground">
+              <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{activeToolPanel === 'background' ? 14 : 8}}rpx {{theme.primaryColor}});">🖼️</text>
+            </view>
+            <view id="toolEntryScene" class="left-entry-card right-entry-card {{activeToolPanel === 'scene' ? 'is-active' : ''}}" bindtap="onTapToolScene">
+              <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{activeToolPanel === 'scene' ? 14 : 8}}rpx {{theme.primaryColor}});">🌤️</text>
             </view>
 
             <view id="toolEntryAudio" class="left-entry-card right-entry-card {{isAudioPlaying ? 'is-active' : ''}}" bindtap="toggleAudioPlay">
               <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{isAudioPlaying ? 14 : 8}}rpx {{theme.primaryColor}});">{{isAudioPlaying ? '⏸' : '▶'}}</text>
             </view>
 
-
-
-
-
-            <view id="toolEntryScene" class="left-entry-card right-entry-card {{activeToolPanel === 'scene' ? 'is-active' : ''}}" bindtap="onTapToolScene">
-              <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{activeToolPanel === 'scene' ? 14 : 8}}rpx {{theme.primaryColor}});">🌌</text>
-            </view>
-
-
-
             <view id="toolEntryLight" class="left-entry-card right-entry-card {{activeToolPanel === 'light' ? 'is-active' : ''}}" bindtap="onTapToolLight">
               <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{activeToolPanel === 'light' ? 14 : 8}}rpx {{theme.primaryColor}});">💡</text>
             </view>
 
-            <view id="toolEntryPublish" class="left-entry-card right-entry-card publish-entry-card {{postContent && postContent.trim().length > 0 ? 'enabled' : ''}}" bindtap="onPackagePost">
-              <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{postContent && postContent.trim().length > 0 ? 14 : 8}}rpx {{postContent && postContent.trim().length > 0 ? theme.primaryColor : textPalette.body}});">📤</text>
-              <text class="publish-entry-text" style="color: {{textPalette.body}};">发布</text>
+            <view
+              id="companionNestSlot"
+              class="left-entry-card right-entry-card companion-nest-card {{companionNestHighlighted ? 'is-highlighted' : ''}}"
+              bindtap="onTapCompanionNest"
+            >
+              <view class="companion-nest-shell">
+                <view wx:if="{{companionInNest}}" class="companion-nest-resting-sprite {{companionVisualType}}" style="background-color: {{theme.primaryColor}};">
+                  <view class="companion-eye left"></view>
+                  <view class="companion-eye right"></view>
+                </view>
+                <text wx:else class="companion-nest-emoji">🏡</text>
+              </view>
+              <text class="companion-nest-label" style="color: {{textPalette.subtitle}};">{{companionInNest ? '休息中' : '点击回窝'}}</text>
             </view>
           </view>
 
           <view wx:if="{{activeToolPanel}}" class="mini-tool-mask" bindtap="closeToolPanel"></view>
 
-          <view wx:if="{{activeToolPanel === 'template' || activeToolPanel === 'volume' || activeToolPanel === 'scene' || activeToolPanel === 'intensity' || activeToolPanel === 'light'}}" class="mini-tool-pop right panel-{{activeToolPanel}}" catchtap="onTapToolPanelBody" style="top: {{miniToolTopPx}}px; background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
-            <view class="mini-tool-head">
-              <text class="mini-tool-title" style="color: {{textPalette.title}};">{{activeToolPanel === 'template' ? '写作' : (activeToolPanel === 'volume' ? '音量' : (activeToolPanel === 'scene' ? '天气场景' : (activeToolPanel === 'intensity' ? '强度' : '灯光')))}}</text>
+          <view wx:if="{{activeToolPanel === 'background' || activeToolPanel === 'blindbox' || activeToolPanel === 'volume' || activeToolPanel === 'scene' || activeToolPanel === 'intensity' || activeToolPanel === 'light'}}" class="mini-tool-pop right panel-{{activeToolPanel}}" catchtap="onTapToolPanelBody" style="top: {{miniToolTopPx}}px; background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+            <view wx:if="{{activeToolPanel === 'background'}}" class="mini-tool-head">
+              <text class="mini-tool-title" style="color: {{textPalette.title}};">自定义背景</text>
               <text class="mini-tool-close" bindtap="closeToolPanel" style="color: {{theme.primaryColor}};">收起</text>
             </view>
 
-            <view wx:if="{{activeToolPanel === 'template'}}" class="mini-tool-body">
-              <view class="template-option-list">
-                <view
-                  wx:for="{{postTypes}}"
-                  wx:key="key"
-                  class="template-option-item {{activePostType === item.key ? 'active' : ''}}"
-                  bindtap="switchPostType"
-                  data-type="{{item.key}}"
-                >
-                  <text class="template-option-icon">{{item.icon}}</text>
-                  <view class="template-option-copy">
-                    <text class="template-option-label" style="color: {{activePostType === item.key ? theme.primaryColor : textPalette.body}};">{{item.label}}</text>
-                    <text class="template-option-tagline" style="color: {{textPalette.subtitle}};">{{item.tagline}}</text>
-                  </view>
+            <view wx:if="{{activeToolPanel === 'background'}}" class="mini-tool-body">
+              <view wx:if="{{customBackground}}" class="custom-background-preview">
+                <image src="{{customBackground}}" mode="aspectFill" class="preview-image"></image>
+              </view>
+              <view class="background-actions">
+                <view class="background-action-btn" bindtap="onChooseBackground">
+                  <text class="action-icon">📷</text>
+                  <text class="action-text">选择图片</text>
+                </view>
+                <view wx:if="{{customBackground}}" class="background-action-btn" bindtap="onClearBackground">
+                  <text class="action-icon">🗑️</text>
+                  <text class="action-text">清除背景</text>
                 </view>
               </view>
+            </view>
+
+            <view wx:if="{{activeToolPanel !== 'background'}}" class="mini-tool-head">
+              <text class="mini-tool-title" style="color: {{textPalette.title}};">{{activeToolPanel === 'blindbox' ? '解忧盲盒' : (activeToolPanel === 'volume' ? '音量' : (activeToolPanel === 'scene' ? '天气场景' : (activeToolPanel === 'intensity' ? '强度' : '灯光')))}}</text>
+              <text class="mini-tool-close" bindtap="closeToolPanel" style="color: {{theme.primaryColor}};">收起</text>
             </view>
 
             <view wx:if="{{activeToolPanel === 'volume'}}" class="mini-tool-body">
@@ -248,6 +233,7 @@
                   activeColor="{{theme.primaryColor}}"
                   backgroundColor="#E5E7EB"
                   block-size="16"
+                  bindinput="onAudioVolumeChange"
                   bindchange="onAudioVolumeChange"
                 />
                 <text class="audio-volume-value" style="color: {{textPalette.subtitle}};">{{audioVolume}}%</text>
@@ -269,6 +255,19 @@
               </view>
             </view>
 
+            <view wx:if="{{activeToolPanel === 'blindbox'}}" class="mini-tool-body">
+              <view class="blind-box-content" bindtap="onOpenBlindBoxFromPanel">
+                <view class="blind-box-card {{isFlipping ? 'flipping' : ''}}">
+                  <view class="blind-box-front" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+                    <text class="blind-box-icon {{blindBoxEntryShaking ? 'shake' : ''}}">🎁</text>
+                    <text class="blind-box-text" style="color: {{textPalette.subtitle}};">点我抽一句</text>
+                  </view>
+                  <view class="blind-box-back" wx:if="{{showQuote}}" style="background-color: {{theme.primaryColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+                    <text class="blind-box-quote" style="color: {{textPalette.inverse}};">{{currentQuote}}</text>
+                  </view>
+                </view>
+              </view>
+            </view>
 
 
             <view wx:if="{{activeToolPanel === 'light'}}" class="mini-tool-body mini-tool-body-light">
@@ -334,27 +333,6 @@
               </view>
             </view>
           </view>
-
-          <view wx:if="{{activeToolPanel === 'blindbox'}}" class="mini-tool-pop left panel-blindbox" catchtap="onTapToolPanelBody" style="top: {{miniToolTopPx}}px; background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
-            <view class="mini-tool-head">
-              <text class="mini-tool-title" style="color: {{textPalette.title}};">解忧盲盒</text>
-              <text class="mini-tool-close" bindtap="closeToolPanel" style="color: {{theme.primaryColor}};">收起</text>
-            </view>
-            <view class="mini-tool-body">
-              <view class="blind-box-content" bindtap="onOpenBlindBoxFromPanel">
-                <view class="blind-box-card {{isFlipping ? 'flipping' : ''}}">
-                  <view class="blind-box-front" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
-                    <text class="blind-box-icon {{blindBoxEntryShaking ? 'shake' : ''}}">🎁</text>
-                    <text class="blind-box-text" style="color: {{textPalette.subtitle}};">点我抽一句</text>
-                  </view>
-                  <view class="blind-box-back" wx:if="{{showQuote}}" style="background-color: {{theme.primaryColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
-                    <text class="blind-box-quote" style="color: {{textPalette.inverse}};">{{currentQuote}}</text>
-                  </view>
-                </view>
-              </view>
-            </view>
-          </view>
-
           <view wx:if="{{activeToolPanel === 'ornament'}}" class="mini-tool-pop left ornament panel-ornament" catchtap="onTapToolPanelBody" style="top: {{miniToolTopPx}}px; background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
             <view class="mini-tool-head">
               <text class="mini-tool-title" style="color: {{textPalette.title}};">挂件更换</text>
@@ -408,79 +386,240 @@
     </view>
     
     <!-- 广场页面 -->
-    <view wx:if="{{currentPage === 1}}">
+    <view wx:if="{{currentPage === 1}}" class="page-wrapper">
       <view class="page-container">
-        <scroll-view class="square-post-list" scroll-y="true" scrollbar-hidden="true">
-          <view class="post-card type-{{item.type}}" wx:for="{{squarePostList}}" wx:key="id" id="home-card-{{item.id}}" bindtap="onOpenSquarePostDetail" data-id="{{item.id}}" data-tab="square" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; border-radius: {{theme.borderRadius}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
-            <view class="post-card-header">
-              <view class="post-type-badge type-{{item.type}}" style="color: {{textPalette.body}};">{{item.typeIcon}} {{item.typeLabel}}</view>
-              <text class="post-time" style="color: {{textPalette.tertiary}};">{{item.time}}</text>
-            </view>
-
-            <view wx:if="{{item.type === 'letter'}}" class="post-card-content type-letter">
-              <text class="post-letter-salutation" style="color: {{textPalette.subtitle}};">{{item.letterSalutation || '亲爱的你'}}：</text>
-              <text class="post-text" style="color: {{textPalette.body}};">{{item.content}}</text>
-              <text class="post-letter-signature" style="color: {{textPalette.subtitle}};">{{item.letterSignature || '—— 来自此刻的心'}}</text>
-            </view>
-
-            <view wx:if="{{item.type === 'postcard'}}" class="post-card-content type-postcard">
-              <view class="postcard-top-line">
-                <text class="postcard-location" style="color: {{textPalette.subtitle}};">📍 {{item.postcardLocation || '未署名地点'}}</text>
-                <text class="postcard-stamp-mini" style="color: {{textPalette.tertiary}};">POSTCARD</text>
+        <!-- 新内容提示浮窗 -->
+        <view wx:if="{{newPostCount > 0}}" class="new-post-tip" bindtap="loadNewPosts">
+          <text class="new-post-tip-text">{{newPostCount}}条新动态，点击刷新</text>
+        </view>
+        
+        <scroll-view 
+          class="square-post-list" 
+          scroll-y="true" 
+          scrollbar-hidden="true"
+          refresher-enabled="{{true}}"
+          refresher-triggered="{{squareRefreshing}}"
+          bindrefresherrefresh="onSquareRefresh"
+        >
+          <view class="square-post-item" wx:for="{{squarePostList}}" wx:key="id" id="home-card-{{item.id}}" bindtap="onOpenSquarePostDetail" data-id="{{item.id}}" data-tab="square">
+            <view class="square-post-header">
+              <view class="square-user-avatar" style="background: linear-gradient(145deg, {{theme.primaryColor}}, {{theme.primaryColor}}cc);">
+                <text class="square-avatar-text" style="color: {{textPalette.inverse}};">{{item.nickname ? item.nickname.charAt(0) : '匿'}}</text>
               </view>
-              <text class="post-text" style="color: {{textPalette.body}};">{{item.content}}</text>
-            </view>
-
-            <view wx:if="{{item.type === 'diary'}}" class="post-card-content type-diary">
-              <view class="post-diary-meta">
-                <text class="post-diary-pill" style="color: {{textPalette.subtitle}};">天气 {{item.diaryWeather || '未知'}}</text>
-                <text class="post-diary-pill" style="color: {{textPalette.subtitle}};">心情 {{item.diaryMoodScore || '--'}}/10</text>
+              <view class="square-user-info">
+                <text class="square-user-nickname" style="color: {{textPalette.title}};">{{item.nickname || '匿名用户'}}</text>
               </view>
-              <text class="post-text" style="color: {{textPalette.body}};">{{item.content}}</text>
             </view>
 
-
-
-            <view class="post-card-footer">
-              <text class="post-card-enter-hint" style="color: {{textPalette.subtitle}};">点击进入内容详情</text>
+            <view class="square-post-content">
+              <view class="square-post-content-inner">
+                <view wx:if="{{item.title}}" class="square-post-title" style="color: {{textPalette.title}};">
+                  <view class="square-post-title-bar" style="background-color: {{theme.primaryColor}};"></view>
+                  {{item.title}}
+                </view>
+                <view class="square-post-text" style="color: {{textPalette.body}};">{{item.content}}</view>
+                <view wx:if="{{item.location}}" class="square-post-location" style="color: {{textPalette.subtitle}};">📍 {{item.location}}</view>
+                <view wx:if="{{item.blindBoxQuote}}" class="square-post-quote" style="color: {{theme.primaryColor}};">「{{item.blindBoxQuote}}」</view>
+              </view>
             </view>
+
+            <view class="square-post-footer">
+              <view class="square-post-footer-inner">
+                <view class="square-post-actions-group">
+                  <view class="square-post-action like-action" catchtap="onToggleLike" data-id="{{item.id}}">
+                    <text class="action-icon">{{item.isLiked ? '❤️' : '🤍'}}</text>
+                  </view>
+                  <view class="square-post-action collect-action" catchtap="onToggleCollect" data-id="{{item.id}}">
+                    <text class="action-icon {{item.isCollected ? '' : 'white-star'}}">{{item.isCollected ? '⭐' : '⭐'}}</text>
+                  </view>
+                  <view class="square-post-action comment-action" catchtap="onOpenPostDetail" data-id="{{item.id}}" data-tab="square">
+                    <text class="action-icon">💬</text>
+                    <text class="action-text" style="color: {{textPalette.title}};">评论</text>
+                  </view>
+                </view>
+                <text class="square-post-time-footer" style="color: {{textPalette.subtitle}};">{{item.time}}</text>
+              </view>
+            </view>
+
+            <view class="square-post-divider"></view>
           </view>
         </scroll-view>
       </view>
     </view>
     
     <!-- 我的页面 -->
-    <view wx:if="{{currentPage === 2}}">
-      <view class="page-container">
-        <!-- 大留白用户信息区 -->
-        <view class="user-info">
-          <view class="avatar-container">
-            <view class="avatar" style="border: 4rpx solid {{theme.primaryColor}};">
-              <text class="avatar-text" style="color: {{textPalette.title}};">{{userInfo.nickname.charAt(0)}}</text>
+    <view wx:if="{{currentPage === 2}}" class="page-wrapper">
+      <view class="page-container profile-page-container">
+        <!-- 用户信息区 -->
+        <view class="profile-user-info-section">
+          <view class="profile-notification-wrapper">
+            <view class="profile-notification-btn" bindtap="onProfileNotificationTap">
+              <text class="profile-notification-icon">🔔</text>
             </view>
           </view>
-          <view class="user-details">
-            <text class="nickname" style="color: {{textPalette.title}};">{{userInfo.nickname}}</text>
-            <text class="mood" style="color: {{textPalette.subtitle}};">{{userInfo.mood}}</text>
+          <view class="profile-avatar-wrapper">
+            <view class="profile-avatar" style="background: linear-gradient(145deg, {{theme.primaryColor}}, {{theme.primaryColor}}cc);">
+              <text class="profile-avatar-text">{{userInfo.nickname.charAt(0)}}</text>
+            </view>
+            <view class="profile-avatar-edit-btn" bindtap="onEditUserInfo" style="background-color: {{theme.primaryColor}};">
+              <text class="profile-edit-icon">🖌️</text>
+            </view>
+          </view>
+          <view class="profile-user-details">
+            <text class="profile-nickname" style="color: {{textPalette.title}};">{{userInfo.nickname}}</text>
+            <text class="profile-mood" style="color: {{textPalette.subtitle}};">{{userInfo.mood}}</text>
           </view>
         </view>
 
-        <view class="user-data-tabs">
-          <view class="section-title" style="color: {{textPalette.title}};">用户数据</view>
-          <view class="user-data-tab-row">
-            <view class="user-data-tab" bindtap="goToMyPosts">
-              <text class="user-data-icon">📝</text>
-              <text class="user-data-text" style="color: {{textPalette.body}};">我的发布</text>
+        <!-- Tab 切换 -->
+        <view class="profile-tabs-section">
+          <view class="profile-tabs">
+            <view class="profile-tab {{profileActiveTab === 'favorites' ? 'active' : ''}}" bindtap="onProfileSwitchTab" data-tab="favorites" style="{{profileActiveTab === 'favorites' ? '--tab-active-color: ' + theme.primaryColor : ''}}">
+              <text class="profile-tab-text" style="color: {{profileActiveTab === 'favorites' ? theme.primaryColor : textPalette.body}};">我的收藏</text>
             </view>
-            <view class="user-data-tab" bindtap="goToMyFavorites">
-              <text class="user-data-icon">⭐</text>
-              <text class="user-data-text" style="color: {{textPalette.body}};">我的收藏</text>
-            </view>
-            <view class="user-data-tab" bindtap="goToReliefRecords">
-              <text class="user-data-icon">📚</text>
-              <text class="user-data-text" style="color: {{textPalette.body}};">解忧记录</text>
+            <view class="profile-tab {{profileActiveTab === 'topics' ? 'active' : ''}}" bindtap="onProfileSwitchTab" data-tab="topics" style="{{profileActiveTab === 'topics' ? '--tab-active-color: ' + theme.primaryColor : ''}}">
+              <text class="profile-tab-text" style="color: {{profileActiveTab === 'topics' ? theme.primaryColor : textPalette.body}};">我的发布</text>
             </view>
           </view>
+        </view>
+
+        <!-- 我的收藏页面 -->
+        <view wx:if="{{profileActiveTab === 'favorites'}}" class="profile-content-section">
+          <scroll-view 
+            class="profile-content-list profile-content-list-no-bottom" 
+            scroll-y="true" 
+            scrollbar-hidden="true"
+            refresher-enabled="{{true}}"
+            refresher-triggered="{{profileFavoritesRefreshing}}"
+            bindrefresherrefresh="onProfileFavoritesRefresh"
+          >
+            <!-- 空状态 -->
+            <view wx:if="{{profileFavoriteList.length === 0}}" class="profile-empty-state">
+              <text class="profile-empty-text" style="color: {{textPalette.subtitle}};">你还没有收藏内容</text>
+            </view>
+
+            <!-- 我的收藏列表 -->
+            <view wx:else>
+              <view wx:for="{{profileFavoriteList}}" wx:key="id" class="square-post-item" bindtap="onProfileOpenSquarePostDetail" data-id="{{item.id}}">
+                <view class="square-post-header">
+                  <view class="square-user-avatar" style="background: linear-gradient(145deg, {{theme.primaryColor}}, {{theme.primaryColor}}cc);">
+                    <text class="square-avatar-text" style="color: {{textPalette.inverse}};">{{item.nickname ? item.nickname.charAt(0) : '匿'}}</text>
+                  </view>
+                  <view class="square-user-info">
+                    <text class="square-user-nickname" style="color: {{textPalette.title}};">{{item.nickname || '匿名用户'}}</text>
+                  </view>
+                </view>
+
+                <view class="square-post-content">
+                  <view class="square-post-content-inner">
+                    <view wx:if="{{item.title}}" class="square-post-title" style="color: {{textPalette.title}};">
+                      <view class="square-post-title-bar" style="background-color: {{theme.primaryColor}};"></view>
+                      {{item.title}}
+                    </view>
+                    <view class="square-post-text" style="color: {{textPalette.body}};">{{item.content}}</view>
+                    <view wx:if="{{item.location}}" class="square-post-location" style="color: {{textPalette.subtitle}};">📍 {{item.location}}</view>
+                    <view wx:if="{{item.blindBoxQuote}}" class="square-post-quote" style="color: {{theme.primaryColor}};">「{{item.blindBoxQuote}}」</view>
+                  </view>
+                </view>
+
+                <view class="square-post-footer">
+                  <view class="square-post-footer-inner">
+                    <view class="square-post-actions-group">
+                      <view class="square-post-action like-action" catchtap="onToggleLike" data-id="{{item.id}}">
+                        <text class="action-icon">{{item.isLiked ? '❤️' : '🤍'}}</text>
+                      </view>
+                      <view class="square-post-action collect-action" catchtap="onToggleCollect" data-id="{{item.id}}">
+                        <text class="action-icon {{item.isCollected ? '' : 'white-star'}}">{{item.isCollected ? '⭐' : '⭐'}}</text>
+                      </view>
+                      <view class="square-post-action comment-action" catchtap="onOpenPostDetail" data-id="{{item.id}}" data-tab="square">
+                        <text class="action-icon">💬</text>
+                        <text class="action-text" style="color: {{textPalette.title}};">评论</text>
+                      </view>
+                    </view>
+                    <text class="square-post-time-footer" style="color: {{textPalette.subtitle}};">{{item.time}}</text>
+                  </view>
+                </view>
+
+                <view class="square-post-divider"></view>
+              </view>
+            </view>
+          </scroll-view>
+        </view>
+
+        <!-- 我的发布页面 -->
+        <view wx:if="{{profileActiveTab === 'topics'}}" class="profile-content-section">
+          <!-- 本地私密入口（固定） -->
+          <view class="profile-private-entry" bindtap="onOpenPrivatePosts">
+            <view class="profile-private-entry-left">
+              <text class="profile-private-icon">🔒</text>
+              <text class="profile-private-title" style="color: {{textPalette.title}};">本地私密</text>
+            </view>
+            <view class="profile-private-entry-right">
+              <text class="profile-private-count" style="color: {{theme.primaryColor}};">{{privateContentCount}}</text>
+              <text class="profile-private-arrow" style="color: {{textPalette.subtitle}};">›</text>
+            </view>
+          </view>
+          
+          <scroll-view 
+            class="profile-content-list profile-content-list-no-bottom" 
+            scroll-y="true" 
+            scrollbar-hidden="true"
+            refresher-enabled="{{true}}"
+            refresher-triggered="{{profileTopicsRefreshing}}"
+            bindrefresherrefresh="onProfileTopicsRefresh"
+          >
+            <!-- 空状态 -->
+            <view wx:if="{{publicMyTopicsList.length === 0}}" class="profile-empty-state">
+              <text class="profile-empty-text" style="color: {{textPalette.subtitle}};">暂无公开内容</text>
+              <view class="profile-empty-action-btn" bindtap="goToHomeWrite" style="background: linear-gradient(135deg, {{theme.primaryColor}}, #8b5cf6);">
+                <text class="profile-empty-action-text">去发布</text>
+              </view>
+            </view>
+
+            <!-- 我的发布列表（公开） -->
+            <view wx:else>
+              <view wx:for="{{publicMyTopicsList}}" wx:key="id" class="square-post-item" bindtap="onProfileOpenPostDetail" data-id="{{item.id}}" data-type="topic">
+                <view class="square-post-header">
+                  <view class="square-user-avatar" style="background: linear-gradient(145deg, {{theme.primaryColor}}, {{theme.primaryColor}}cc);">
+                    <text class="square-avatar-text" style="color: {{textPalette.inverse}};">{{userInfo.nickname.charAt(0)}}</text>
+                  </view>
+                  <view class="square-user-info">
+                    <text class="square-user-nickname" style="color: {{textPalette.title}};">{{userInfo.nickname}}</text>
+                  </view>
+                </view>
+
+                <view class="square-post-content">
+                  <view class="square-post-content-inner">
+                    <view wx:if="{{item.title}}" class="square-post-title" style="color: {{textPalette.title}};">
+                      <view class="square-post-title-bar" style="background-color: {{theme.primaryColor}};"></view>
+                      {{item.title}}
+                    </view>
+                    <view class="square-post-text" style="color: {{textPalette.body}};">{{item.content}}</view>
+                    <view wx:if="{{item.location}}" class="square-post-location" style="color: {{textPalette.subtitle}};">📍 {{item.location}}</view>
+                    <view wx:if="{{item.blindBoxQuote}}" class="square-post-quote" style="color: {{theme.primaryColor}};">「{{item.blindBoxQuote}}」</view>
+                  </view>
+                </view>
+
+                <view class="square-post-footer">
+                  <view class="square-post-footer-inner">
+                    <view class="square-post-actions-group">
+                      <view class="square-post-action" catchtap="onEditMyPost" data-id="{{item.id}}">
+                        <text class="action-icon">✏️</text>
+                        <text class="action-text" style="color: {{textPalette.title}};">编辑</text>
+                      </view>
+                      <view class="square-post-action" catchtap="onDeleteMyPost" data-id="{{item.id}}">
+                        <text class="action-icon">🗑️</text>
+                        <text class="action-text" style="color: {{textPalette.title}};">删除</text>
+                      </view>
+                    </view>
+                    <text class="square-post-time-footer" style="color: {{textPalette.subtitle}};">{{item.time}}</text>
+                  </view>
+                </view>
+
+                <view class="square-post-divider"></view>
+              </view>
+            </view>
+          </scroll-view>
         </view>
       </view>
     </view>
@@ -517,6 +656,17 @@
       <view class="package-dialog-actions">
         <view class="package-dialog-btn ghost" bindtap="onSavePackagedLocal">存本地</view>
         <view class="package-dialog-btn primary" bindtap="onPublishPackagedPost">发布广场</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 保存成功弹窗 -->
+  <view wx:if="{{showSaveSuccessDialog}}" class="package-dialog-mask" bindtap="closeSaveSuccessDialog">
+    <view class="package-dialog-card" catchtap="onTapToolPanelBody" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+      <text class="package-dialog-title" style="color: {{textPalette.title}};">保存成功</text>
+      <text class="package-dialog-desc" style="color: {{textPalette.subtitle}};">私密作品已保存</text>
+      <view class="package-dialog-actions">
+        <view class="package-dialog-btn primary" bindtap="onGoToPrivatePosts">去查看</view>
       </view>
     </view>
   </view>
@@ -573,11 +723,11 @@
   <view class="custom-tabbar" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border-top: ' + theme.borderStyle : ''}};">
     <view class="tabbar-item {{currentPage === 0 ? 'active' : ''}}" bindtap="switchPage" data-page="0">
       <text class="tabbar-icon" style="color: {{currentPage === 0 ? theme.primaryColor : textPalette.subtitle}};">📝</text>
-      <text class="tabbar-text" style="color: {{currentPage === 0 ? theme.primaryColor : textPalette.subtitle}};">心语</text>
+      <text class="tabbar-text" style="color: {{currentPage === 0 ? theme.primaryColor : textPalette.subtitle}};">写点</text>
     </view>
     <view class="tabbar-item {{currentPage === 1 ? 'active' : ''}}" bindtap="switchPage" data-page="1">
-      <text class="tabbar-icon" style="color: {{currentPage === 1 ? theme.primaryColor : textPalette.subtitle}};">🌍</text>
-      <text class="tabbar-text" style="color: {{currentPage === 1 ? theme.primaryColor : textPalette.subtitle}};">广场</text>
+      <text class="tabbar-icon" style="color: {{currentPage === 1 ? theme.primaryColor : textPalette.subtitle}};">📱</text>
+      <text class="tabbar-text" style="color: {{currentPage === 1 ? theme.primaryColor : textPalette.subtitle}};">动态</text>
     </view>
     <view class="tabbar-item {{currentPage === 2 ? 'active' : ''}}" bindtap="switchPage" data-page="2">
       <text class="tabbar-icon" style="color: {{currentPage === 2 ? theme.primaryColor : textPalette.subtitle}};">👤</text>
@@ -594,7 +744,10 @@
         class="companion-wrapper"
         catchtap="onTapCompanion"
       >
-        <view class="companion-sprite {{companionVisualType}} state-{{companionState}} drag-level-{{companionDragLevel}} {{companionIsShy ? 'is-shy' : ''}} {{isCompanionDragging ? 'dragging' : ''}} {{companionTapFeedback ? 'tap-feedback' : ''}} {{isCompanionSelected ? 'selected' : ''}}" style="background-color: {{theme.primaryColor}};">
+        <view 
+          class="companion-sprite {{companionVisualType}} state-{{companionState}} drag-level-{{companionDragLevel}} {{companionIsShy ? 'is-shy' : ''}} {{isCompanionDragging ? 'dragging' : ''}} {{companionTapFeedback ? 'tap-feedback' : ''}} {{isCompanionSelected ? 'selected' : ''}}" 
+          style="background-color: {{theme.primaryColor}}; {{isCompanionSelected ? (isCompanionSelectedPulse ? 'box-shadow: 0 0 0 8rpx ' + companionSelectedShadow1Pulse + ', 0 0 32rpx ' + companionSelectedShadow2Pulse + ', 0 12rpx 30rpx ' + companionSelectedShadow3Pulse + ';' : 'box-shadow: 0 0 0 6rpx ' + companionSelectedShadow1 + ', 0 0 24rpx ' + companionSelectedShadow2 + ', 0 10rpx 26rpx ' + companionSelectedShadow3 + ';') : ''}}"
+        >
             <view class="companion-eye left"></view>
             <view class="companion-eye right"></view>
           </view>
@@ -602,4 +755,7 @@
       </view>
     </view>
   </view>
+
+  <!-- 自定义弹窗组件 -->
+  <custom-toast id="customToast" />
 </view>

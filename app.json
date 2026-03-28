@@ -3,7 +3,9 @@
     "pages/home/index",
     "pages/detail/index",
     "pages/post/index",
-    "pages/profile/index"
+    "pages/profile/index",
+    "pages/private/index",
+    "pages/profile-edit/index"
   ],
   "window": {
     "backgroundTextStyle": "light",

@@ -1,0 +1,55 @@
+<view class="container" style="background-color: {{theme.bgColor}};">
+  <scroll-view 
+    class="profile-content-list" 
+    scroll-y="true" 
+    scrollbar-hidden="true"
+    refresher-enabled="{{true}}"
+    refresher-triggered="{{refreshing}}"
+    bindrefresherrefresh="onRefresh"
+  >
+    <!-- 空状态 -->
+    <view wx:if="{{privateList.length === 0}}" class="profile-empty-state">
+      <text class="profile-empty-text" style="color: {{textPalette.subtitle}};">暂无本地私密</text>
+    </view>
+
+    <!-- 本地私密列表 -->
+    <view wx:else>
+      <view wx:for="{{privateList}}" wx:key="id" class="square-post-item">
+        <view class="square-post-header">
+          <view class="square-user-avatar" style="background: linear-gradient(145deg, {{theme.primaryColor}}, {{theme.primaryColor}}cc);">
+            <text class="square-avatar-text" style="color: {{textPalette.inverse}};">{{userInfo.nickname.charAt(0)}}</text>
+          </view>
+          <view class="square-post-content" bindtap="onOpenPostDetail" data-id="{{item.id}}">
+            <view class="square-user-info">
+              <text class="square-user-nickname" style="color: {{textPalette.title}};">{{userInfo.nickname}}</text>
+            </view>
+            
+            <view wx:if="{{item.title}}" class="square-post-title" style="color: {{textPalette.title}};">
+              <view class="square-post-title-bar" style="background-color: {{theme.primaryColor}};"></view>
+              {{item.title}}
+            </view>
+            <view class="square-post-text" style="color: {{textPalette.body}};">{{item.content}}</view>
+            <view wx:if="{{item.location}}" class="square-post-location" style="color: {{textPalette.subtitle}};">📍 {{item.location}}</view>
+            <view wx:if="{{item.blindBoxQuote}}" class="square-post-quote" style="color: {{theme.primaryColor}};">「{{item.blindBoxQuote}}」</view>
+          </view>
+        </view>
+
+        <view class="square-post-footer">
+          <view class="square-post-footer-inner">
+            <view class="square-post-actions-group">
+              <view class="square-post-action" catchtap="onEditMyPost" data-id="{{item.id}}">
+                <text class="action-icon">✏️</text>
+                <text class="action-text" style="color: {{textPalette.title}};">编辑</text>
+              </view>
+              <view class="square-post-action" catchtap="onDeleteMyPost" data-id="{{item.id}}">
+                <text class="action-icon">🗑️</text>
+                <text class="action-text" style="color: {{textPalette.title}};">删除</text>
+              </view>
+            </view>
+            <text class="square-post-time-footer" style="color: {{textPalette.subtitle}};">{{item.time}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+</view>

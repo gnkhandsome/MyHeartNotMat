@@ -19,20 +19,20 @@ const POST_TYPE_META = {
   diary: {
     label: '日记',
     icon: '📔',
-    placeholder: '记录今天的心情与细节',
-    tagline: '把一天写进页角'
+    placeholder: '写下此刻的心情与想法...',
+    tagline: '把心事写进文字里'
   },
   letter: {
     label: '写信',
     icon: '✉️',
-    placeholder: '写一封信给自己',
-    tagline: '把心事写成一封信'
+    placeholder: '写下此刻的心情与想法...',
+    tagline: '把心事写进文字里'
   },
   postcard: {
     label: '明信片',
     icon: '�️',
-    placeholder: '记录此刻的风景与心情',
-    tagline: '一段风景，一句问候'
+    placeholder: '写下此刻的心情与想法...',
+    tagline: '把心事写进文字里'
   }
 };
 
@@ -54,6 +54,130 @@ const POST_ACTION_META = {
 const POST_TYPES = Object.keys(POST_TYPE_META).map((key) => ({
   key,
   ...POST_TYPE_META[key]
+}));
+
+const THEME_STYLE_META = {
+  minimalist: {
+    key: 'minimalist',
+    label: '简约白',
+    icon: '⬜',
+    desc: '干净清爽，专注写作',
+    bgColor: '#ffffff',
+    cardColor: '#fafafa',
+    textColor: '#1f2937',
+    subtextColor: '#6b7280',
+    primaryColor: '#3b82f6'
+  },
+  warm: {
+    key: 'warm',
+    label: '温暖黄',
+    icon: '🟡',
+    desc: '温馨舒适，像午后的阳光',
+    bgColor: '#fef3c7',
+    cardColor: '#fffbeb',
+    textColor: '#78350f',
+    subtextColor: '#92400e',
+    primaryColor: '#f59e0b'
+  },
+  fresh: {
+    key: 'fresh',
+    label: '清新绿',
+    icon: '🟢',
+    desc: '自然清新，像春天的草地',
+    bgColor: '#d1fae5',
+    cardColor: '#ecfdf5',
+    textColor: '#065f46',
+    subtextColor: '#047857',
+    primaryColor: '#10b981'
+  },
+  calm: {
+    key: 'calm',
+    label: '宁静蓝',
+    icon: '🔵',
+    desc: '平静沉稳，像宁静的湖水',
+    bgColor: '#dbeafe',
+    cardColor: '#eff6ff',
+    textColor: '#1e3a8a',
+    subtextColor: '#1e40af',
+    primaryColor: '#3b82f6'
+  },
+  romantic: {
+    key: 'romantic',
+    label: '浪漫粉',
+    icon: '🩷',
+    desc: '温柔浪漫，像樱花飘落',
+    bgColor: '#fce7f3',
+    cardColor: '#fdf2f8',
+    textColor: '#831843',
+    subtextColor: '#9d174d',
+    primaryColor: '#ec4899'
+  },
+  deep: {
+    key: 'deep',
+    label: '深邃黑',
+    icon: '⬛',
+    desc: '沉稳内敛，像深夜的星空',
+    bgColor: '#111827',
+    cardColor: '#1f2937',
+    textColor: '#f9fafb',
+    subtextColor: '#d1d5db',
+    primaryColor: '#6366f1'
+  }
+};
+
+const MOOD_STYLE_META = {
+  healing: {
+    key: 'healing',
+    label: '治愈插画',
+    icon: '🌸',
+    desc: '温馨可爱的手绘插画装饰',
+    decoration: 'healing'
+  },
+  classic: {
+    key: 'classic',
+    label: '古风雅韵',
+    icon: '🎋',
+    desc: '中国古典风格',
+    decoration: 'classic'
+  },
+  modern: {
+    key: 'modern',
+    label: '现代简约',
+    icon: '✨',
+    desc: '简洁现代的设计',
+    decoration: 'modern'
+  },
+  retro: {
+    key: 'retro',
+    label: '怀旧复古',
+    icon: '📷',
+    desc: '怀旧复古的感觉',
+    decoration: 'retro'
+  },
+  nature: {
+    key: 'nature',
+    label: '自然清新',
+    icon: '🌿',
+    desc: '自然清新的氛围',
+    decoration: 'nature'
+  },
+  artistic: {
+    key: 'artistic',
+    label: '艺术手绘',
+    icon: '🎨',
+    desc: '艺术感的手绘风格',
+    decoration: 'artistic'
+  }
+};
+
+const THEME_STYLES = Object.keys(THEME_STYLE_META).map((key) => ({
+  key,
+  ...THEME_STYLE_META[key]
+}));
+
+const MOOD_STYLES = Object.keys(MOOD_STYLE_META).map((key) => ({
+  key,
+  ...MOOD_STYLE_META[key]
 }));
 
 const IMMERSIVE_SCENE_META = {
@@ -205,35 +329,42 @@ function resolveCompanionStateByText(text = '') {
   return 'idle';
 }
 
-function resolveSemanticTextPalette(theme = {}) {
-  const parseColorToRgb = (color = '') => {
-    const value = String(color || '').trim();
-    if (!value) return null;
+function parseColorToRgb(color = '') {
+  const value = String(color || '').trim();
+  if (!value) return null;
 
-    if (value.startsWith('#')) {
-      const hex = value.slice(1);
-      if (hex.length === 3) {
-        const r = parseInt(hex[0] + hex[0], 16);
-        const g = parseInt(hex[1] + hex[1], 16);
-        const b = parseInt(hex[2] + hex[2], 16);
-        return { r, g, b };
-      }
-      if (hex.length >= 6) {
-        const r = parseInt(hex.slice(0, 2), 16);
-        const g = parseInt(hex.slice(2, 4), 16);
-        const b = parseInt(hex.slice(4, 6), 16);
-        return { r, g, b };
-      }
-      return null;
+  if (value.startsWith('#')) {
+    const hex = value.slice(1);
+    if (hex.length === 3) {
+      const r = parseInt(hex[0] + hex[0], 16);
+      const g = parseInt(hex[1] + hex[1], 16);
+      const b = parseInt(hex[2] + hex[2], 16);
+      return { r, g, b };
     }
+    if (hex.length >= 6) {
+      const r = parseInt(hex.slice(0, 2), 16);
+      const g = parseInt(hex.slice(2, 4), 16);
+      const b = parseInt(hex.slice(4, 6), 16);
+      return { r, g, b };
+    }
+    return null;
+  }
 
-    const rgbMatch = value.match(/rgba?\(([^)]+)\)/i);
-    if (!rgbMatch) return null;
-    const [r, g, b] = rgbMatch[1].split(',').map((item) => Number(item.trim()));
-    if (![r, g, b].every(Number.isFinite)) return null;
-    return { r, g, b };
-  };
+  const rgbMatch = value.match(/rgba?\(([^)]+)\)/i);
+  if (!rgbMatch) return null;
+  const [r, g, b] = rgbMatch[1].split(',').map((item) => Number(item.trim()));
+  if (![r, g, b].every(Number.isFinite)) return null;
+  return { r, g, b };
+}
 
+function getColorWithAlpha(color = '', alpha = 1) {
+  const rgb = parseColorToRgb(color);
+  if (!rgb) return color;
+  const { r, g, b } = rgb;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function resolveSemanticTextPalette(theme = {}) {
   const isDarkColor = (color = '') => {
     const rgb = parseColorToRgb(color);
     if (!rgb) return false;
@@ -264,19 +395,24 @@ Page({
     // 页面相关
     currentPage: 0, // 当前页面索引：0-心语，1-广场，2-我的
     
+    // 自定义背景
+    customBackground: '',
+    
     // 发布页面相关
     postContent: '',
-    activePostType: 'diary',
-    postTypes: POST_TYPES,
-    postPlaceholder: POST_TYPE_META.diary.placeholder,
-    packageActionLabel: POST_ACTION_META.diary.cta,
-    letterSalutation: '亲爱的自己',
-    letterSignature: '—— 今天也在慢慢变好的我',
-    postcardLocation: '上海 · 黄昏街角',
-    diaryWeather: '多云',
-    diaryMoodScore: 7,
+    postTitle: '',
+    postLocation: '',
     writingDateText: '',
     isAnonymous: true,
+    isPostPrivate: true, // 是否本地私密
+    
+    // 风格相关
+    activeThemeStyle: 'minimalist',
+    activeMoodStyle: 'healing',
+    themeStyles: THEME_STYLES,
+    moodStyles: MOOD_STYLES,
+    decoPositions: {},
+    decoOpacity: {},
     
     // 我的页面相关
     userInfo: {
@@ -292,6 +428,12 @@ Page({
     currentQuote: '',
     myDiaryList: [],
     squarePostList: [],
+    cloudPosts: [],
+    currentPage: 0, // 当前页面索引：0-心语，1-广场，2-我的
+    cloudPage: 1, // 云端数据分页
+    cloudPageSize: 10, // 每页加载数量
+    hasMoreCloudPosts: true, // 是否有更多云端数据
+    isLoadingCloudPosts: false, // 是否正在加载云端数据
     shatteringCardIds: [],
     isPostShattering: false,
     isShredCanvasVisible: false,
@@ -324,6 +466,7 @@ Page({
     showPackageConfirmDialog: false,
     showPackagePublishDialog: false,
     showPackagingAnimation: false,
+    showSaveSuccessDialog: false,
     pendingPackageType: 'letter',
     pendingPackageLabel: POST_TYPE_META.letter.label,
     ornamentSwayDeg: 5,
@@ -371,10 +514,34 @@ Page({
     writingAmbientSubtitle: '慢慢写，不必着急。先把心放下来，再把话写出来。',
     isAmbientSubtitleAnimating: false,
     blindBoxEntryShaking: false,
+    squareRefreshing: false,
+    newPostCount: 0,
+    
+    // 我的页面相关
+    profileActiveTab: 'favorites',
+    profileMyTopicsList: [],
+    profileLikedList: [],
+    profileFavoriteList: [],
+    profileTopicsRefreshing: false,
+    profileLikesRefreshing: false,
+    profileFavoritesRefreshing: false,
+    publicMyTopicsList: [],
+    privateMyTopicsList: [],
     
     // 主题相关
     theme: THEMES[0], // 默认使用第一个主题
     textPalette: resolveSemanticTextPalette(THEMES[0]),
+    paperDateLineBorderColor: THEMES[0].primaryColor,
+    paperDateLineShadowColor: getColorWithAlpha(THEMES[0].primaryColor, 0.25),
+    publishBtnBgColor: getColorWithAlpha(THEMES[0].primaryColor, 0.1),
+    publishBtnTextColor: THEMES[0].primaryColor,
+    companionSelectedShadow1: getColorWithAlpha(THEMES[0].primaryColor, 0.3),
+    companionSelectedShadow2: getColorWithAlpha(THEMES[0].primaryColor, 0.6),
+    companionSelectedShadow3: getColorWithAlpha(THEMES[0].primaryColor, 0.2),
+    companionSelectedShadow1Pulse: getColorWithAlpha(THEMES[0].primaryColor, 0.4),
+    companionSelectedShadow2Pulse: getColorWithAlpha(THEMES[0].primaryColor, 0.8),
+    companionSelectedShadow3Pulse: getColorWithAlpha(THEMES[0].primaryColor, 0.25),
+    isCompanionSelectedPulse: false,
     
     // 小精灵拖动状态
     isCompanionDragging: false,
@@ -386,17 +553,119 @@ Page({
     companionMoveTimer: null
   },
 
-  onLoad() {
-    this.setData({
-      myDiaryList: this.getInitialMyDiaryList(),
-      squarePostList: this.getInitialSquarePostList()
+  // 自定义背景相关
+  onTapToolBackground() {
+    this.openToolPanel('background', { anchorId: 'toolEntryBackground' });
+  },
+
+  onChooseBackground() {
+    wx.chooseImage({
+      count: 1,
+      sizeType: ['compressed'],
+      sourceType: ['album', 'camera'],
+      success: (res) => {
+        const tempFilePath = res.tempFilePaths[0];
+        this.setData({ customBackground: tempFilePath });
+        // 保存到本地存储
+        try {
+          wx.setStorageSync('customBackground', tempFilePath);
+        } catch (e) {
+          console.error('保存自定义背景失败:', e);
+        }
+        wx.showToast({
+          title: '背景已设置',
+          icon: 'success'
+        });
+        // 关闭自定义背景弹窗
+        this.closeToolPanel();
+      }
     });
+  },
+
+  onClearBackground() {
+    this.setData({ customBackground: '' });
+    try {
+      wx.removeStorageSync('customBackground');
+    } catch (e) {
+      console.error('清除自定义背景失败:', e);
+    }
+    wx.showToast({
+      title: '背景已清除',
+      icon: 'success'
+    });
+  },
+
+  restoreCustomBackground() {
+    try {
+      const storedBackground = wx.getStorageSync('customBackground');
+      if (storedBackground) {
+        this.setData({ customBackground: storedBackground });
+      }
+    } catch (e) {
+      console.error('恢复自定义背景失败:', e);
+    }
+  },
+
+  onLoad() {
+    this.restoreCustomBackground();
+    // 优先从全局数据读取，如果全局数据为空才从本地存储读取
+    const app = getApp();
+    
+    // 同步用户信息
+    if (app.globalData.userInfo) {
+      this.setData({ userInfo: app.globalData.userInfo });
+    }
+    
+    // 获取自定义弹窗组件实例
+    this.customToast = null;
+    
+    let initialMyDiaryList = app.globalData.diaryList || [];
+    
+    if (initialMyDiaryList.length === 0) {
+      try {
+        initialMyDiaryList = wx.getStorageSync('myDiaryList') || [];
+      } catch (e) {
+        console.error('读取本地存储失败:', e);
+      }
+      if (initialMyDiaryList.length === 0) {
+        initialMyDiaryList = this.getInitialMyDiaryList();
+      }
+    }
+    
+    // 从本地存储读取点赞和收藏状态
+    let likedPostIds = [];
+    let collectedPostIds = [];
+    try {
+      likedPostIds = wx.getStorageSync('likedPostIds') || [];
+      collectedPostIds = wx.getStorageSync('collectedPostIds') || [];
+    } catch (e) {
+      console.error('读取交互状态失败:', e);
+    }
+    
+    // 应用点赞和收藏状态到 myDiaryList
+    initialMyDiaryList = initialMyDiaryList.map(item => ({
+      ...item,
+      isLiked: likedPostIds.includes(item.id),
+      isCollected: collectedPostIds.includes(item.id)
+    }));
+    
+    // 从 myDiaryList 中筛选公开内容作为广场数据，并确保状态一致
+    const initialSquarePostList = initialMyDiaryList.filter(item => !item.isPrivate);
+    
+    this.setData({
+      myDiaryList: initialMyDiaryList,
+      squarePostList: initialSquarePostList
+    });
+    // 同步到全局数据
+    app.globalData.diaryList = initialMyDiaryList;
+    app.globalData.squarePostList = initialSquarePostList;
     this.initRainPerfProfile();
     this.initRainModeState();
     this.initScenePerfProfile();
     this.initImmersiveSceneState();
     this.restoreToolbarSettingsFromStorage();
     this.initBreathingPerfProfile();
+    this.initDecoPositions();
     this.initMovableFab();
     this.syncThemeFromGlobal();
     this.syncAudioFromGlobal();
@@ -420,12 +689,53 @@ Page({
     }, 60);
   },
 
+  onReady() {
+    // 获取自定义弹窗组件实例
+    this.customToast = this.selectComponent('#customToast');
+  },
+
+  getTimeOfDay(hour) {
+    if (hour >= 5 && hour < 9) return '凌晨';
+    if (hour >= 9 && hour < 12) return '上午';
+    if (hour >= 12 && hour < 14) return '中午';
+    if (hour >= 14 && hour < 18) return '下午';
+    if (hour >= 18 && hour < 21) return '傍晚';
+    return '深夜';
+  },
+
   getCurrentWritingDateText() {
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
-    return `${year} 年 ${month} 月 ${day} 日`;
+    const hour = String(now.getHours()).padStart(2, '0');
+    const minute = String(now.getMinutes()).padStart(2, '0');
+    const timeOfDay = this.getTimeOfDay(now.getHours());
+    return `${year}.${month}.${day} ${timeOfDay} ${hour}:${minute}`;
+  },
+
+  startWritingDateLoop() {
+    this.stopWritingDateLoop();
+    this.writingDateTimer = setInterval(() => {
+      this.setData({ writingDateText: this.getCurrentWritingDateText() });
+    }, 60000);
+  },
+
+  stopWritingDateLoop() {
+    if (this.writingDateTimer) {
+      clearInterval(this.writingDateTimer);
+      this.writingDateTimer = null;
+    }
+  },
+
+  // 自定义弹窗方法
+  showToast(options = {}) {
+    if (this.customToast) {
+      this.customToast.show(options);
+    } else {
+      // 降级到系统弹窗
+      wx.showToast(options);
+    }
   },
 
   getToolbarSettingsSnapshot() {
@@ -678,6 +988,7 @@ Page({
     this.clearCompanionBubbleTimer();
     this.stopBreathingGuide({ silent: true });
     this.stopCompanionAmbientLoop();
+    this.stopCompanionSelectedPulse();
     this.setData({
       companionInNest: true,
       companionNestHighlighted: false,
@@ -775,11 +1086,11 @@ Page({
     const profileMap = {
       sunny: {
         kinds: ['sun', 'sun', 'cloud'],
-        baseCount: isLowPerf ? 8 : 14,
-        baseSize: isLowPerf ? 12 : 14,
-        sizeRange: isLowPerf ? 10 : 16,
-        opacityMin: 0.24,
-        opacityRange: 0.42,
+        baseCount: isLowPerf ? 5 : 9,
+        baseSize: isLowPerf ? 14 : 18,
+        sizeRange: isLowPerf ? 12 : 20,
+        opacityMin: 0.4,
+        opacityRange: 0.5,
         durationBase: isLowPerf ? 4200 : 3200,
         durationRange: 1800,
         driftXRange: 40,
@@ -788,11 +1099,11 @@ Page({
       },
       cloudy: {
         kinds: ['cloud', 'cloud', 'wind'],
-        baseCount: isLowPerf ? 8 : 15,
-        baseSize: isLowPerf ? 12 : 15,
-        sizeRange: isLowPerf ? 12 : 20,
-        opacityMin: 0.18,
-        opacityRange: 0.34,
+        baseCount: isLowPerf ? 5 : 9,
+        baseSize: isLowPerf ? 14 : 18,
+        sizeRange: isLowPerf ? 14 : 24,
+        opacityMin: 0.4,
+        opacityRange: 0.5,
         durationBase: isLowPerf ? 5600 : 4600,
         durationRange: 2400,
         driftXRange: 72,
@@ -801,11 +1112,11 @@ Page({
       },
       rainy: {
         kinds: ['rain', 'rain', 'cloud'],
-        baseCount: isLowPerf ? 10 : 22,
-        baseSize: isLowPerf ? 9 : 10,
-        sizeRange: isLowPerf ? 10 : 14,
-        opacityMin: 0.2,
-        opacityRange: 0.42,
+        baseCount: isLowPerf ? 7 : 14,
+        baseSize: isLowPerf ? 11 : 14,
+        sizeRange: isLowPerf ? 12 : 18,
+        opacityMin: 0.45,
+        opacityRange: 0.45,
         durationBase: isLowPerf ? 3600 : 2800,
         durationRange: 1400,
         driftXRange: 26,
@@ -814,11 +1125,11 @@ Page({
       },
       windy: {
         kinds: ['wind', 'leaf', 'cloud'],
-        baseCount: isLowPerf ? 9 : 18,
-        baseSize: isLowPerf ? 10 : 12,
-        sizeRange: isLowPerf ? 12 : 18,
-        opacityMin: 0.2,
-        opacityRange: 0.4,
+        baseCount: isLowPerf ? 6 : 11,
+        baseSize: isLowPerf ? 12 : 16,
+        sizeRange: isLowPerf ? 14 : 22,
+        opacityMin: 0.4,
+        opacityRange: 0.5,
         durationBase: isLowPerf ? 4200 : 3400,
         durationRange: 1800,
         driftXRange: 110,
@@ -827,11 +1138,11 @@ Page({
       },
       snowy: {
         kinds: ['snow', 'snow', 'cloud'],
-        baseCount: isLowPerf ? 10 : 20,
-        baseSize: isLowPerf ? 10 : 12,
-        sizeRange: isLowPerf ? 10 : 16,
-        opacityMin: 0.26,
-        opacityRange: 0.5,
+        baseCount: isLowPerf ? 6 : 13,
+        baseSize: isLowPerf ? 12 : 16,
+        sizeRange: isLowPerf ? 12 : 22,
+        opacityMin: 0.5,
+        opacityRange: 0.4,
         durationBase: isLowPerf ? 6200 : 5200,
         durationRange: 2800,
         driftXRange: 48,
@@ -840,11 +1151,11 @@ Page({
       },
       stream: {
         kinds: ['leaf', 'wind', 'cloud'],
-        baseCount: isLowPerf ? 9 : 16,
-        baseSize: isLowPerf ? 10 : 12,
-        sizeRange: isLowPerf ? 12 : 18,
-        opacityMin: 0.2,
-        opacityRange: 0.36,
+        baseCount: isLowPerf ? 6 : 10,
+        baseSize: isLowPerf ? 12 : 16,
+        sizeRange: isLowPerf ? 14 : 22,
+        opacityMin: 0.4,
+        opacityRange: 0.5,
         durationBase: isLowPerf ? 5000 : 3800,
         durationRange: 1900,
         driftXRange: 84,
@@ -853,7 +1164,7 @@ Page({
       }
     };
     const profile = profileMap[sceneKey] || profileMap.rainy;
-    const count = Math.max(6, Math.round(profile.baseCount * (0.62 + intensityFactor * 0.88)));
+    const count = Math.max(4, Math.round(profile.baseCount * (0.5 + intensityFactor * 0.7)));
 
     return Array.from({ length: count }, (_, idx) => ({
       id: `scene-${sceneKey}-${idx}`,
@@ -951,15 +1262,15 @@ Page({
   buildRainDrops() {
     const isLowPerf = this.data.rainPerfLevel === 'low';
     const intensityFactor = Math.max(0.2, Math.min(1, Number(this.data.sceneIntensity || 65) / 100));
-    const baseCount = isLowPerf ? 10 : 20;
-    const count = Math.max(6, Math.round(baseCount * (0.58 + intensityFactor * 0.9)));
+    const baseCount = isLowPerf ? 14 : 28;
+    const count = Math.max(8, Math.round(baseCount * (0.65 + intensityFactor * 0.9)));
     return Array.from({ length: count }, (_, idx) => ({
       id: `rain-${idx}`,
       left: Math.round(Math.random() * 100),
-      height: Math.round((isLowPerf ? 18 : 22) + Math.random() * (isLowPerf ? 14 : 22)),
+      height: Math.round((isLowPerf ? 22 : 28) + Math.random() * (isLowPerf ? 18 : 28)),
       duration: Math.round((isLowPerf ? 1400 : 1150) + Math.random() * 900),
       delay: Math.round(Math.random() * 1600),
-      opacity: Number((isLowPerf ? 0.2 : 0.28) + Math.random() * 0.24).toFixed(2)
+      opacity: Number((isLowPerf ? 0.45 : 0.55) + Math.random() * 0.35).toFixed(2)
     }));
   },
 
@@ -974,39 +1285,13 @@ Page({
   },
 
   getInitialMyDiaryList() {
-    return [
-      this.createTypedPostItem({
-        id: 'my-1',
-        type: 'letter',
-        content: '亲爱的自己：今天也许不完美，但你已经很努力了。',
-        time: '今天',
-        letterSalutation: '亲爱的自己',
-        letterSignature: '—— 来自今天的你'
-      }),
-      this.createTypedPostItem({
-        id: 'my-2',
-        type: 'diary',
-        content: '记录我的心情变化，留下美好回忆。',
-        time: '昨天',
-        diaryWeather: '阴天',
-        diaryMoodScore: 7
-      }),
-      this.createTypedPostItem({
-        id: 'my-3',
-        type: 'postcard',
-        content: '窗外晚霞很温柔，想把这份平静寄给你。',
-        time: '3天前',
-        postcardLocation: '南京 · 玄武湖'
-      })
-    ];
+    // 不返回任何模拟数据，只返回空数组
+    return [];
   },
 
   getInitialSquarePostList() {
-    return [
-      this.createTypedPostItem({ id: 'square-1', type: 'diary', content: '今天心情有点低落，希望明天会更好。', time: '10分钟前', diaryWeather: '小雨', diaryMoodScore: 4 }),
-      this.createTypedPostItem({ id: 'square-2', type: 'postcard', content: '分享一首喜欢的歌，希望大家都能感受到快乐。', time: '30分钟前', postcardLocation: '成都 · 春熙路' }),
-      this.createTypedPostItem({ id: 'square-4', type: 'letter', content: '今天和朋友一起吃饭，聊了很多，感觉很开心。', time: '2小时前', letterSalutation: '亲爱的你', letterSignature: '—— 今晚很满足的我' })
-    ];
+    // 不返回任何模拟数据，只返回空数组
+    return [];
   },
 
   getPostTypeMeta(type = 'diary') {
@@ -1017,38 +1302,82 @@ Page({
     return POST_ACTION_META[type] || POST_ACTION_META.letter;
   },
 
-
+  formatTimeAgo(timestamp) {
+    if (!timestamp) return '刚刚';
+    
+    const now = Date.now();
+    const diff = now - timestamp;
+    
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    
+    if (seconds < 60) {
+      return '刚刚';
+    } else if (minutes < 60) {
+      return `${minutes}分钟前`;
+    } else if (hours < 24) {
+      return `${hours}小时前`;
+    } else if (days < 7) {
+      return `${days}天前`;
+    } else {
+      const date = new Date(timestamp);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+  },
 
   createTypedPostItem({
     id,
-    type = 'diary',
     content = '',
     time = '刚刚',
-    letterSalutation = '',
-    letterSignature = '',
-    postcardLocation = '',
-    diaryWeather = '',
-    diaryMoodScore,
-    scenePackage = null
+    scenePackage = null,
+    nickname = '',
+    title = '',
+    location = '',
+    blindBoxQuote = '',
+    likeCount = 0,
+    collectCount = 0,
+    isLiked = false,
+    isCollected = false,
+    customBackground = '',
+    writingTime,
+    writingTimeText,
+    publishTime,
+    publishTimeText,
+    isPrivate = false
   } = {}) {
-    const meta = this.getPostTypeMeta(type);
-    const safeMood = Number(diaryMoodScore);
-    const moodScore = Number.isFinite(safeMood) ? Math.max(1, Math.min(10, Math.round(safeMood))) : null;
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hour = String(now.getHours()).padStart(2, '0');
+    const minute = String(now.getMinutes()).padStart(2, '0');
+    const defaultWritingTimeText = `${year}年${month}月${day}日 ${hour}:${minute}`;
+    const defaultTime = now.getTime();
 
     return {
       id: id || `post-${Date.now()}`,
-      type,
-      typeLabel: meta.label,
-      typeIcon: meta.icon,
-      typeTagline: meta.tagline,
-      letterSalutation: type === 'letter' ? (letterSalutation || '亲爱的你') : '',
-      letterSignature: type === 'letter' ? (letterSignature || '—— 今晚的你') : '',
-      postcardLocation: type === 'postcard' ? (postcardLocation || '未署名地点') : '',
-      diaryWeather: type === 'diary' ? (diaryWeather || '天气未记录') : '',
-      diaryMoodScore: type === 'diary' ? moodScore : null,
       scenePackage,
       content,
-      time
+      time,
+      nickname,
+      title,
+      location,
+      blindBoxQuote,
+      likeCount,
+      collectCount,
+      isLiked,
+      isCollected,
+      customBackground,
+      writingTime: writingTime || defaultTime,
+      writingTimeText: writingTimeText || defaultWritingTimeText,
+      publishTime: publishTime || defaultTime,
+      publishTimeText: publishTimeText || defaultWritingTimeText,
+      isPrivate
     };
   },
 
@@ -1057,7 +1386,16 @@ Page({
       activeScene,
       sceneIntensity,
       theme,
-      activeThemeType
+      activeThemeType,
+      selectedHangingOrnament,
+      writingLightEnabled,
+      writingLightColorMode,
+      writingLightFromSide,
+      writingLightIntensity,
+      writingLightAngle,
+      writingLightFocus,
+      customBackground,
+      isPostPrivate
     } = this.data;
 
     const safeIntensity = Math.max(20, Math.min(100, Number(sceneIntensity) || 65));
@@ -1067,15 +1405,26 @@ Page({
       sceneIntensity: safeIntensity,
       themeId: Number(theme && theme.id),
       activeThemeType,
+      selectedHangingOrnament,
+      writingLightEnabled,
+      writingLightColorMode,
+      writingLightFromSide,
+      writingLightIntensity,
+      writingLightAngle,
+      writingLightFocus,
+      customBackground,
+      isPostPrivate,
       capturedAt: Date.now()
     };
   },
 
-  restoreScenePackage(scenePackage = {}) {
+  restoreScenePackage(scenePackage = {}, options = {}) {
+    const { persist = false } = options; // 新增参数：是否持久化设置
     const sceneKey = IMMERSIVE_SCENE_META[scenePackage.sceneKey] ? scenePackage.sceneKey : 'rainy';
     const intensity = Math.max(20, Math.min(100, Number(scenePackage.sceneIntensity) || 65));
     const themeId = Number(scenePackage.themeId);
 
+    // 还原主题
     if (Number.isFinite(themeId)) {
       try {
         const app = getApp();
@@ -1088,10 +1437,56 @@ Page({
       }
     }
 
-    this.setData({ sceneIntensity: intensity });
+    // 准备需要设置的数据
+    const dataToSet = {
+      sceneIntensity: intensity
+    };
 
+    // 还原挂件
+    if (scenePackage.selectedHangingOrnament) {
+      dataToSet.selectedHangingOrnament = scenePackage.selectedHangingOrnament;
+      if (HANGING_ORNAMENT_META[scenePackage.selectedHangingOrnament]) {
+        dataToSet.hangingOrnamentLabel = HANGING_ORNAMENT_META[scenePackage.selectedHangingOrnament].label;
+        dataToSet.hangingOrnamentSymbol = HANGING_ORNAMENT_META[scenePackage.selectedHangingOrnament].symbol;
+      }
+    }
+
+    // 还原灯光设置
+    if (scenePackage.writingLightEnabled !== undefined) {
+      dataToSet.writingLightEnabled = scenePackage.writingLightEnabled;
+    }
+    if (scenePackage.writingLightColorMode) {
+      dataToSet.writingLightColorMode = scenePackage.writingLightColorMode;
+    }
+    if (scenePackage.writingLightFromSide) {
+      dataToSet.writingLightFromSide = scenePackage.writingLightFromSide;
+    }
+    if (scenePackage.writingLightIntensity !== undefined) {
+      dataToSet.writingLightIntensity = scenePackage.writingLightIntensity;
+    }
+    if (scenePackage.writingLightAngle !== undefined) {
+      dataToSet.writingLightAngle = scenePackage.writingLightAngle;
+    }
+    if (scenePackage.writingLightFocus !== undefined) {
+      dataToSet.writingLightFocus = scenePackage.writingLightFocus;
+    }
+
+    // 还原自定义背景
+    if (scenePackage.customBackground !== undefined) {
+      dataToSet.customBackground = scenePackage.customBackground;
+    }
+
+    // 还原隐私设置（仅用于编辑时）
+    if (scenePackage.isPostPrivate !== undefined) {
+      dataToSet.isPostPrivate = scenePackage.isPostPrivate;
+    }
+
+    // 设置数据
+    this.setData(dataToSet);
+
+    // 应用场景
     this.applyImmersiveScene(sceneKey, {
-      persist: true,
+      persist: persist,
       silent: true,
       updateAutoMode: false
     });
@@ -1105,7 +1500,9 @@ Page({
           enabled: true
         });
       }
-      wx.setStorageSync('homeSceneIntensity', intensity);
+      if (persist) {
+        wx.setStorageSync('homeSceneIntensity', intensity);
+      }
     } catch (e) {
       console.error('还原场景包失败:', e);
     }
@@ -1130,6 +1527,142 @@ Page({
     this.persistToolbarSettings({ activePostType: type });
 
     this.maybeTriggerCompanionActionInteraction('switchPostType');
+  },
+
+  onSelectThemeStyle(e) {
+    const key = e.currentTarget.dataset.key;
+    if (!THEME_STYLE_META[key] || key === this.data.activeThemeStyle) {
+      return;
+    }
+
+    const styleMeta = THEME_STYLE_META[key];
+    this.setData({
+      activeThemeStyle: key
+    });
+    this.applyThemeStyle(key);
+    this.persistToolbarSettings({ activeThemeStyle: key });
+  },
+
+  onSelectMoodStyle(e) {
+    const key = e.currentTarget.dataset.key;
+    if (!MOOD_STYLE_META[key] || key === this.data.activeMoodStyle) {
+      return;
+    }
+
+    this.setData({
+      activeMoodStyle: key
+    });
+    this.applyMoodStyle(key);
+    this.persistToolbarSettings({ activeMoodStyle: key });
+  },
+
+  applyThemeStyle(key) {
+    const styleMeta = THEME_STYLE_META[key];
+    if (!styleMeta) return;
+
+    const textPalette = {
+      title: styleMeta.textColor,
+      body: styleMeta.textColor,
+      subtitle: styleMeta.subtextColor,
+      tertiary: styleMeta.subtextColor,
+      inverse: '#ffffff'
+    };
+
+    const theme = {
+      ...this.data.theme,
+      bgColor: styleMeta.bgColor,
+      cardColor: styleMeta.cardColor,
+      primaryColor: styleMeta.primaryColor
+    };
+
+    this.setData({
+      textPalette,
+      theme
+    });
+  },
+
+  applyMoodStyle(key) {
+    const styleMeta = MOOD_STYLE_META[key];
+    if (!styleMeta) return;
+    
+    this.initDecoPositions();
+    this.startDecoRefreshTimer();
+  },
+
+  initDecoPositions() {
+    const positions = {};
+    const opacity = {};
+    const elements = [
+      'flower-1', 'flower-2', 'flower-3',
+      'leaf-1', 'leaf-2',
+      'bamboo-1',
+      'ink-1', 'ink-2',
+      'circle-1', 'circle-2',
+      'star-1', 'star-2', 'star-3',
+      'cloud-1', 'cloud-2',
+      'grass-1', 'grass-2',
+      'brush-1', 'brush-2',
+      'splash-1', 'splash-2'
+    ];
+    
+    elements.forEach(el => {
+      positions[el] = this.getRandomPosition();
+      opacity[el] = 1;
+    });
+    
+    this.setData({ decoPositions: positions, decoOpacity: opacity });
+  },
+
+  getRandomPosition() {
+    const top = Math.floor(Math.random() * 70) + 10;
+    const left = Math.floor(Math.random() * 60) + 10;
+    return { top: `${top}%`, left: `${left}%` };
+  },
+
+  startDecoRefreshTimer() {
+    if (this.decoRefreshTimer) {
+      clearInterval(this.decoRefreshTimer);
+    }
+    
+    this.decoRefreshTimer = setInterval(() => {
+      this.refreshRandomDeco();
+    }, 30000);
+  },
+
+  refreshRandomDeco() {
+    const elements = Object.keys(this.data.decoPositions);
+    if (elements.length === 0) return;
+    
+    const randomIndex = Math.floor(Math.random() * elements.length);
+    const elementToRefresh = elements[randomIndex];
+    
+    // 第一步：淡出
+    const fadeOutOpacity = { ...this.data.decoOpacity };
+    fadeOutOpacity[elementToRefresh] = 0;
+    
+    this.setData({ decoOpacity: fadeOutOpacity }, () => {
+      setTimeout(() => {
+        // 第二步：更新位置（此时元素已隐藏，不会看到位置变化）
+        const newPositions = { ...this.data.decoPositions };
+        newPositions[elementToRefresh] = this.getRandomPosition();
+        
+        this.setData({ decoPositions: newPositions }, () => {
+          // 第三步：淡入
+          setTimeout(() => {
+            const fadeInOpacity = { ...this.data.decoOpacity };
+            fadeInOpacity[elementToRefresh] = 1;
+            this.setData({ decoOpacity: fadeInOpacity });
+          }, 100);
+        });
+      }, 800);
+    });
+  },
+
+  stopDecoRefreshTimer() {
+    if (this.decoRefreshTimer) {
+      clearInterval(this.decoRefreshTimer);
+      this.decoRefreshTimer = null;
+    }
   },
 
   getHangingOrnamentMeta(key = 'knot') {
@@ -1158,7 +1691,8 @@ Page({
       volume: 180,
       scene: 300,
       intensity: 180,
-      light: 470
+      light: 470,
+      background: 380
     };
     return Math.round((heightRpxMap[panel] || 300) * rpxRatio);
   },
@@ -1166,72 +1700,73 @@ Page({
   updateMiniToolTopByAnchor(anchorId = '', panel = '') {
     return new Promise((resolve) => {
       if (!anchorId || !this.createSelectorQuery) {
-        resolve();
+        console.log('弹窗定位: 缺少anchorId或createSelectorQuery');
+        // 设置一个默认值
+        this.setData({ miniToolTopPx: 200 }, resolve);
         return;
       }
-      const query = this.createSelectorQuery();
-      query.select('.writing-workspace').boundingClientRect();
+      const query = this.createSelectorQuery().in(this);
       query.select(`#${anchorId}`).boundingClientRect();
+      query.selectViewport().boundingClientRect();
       query.exec((res) => {
-        if (!res || res.length < 2 || !res[0] || !res[1]) {
-          console.log('弹窗定位查询失败:', res);
-          resolve();
+        console.log('弹窗定位查询结果:', res);
+        if (!res || !res[0] || !res[1]) {
+          console.log('弹窗定位查询失败，使用默认值');
+          // 查询失败时设置一个默认值
+          this.setData({ miniToolTopPx: 200 }, resolve);
           return;
         }
-        const workspaceRect = res[0];
-        const anchorRect = res[1];
-        console.log('弹窗定位信息:', {
-          anchorId,
-          workspaceTop: workspaceRect.top,
-          anchorTop: anchorRect.top,
-          relativeTop: anchorRect.top - workspaceRect.top
-        });
+        const anchorRect = res[0];
+        const viewportRect = res[1];
         const panelHeightPx = this.getPanelEstimatedHeightPx(panel);
-        let viewportHeight = Number((this.viewportInfo && this.viewportInfo.height) || 0);
-        if (!viewportHeight) {
-          try {
-            const info = wx.getSystemInfoSync ? wx.getSystemInfoSync() : {};
-            viewportHeight = Number(info.windowHeight || 667);
-          } catch (e) {
-            viewportHeight = 667;
-          }
-        }
         const rpxRatio = this.getRpxToPxRatio();
         const bottomReserve = Math.round((104 + 20 + 40) * rpxRatio);
-        const minTop = 8;
-        const maxTop = Math.max(minTop, viewportHeight - panelHeightPx - bottomReserve - workspaceRect.top);
-        const anchorTopRelativeToWorkspace = Math.round(anchorRect.top - workspaceRect.top);
-        const nextTop = Math.max(minTop, Math.min(maxTop, anchorTopRelativeToWorkspace));
-        console.log('弹窗最终位置:', { nextTop, minTop, maxTop });
-        this.setData({ miniToolTopPx: nextTop }, resolve);
+        const topReserve = Math.round(8);
+        
+        // 让弹窗的中间对齐按钮的中间
+        const buttonCenter = anchorRect.top + anchorRect.height / 2;
+        let panelTop = buttonCenter - panelHeightPx / 2;
+        
+        // 确保弹窗在可视区域内
+        const maxTop = Math.max(topReserve, viewportRect.height - panelHeightPx - bottomReserve);
+        panelTop = Math.max(topReserve, Math.min(maxTop, Math.round(panelTop)));
+        
+        console.log('弹窗定位计算:', {
+          anchorId,
+          anchorTop: anchorRect.top,
+          anchorHeight: anchorRect.height,
+          buttonCenter,
+          panelHeightPx,
+          panelTop,
+          viewportHeight: viewportRect.height
+        });
+        
+        this.setData({ miniToolTopPx: panelTop }, resolve);
       });
     });
   },
 
   openToolPanel(panel = '', options = {}) {
     const { anchorId = '' } = options || {};
-    const isSameMiniPanel = this.data.activeToolPanel === panel && !this.data.showToolPanel;
+    const isSameMiniPanel = this.data.activeToolPanel === panel;
     if (isSameMiniPanel) {
-      this.clearToolPanelAutoCloseTimer();
-      this.setData({
-        showToolPanel: false,
-        activeToolPanel: ''
-      });
+      this.closeToolPanel();
       return;
     }
 
     this.clearToolPanelAutoCloseTimer();
-    this.setData({ activeToolPanel: '' }, () => {
-      this.updateMiniToolTopByAnchor(anchorId, panel).then(() => {
-        this.setData({
-          showToolPanel: false,
-          activeToolPanel: panel
-        }, () => {
+    
+    // 先显示弹窗，再更新位置
+    this.setData({
+      activeToolPanel: panel
+    }, () => {
+      // 使用 setTimeout 确保弹窗已经渲染，然后更新位置
+      setTimeout(() => {
+        this.updateMiniToolTopByAnchor(anchorId, panel).then(() => {
           this.startToolPanelAutoCloseTimer(panel);
-          // 更新精灵窝边界，确保使用最新位置
           this.updateCompanionNestBounds();
         });
-      });
+      }, 100);
     });
   },
 
@@ -1239,7 +1774,6 @@ Page({
     this.clearToolPanelAutoCloseTimer();
     this.resetOrnamentDrag();
     this.setData({
-      showToolPanel: false,
       activeToolPanel: ''
     });
   },
@@ -1277,7 +1811,7 @@ Page({
   },
 
   onTapToolVolume() {
-    this.openToolPanel('volume', { anchorId: 'toolEntryVolume' });
+    this.openToolPanel('volume', { anchorId: 'toolEntryAudio' });
   },
 
   onTapToolIntensity() {
@@ -1454,6 +1988,19 @@ Page({
 
   closePackagePublishDialog() {
     this.setData({ showPackagePublishDialog: false });
+  },
+
+  // 关闭保存成功弹窗
+  closeSaveSuccessDialog() {
+    this.setData({ showSaveSuccessDialog: false });
+  },
+
+  // 去查看私密作品
+  onGoToPrivatePosts() {
+    this.setData({ showSaveSuccessDialog: false });
+    wx.navigateTo({
+      url: '/pages/private/index'
+    });
   },
 
   onPublishPackagedPost() {
@@ -1646,9 +2193,26 @@ Page({
   onShow() {
     this.syncThemeFromGlobal();
     this.syncAudioFromGlobal();
+    
+    // 同步用户信息
+    const app = getApp();
+    if (app.globalData.userInfo) {
+      this.setData({ userInfo: app.globalData.userInfo });
+      
+      // 重新加载列表数据，确保用户信息同步更新
+      this.loadProfileMyTopics();
+      this.loadProfileFavorites();
+      this.loadProfileLiked();
+      
+      // 优先从本地存储加载数据，确保数据完整性
+      this.loadDataFromStorage();
+    }
+    
     this.restoreToolbarSettingsFromStorage();
     this.updateAmbientTimeSlot();
     this.startAmbientTimeSlotLoop();
+    this.setData({ writingDateText: this.getCurrentWritingDateText() });
+    this.startWritingDateLoop();
     if (this.data.isSceneAutoMode) {
       this.applyImmersiveScene(this.resolveAutoSceneByTime(), {
         persist: true,
@@ -1657,12 +2221,45 @@ Page({
       });
     }
     this.initMovableFab({ keepPosition: true });
+    this.startDecoRefreshTimer();
     // 重新计算精灵窝边界，确保使用最新位置
     setTimeout(() => {
       this.updateCompanionNestBounds();
     }, 100);
     this.maybeTriggerCompanionWhisper();
     this.startCompanionAmbientLoop();
+    
+    // 从本地存储重新加载点赞和收藏状态，确保与详情页同步
+    this.loadInteractionsFromStorage();
+    
+    // 如果精灵是选中状态，重新启动脉冲效果
+    if (this.data.isCompanionSelected && !this.data.companionInNest) {
+      this.startCompanionSelectedPulse();
+    }
+    
+    // 检查是否有正在编辑的帖子
+    if (app.globalData.editingPost) {
+      const target = app.globalData.editingPost;
+      
+      // 设置编辑内容到写点页面
+      this.setData({
+        currentPage: 0,
+        postTitle: target.title || '',
+        postContent: target.content || '',
+        postLocation: target.location || '',
+        activePostType: target.type || 'diary',
+        isPostPrivate: target.isPrivate || false,
+        editingPostId: target.id // 标记当前正在编辑的帖子ID
+      });
+      
+      // 如果有场景包，还原场景（编辑时不持久化）
+      if (target.scenePackage) {
+        this.restoreScenePackage(target.scenePackage, { persist: false });
+      }
+      
+      // 清除全局数据中的编辑帖子
+      app.globalData.editingPost = null;
+    }
   },
 
   onHide() {
@@ -1671,6 +2268,7 @@ Page({
     this.clearCompanionLongPressTimer();
     this.clearCompanionDragSettleTimer();
     clearTimeout(this.companionTapFeedbackTimer);
+    this.stopDecoRefreshTimer();
     this.companionTapFeedbackTimer = null;
     clearTimeout(this.clearSuppressedTapTimer);
     this.clearSuppressedTapTimer = null;
@@ -1679,6 +2277,7 @@ Page({
     this.clearToolPanelAutoCloseTimer();
     this.clearBlindBoxTimers();
     this.stopCompanionAmbientLoop();
+    this.stopCompanionSelectedPulse();
     clearTimeout(this.packageAnimationTimer);
     this.packageAnimationTimer = null;
     this.setData({
@@ -1690,6 +2289,7 @@ Page({
     clearTimeout(this.sceneEnterTimer);
     clearTimeout(this.sceneRestoreHintTimer);
     this.stopAmbientTimeSlotLoop();
+    this.stopWritingDateLoop();
   },
 
   onUnload() {
@@ -1697,6 +2297,7 @@ Page({
     this.clearCompanionBubbleTimer();
     this.clearCompanionLongPressTimer();
     this.clearCompanionDragSettleTimer();
+    this.stopDecoRefreshTimer();
     clearTimeout(this.companionTapFeedbackTimer);
     this.companionTapFeedbackTimer = null;
     clearTimeout(this.clearSuppressedTapTimer);
@@ -1706,12 +2307,14 @@ Page({
     this.clearToolPanelAutoCloseTimer();
     this.clearBlindBoxTimers();
     this.stopCompanionAmbientLoop();
+    this.stopCompanionSelectedPulse();
     clearTimeout(this.packageAnimationTimer);
     this.packageAnimationTimer = null;
     this.persistCompanionLastActiveAt();
     clearTimeout(this.sceneEnterTimer);
     clearTimeout(this.sceneRestoreHintTimer);
     this.stopAmbientTimeSlotLoop();
+    this.stopWritingDateLoop();
 
     if (this.handleWindowResize && wx.offWindowResize) {
       wx.offWindowResize(this.handleWindowResize);
@@ -1893,7 +2496,17 @@ Page({
       textPalette: resolveSemanticTextPalette(theme),
       activeThemeType: resolvedType,
       filteredThemes: getThemesByType(resolvedType),
-      companionVisualType: resolvedType === THEME_STYLE_TYPES.MALE ? 'core' : 'cloud'
+      companionVisualType: resolvedType === THEME_STYLE_TYPES.MALE ? 'core' : 'cloud',
+      paperDateLineBorderColor: theme.primaryColor,
+      paperDateLineShadowColor: getColorWithAlpha(theme.primaryColor, 0.25),
+      publishBtnBgColor: getColorWithAlpha(theme.primaryColor, 0.1),
+      publishBtnTextColor: theme.primaryColor,
+      companionSelectedShadow1: getColorWithAlpha(theme.primaryColor, 0.3),
+      companionSelectedShadow2: getColorWithAlpha(theme.primaryColor, 0.6),
+      companionSelectedShadow3: getColorWithAlpha(theme.primaryColor, 0.2),
+      companionSelectedShadow1Pulse: getColorWithAlpha(theme.primaryColor, 0.4),
+      companionSelectedShadow2Pulse: getColorWithAlpha(theme.primaryColor, 0.8),
+      companionSelectedShadow3Pulse: getColorWithAlpha(theme.primaryColor, 0.25)
     });
 
     this.updateNavigationBarColor();
@@ -1962,6 +2575,450 @@ Page({
     const page = parseInt(e.currentTarget.dataset.page);
     this.setData({ currentPage: page });
     this.initMovableFab({ keepPosition: true });
+    
+    // 如果切换到「动态」页面，从 myDiaryList 中刷新广场数据，并应用点赞收藏状态
+    if (page === 1) {
+      const myDiaryList = this.data.myDiaryList || [];
+      let squarePostList = myDiaryList.filter(item => !item.isPrivate);
+      
+      // 从本地存储读取最新的点赞和收藏状态并应用，同时格式化时间
+      try {
+        const likedPostIds = wx.getStorageSync('likedPostIds') || [];
+        const collectedPostIds = wx.getStorageSync('collectedPostIds') || [];
+        squarePostList = squarePostList.map(item => ({
+          ...item,
+          isLiked: likedPostIds.includes(item.id),
+          isCollected: collectedPostIds.includes(item.id),
+          time: this.formatTimeAgo(item.publishTime || item.writingTime)
+        }));
+      } catch (e) {
+        console.error('应用交互状态失败:', e);
+      }
+      
+      this.setData({ squarePostList });
+    }
+    
+    // 如果切换到「我的」页面，加载数据
+    if (page === 2) {
+      this.loadProfileMyTopics();
+      this.loadProfileLiked();
+      this.loadProfileFavorites();
+    }
+  },
+  
+  // 下拉刷新
+  onPullDownRefresh() {
+    console.log('下拉刷新动态页');
+    if (this.data.currentPage === 1) {
+      this.refreshCloudPosts();
+    } else {
+      wx.stopPullDownRefresh();
+    }
+  },
+  
+  // 上拉加载更多
+  onReachBottom() {
+    console.log('上拉加载更多');
+    if (this.data.currentPage === 1 && this.data.hasMoreCloudPosts && !this.data.isLoadingCloudPosts) {
+      this.loadMoreCloudPosts();
+    }
+  },
+  
+  // 刷新云端数据
+  refreshCloudPosts() {
+    this.setData({
+      cloudPage: 1,
+      hasMoreCloudPosts: true,
+      isLoadingCloudPosts: true
+    });
+    
+    this.loadCloudPosts(true);
+  },
+  
+  // 加载更多云端数据
+  loadMoreCloudPosts() {
+    if (this.data.isLoadingCloudPosts || !this.data.hasMoreCloudPosts) {
+      return;
+    }
+    
+    this.setData({
+      isLoadingCloudPosts: true,
+      cloudPage: this.data.cloudPage + 1
+    });
+    
+    this.loadCloudPosts(false);
+  },
+  
+  // 加载云端数据
+  loadCloudPosts(isRefresh) {
+    wx.cloud.callFunction({
+      name: 'getPosts',
+      data: {
+        page: this.data.cloudPage,
+        limit: this.data.cloudPageSize
+      },
+      success: (res) => {
+        console.log('获取云端数据成功:', res.result);
+        if (res.result && res.result.success) {
+          const cloudPosts = res.result.posts || [];
+          const hasMore = cloudPosts.length >= this.data.cloudPageSize;
+          
+          // 应用点赞和收藏状态
+          try {
+            const likedPostIds = wx.getStorageSync('likedPostIds') || [];
+            const collectedPostIds = wx.getStorageSync('collectedPostIds') || [];
+            
+            const processedPosts = cloudPosts.map(post => ({
+              ...post,
+              id: post._id, // 统一ID字段
+              isLiked: likedPostIds.includes(post._id),
+              isCollected: collectedPostIds.includes(post._id),
+              time: this.formatTimeAgo(post.createdAt || post.publishTime)
+            }));
+            
+            let finalPosts = [];
+            if (isRefresh) {
+              finalPosts = processedPosts;
+            } else {
+              finalPosts = [...this.data.cloudPosts, ...processedPosts];
+            }
+            
+            this.setData({
+              cloudPosts: finalPosts,
+              squarePostList: finalPosts, // 更新动态列表显示
+              hasMoreCloudPosts: hasMore,
+              isLoadingCloudPosts: false
+            });
+          } catch (e) {
+            console.error('应用交互状态失败:', e);
+            this.setData({
+              isLoadingCloudPosts: false
+            });
+          }
+        } else {
+          console.error('获取云端数据失败:', res.result?.message);
+          this.setData({
+            isLoadingCloudPosts: false
+          });
+        }
+        
+        // 停止下拉刷新
+        wx.stopPullDownRefresh();
+      },
+      fail: (err) => {
+        console.error('调用云函数失败:', err);
+        this.setData({
+          isLoadingCloudPosts: false
+        });
+        wx.stopPullDownRefresh();
+      }
+    });
+  },
+
+  // 点赞功能
+  onToggleLike(e) {
+    const id = e.currentTarget.dataset.id;
+    
+    // 更新 myDiaryList
+    const myDiaryList = this.data.myDiaryList.map((item) => {
+      if (item.id === id) {
+        const newIsLiked = !item.isLiked;
+        const newLikeCount = newIsLiked ? (item.likeCount || 0) + 1 : Math.max(0, (item.likeCount || 0) - 1);
+        return {
+          ...item,
+          isLiked: newIsLiked,
+          likeCount: newLikeCount
+        };
+      }
+      return item;
+    });
+    
+    // 更新 squarePostList
+    const squarePostList = this.data.squarePostList.map((item) => {
+      if (item.id === id) {
+        const newIsLiked = !item.isLiked;
+        const newLikeCount = newIsLiked ? (item.likeCount || 0) + 1 : Math.max(0, (item.likeCount || 0) - 1);
+        return {
+          ...item,
+          isLiked: newIsLiked,
+          likeCount: newLikeCount
+        };
+      }
+      return item;
+    });
+    
+    this.setData({ myDiaryList, squarePostList });
+    
+    // 同步到全局数据
+    const app = getApp();
+    app.globalData.diaryList = myDiaryList;
+    app.globalData.squarePostList = squarePostList;
+
+    // 保存点赞状态到本地存储
+    this.saveLikedPostsToStorage();
+    
+    // 刷新我的点赞列表
+    this.loadProfileLiked();
+
+    // 同步到云端（仅公开内容，后台异步执行，不影响本地显示）
+    const post = myDiaryList.find(item => item.id === id) || squarePostList.find(item => item.id === id);
+    if (post && !post.isPrivate) {
+      setTimeout(() => {
+        wx.cloud.callFunction({
+          name: 'toggleLike',
+          data: {
+            userId: app.globalData.userInfo.nickname,
+            postId: id,
+            action: post.isLiked ? 'add' : 'remove',
+            nickname: app.globalData.userInfo.nickname
+          },
+          success: (res) => {
+            console.log('点赞同步到云端成功:', res);
+          },
+          fail: (err) => {
+            console.error('点赞同步到云端失败:', err);
+          }
+        });
+      }, 0);
+    }
+  },
+
+  // 收藏功能
+  onToggleCollect(e) {
+    const id = e.currentTarget.dataset.id;
+    
+    // 更新 myDiaryList
+    const myDiaryList = this.data.myDiaryList.map((item) => {
+      if (item.id === id) {
+        const newIsCollected = !item.isCollected;
+        const newCollectCount = newIsCollected ? (item.collectCount || 0) + 1 : Math.max(0, (item.collectCount || 0) - 1);
+        return {
+          ...item,
+          isCollected: newIsCollected,
+          collectCount: newCollectCount
+        };
+      }
+      return item;
+    });
+    
+    // 更新 squarePostList
+    const squarePostList = this.data.squarePostList.map((item) => {
+      if (item.id === id) {
+        const newIsCollected = !item.isCollected;
+        const newCollectCount = newIsCollected ? (item.collectCount || 0) + 1 : Math.max(0, (item.collectCount || 0) - 1);
+        return {
+          ...item,
+          isCollected: newIsCollected,
+          collectCount: newCollectCount
+        };
+      }
+      return item;
+    });
+    
+    this.setData({ myDiaryList, squarePostList });
+    
+    // 同步到全局数据
+    const app = getApp();
+    app.globalData.diaryList = myDiaryList;
+    app.globalData.squarePostList = squarePostList;
+
+    // 保存收藏状态到本地存储
+    this.saveCollectedPostsToStorage();
+    
+    // 刷新我的收藏列表
+    this.loadProfileFavorites();
+
+    // 同步到云端（仅公开内容，后台异步执行，不影响本地显示）
+    const post = myDiaryList.find(item => item.id === id) || squarePostList.find(item => item.id === id);
+    if (post && !post.isPrivate) {
+      setTimeout(() => {
+        wx.cloud.callFunction({
+          name: 'toggleFavorite',
+          data: {
+            userId: app.globalData.userInfo.nickname,
+            postId: id,
+            action: post.isCollected ? 'add' : 'remove',
+            nickname: app.globalData.userInfo.nickname
+          },
+          success: (res) => {
+            console.log('收藏同步到云端成功:', res);
+          },
+          fail: (err) => {
+            console.error('收藏同步到云端失败:', err);
+          }
+        });
+      }, 0);
+    }
+  },
+
+  // 保存点赞帖子到本地存储
+  saveLikedPostsToStorage() {
+    // 从所有帖子列表中收集已点赞的帖子ID
+    const allPosts = [...this.data.myDiaryList, ...this.data.squarePostList];
+    const likedPostSet = new Set();
+    
+    allPosts.forEach(item => {
+      if (item.isLiked) {
+        likedPostSet.add(item.id);
+      }
+    });
+    
+    wx.setStorageSync('likedPostIds', Array.from(likedPostSet));
+  },
+
+  // 保存收藏帖子到本地存储
+  saveCollectedPostsToStorage() {
+    // 从所有帖子列表中收集已收藏的帖子ID
+    const allPosts = [...this.data.myDiaryList, ...this.data.squarePostList];
+    const collectedPostSet = new Set();
+    
+    allPosts.forEach(item => {
+      if (item.isCollected) {
+        collectedPostSet.add(item.id);
+      }
+    });
+    
+    wx.setStorageSync('collectedPostIds', Array.from(collectedPostSet));
+  },
+
+  // 从本地存储加载完整数据
+  loadDataFromStorage() {
+    try {
+      // 优先从本地存储加载 myDiaryList
+      let myDiaryList = wx.getStorageSync('myDiaryList') || [];
+      
+      // 如果本地存储没有数据，才使用全局数据
+      if (myDiaryList.length === 0) {
+        const app = getApp();
+        myDiaryList = app.globalData.diaryList || [];
+      }
+      
+      // 从 myDiaryList 中筛选公开内容作为广场数据
+      const squarePostList = myDiaryList.filter(item => !item.isPrivate);
+      
+      // 从本地存储读取点赞和收藏状态并应用
+      const likedPostIds = wx.getStorageSync('likedPostIds') || [];
+      const collectedPostIds = wx.getStorageSync('collectedPostIds') || [];
+      
+      // 应用点赞和收藏状态
+      myDiaryList = myDiaryList.map(item => ({
+        ...item,
+        isLiked: likedPostIds.includes(item.id),
+        isCollected: collectedPostIds.includes(item.id),
+        time: this.formatTimeAgo(item.publishTime || item.writingTime)
+      }));
+      
+      squarePostList = squarePostList.map(item => ({
+        ...item,
+        isLiked: likedPostIds.includes(item.id),
+        isCollected: collectedPostIds.includes(item.id),
+        time: this.formatTimeAgo(item.publishTime || item.writingTime)
+      }));
+      
+      this.setData({ myDiaryList, squarePostList });
+      
+      // 同步到全局数据
+      const app = getApp();
+      app.globalData.diaryList = myDiaryList;
+      app.globalData.squarePostList = squarePostList;
+      
+    } catch (e) {
+      console.error('从本地存储加载数据失败:', e);
+    }
+  },
+
+  // 从本地存储读取点赞和收藏状态并同步到所有列表
+  loadInteractionsFromStorage() {
+    try {
+      const likedPostIds = wx.getStorageSync('likedPostIds') || [];
+      const collectedPostIds = wx.getStorageSync('collectedPostIds') || [];
+      
+      // 同步所有帖子列表（myDiaryList 和 squarePostList）
+      const myDiaryList = this.data.myDiaryList.map(item => ({
+        ...item,
+        isLiked: likedPostIds.includes(item.id),
+        isCollected: collectedPostIds.includes(item.id)
+      }));
+      
+      const squarePostList = this.data.squarePostList.map(item => ({
+        ...item,
+        isLiked: likedPostIds.includes(item.id),
+        isCollected: collectedPostIds.includes(item.id)
+      }));
+      
+      this.setData({ myDiaryList, squarePostList });
+      
+      // 同步到全局数据
+      const app = getApp();
+      app.globalData.diaryList = myDiaryList;
+      app.globalData.squarePostList = squarePostList;
+      
+      // 同步我的收藏和点赞列表
+      this.loadProfileLiked();
+      this.loadProfileFavorites();
+    } catch (e) {
+      console.error('读取交互状态失败:', e);
+    }
+  },
+
+  // 广场页面下拉刷新
+  onSquareRefresh() {
+    this.setData({ squareRefreshing: true });
+    
+    setTimeout(() => {
+      // 从 myDiaryList 中刷新广场数据
+      const myDiaryList = this.data.myDiaryList || [];
+      let squarePostList = myDiaryList.filter(item => !item.isPrivate);
+      
+      // 从本地存储读取最新的点赞和收藏状态并应用
+      try {
+        const likedPostIds = wx.getStorageSync('likedPostIds') || [];
+        const collectedPostIds = wx.getStorageSync('collectedPostIds') || [];
+        squarePostList = squarePostList.map(item => ({
+          ...item,
+          time: this.formatTimeAgo(item.publishTime || item.writingTime),
+          isLiked: likedPostIds.includes(item.id),
+          isCollected: collectedPostIds.includes(item.id)
+        }));
+      } catch (e) {
+        console.error('应用交互状态失败:', e);
+      }
+      
+      this.setData({ 
+        squarePostList,
+        squareRefreshing: false 
+      });
+    }, 500);
+  },
+
+  // 模拟新内容提示
+  simulateNewPosts() {
+    this.setData({ newPostCount: 2 });
+  },
+
+  // 打开帖子详情页
+  onOpenPostDetail(e) {
+    const id = e.currentTarget.dataset.id;
+    const tab = e.currentTarget.dataset.tab;
+    
+    let postList;
+    if (tab === 'square') {
+      postList = this.data.squarePostList;
+    } else {
+      postList = this.data.myDiaryList;
+    }
+    
+    const post = postList.find(item => item.id === id);
+    if (!post) return;
+    
+    try {
+      const payload = encodeURIComponent(JSON.stringify(post));
+      wx.navigateTo({
+        url: `/pages/detail/index?payload=${payload}`
+      });
+    } catch (e) {
+      console.error('跳转详情页失败:', e);
+    }
   },
 
 
@@ -2223,16 +3280,22 @@ Page({
     this.restoreCompanionStateByInput();
   },
 
+  onPostPrivateChange(e) {
+    const isPrivate = !!(e && e.detail && e.detail.value);
+    this.setData({ isPostPrivate: isPrivate });
+  },
+
   onPackagePost() {
     if (!this.data.postContent.trim()) {
       wx.showToast({
-        title: '先写点内容再封装吧',
+        title: '先写点内容再保存吧',
         icon: 'none'
       });
       return;
     }
 
-    this.openToolPanel('package', { anchorId: 'toolEntryPublish' });
+    const visibility = this.data.isPostPrivate ? 'private' : 'public';
+    this.publishPost({ visibility });
   },
 
   onPackageAction(e) {
@@ -2250,22 +3313,21 @@ Page({
 
   // 发布内容
   publishPost(options = {}) {
+    console.log('publishPost 被调用，options:', options);
     const { visibility = 'private' } = options;
     const {
       postContent,
-      activePostType,
+      postTitle,
+      postLocation,
       myDiaryList,
       squarePostList,
-      letterSalutation,
-      letterSignature,
-      postcardLocation,
-      diaryWeather,
-      diaryMoodScore,
-      vlogScriptTemplate,
       activeScene,
       sceneIntensity,
       theme,
-      activeThemeType
+      activeThemeType,
+      customBackground,
+      writingAmbientSubtitle,
+      editingPostId
     } = this.data;
     
     if (!postContent.trim()) {
@@ -2276,17 +3338,138 @@ Page({
       return;
     }
     
+    const now = new Date();
+    
+    // 格式化写作时间显示文本 (年-月-日 时:分)
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hour = String(now.getHours()).padStart(2, '0');
+    const minute = String(now.getMinutes()).padStart(2, '0');
+    const writingTimeText = `${year}年${month}月${day}日 ${hour}:${minute}`;
+    
+    // 发布时间（和写作时间一样，因为是第一次发布）
+    const publishTimeText = writingTimeText;
+    
+    const app = getApp();
+    let updatedDiaryList = [...myDiaryList];
+    let updatedSquareList = [...squarePostList];
+    let updatedGlobalDiaryList = app.globalData.diaryList || [];
+    
+    // 检查是否为编辑模式
+    if (editingPostId) {
+      console.log('编辑模式，更新现有条目:', editingPostId);
+      
+      // 检查用户是否抽取了盲盒（默认值表示未抽取）
+      const DEFAULT_SUBTITLE = '慢慢写，不必着急。先把心放下来，再把话写出来。';
+      let finalBlindBoxQuote = writingAmbientSubtitle;
+      
+      if (writingAmbientSubtitle === DEFAULT_SUBTITLE) {
+        // 用户没有抽取盲盒，随机生成一个
+        const quotes = [
+          '每一个清晨都是新的开始，愿你今天充满阳光。',
+          '生活不是等待暴风雨过去，而是学会在雨中跳舞。',
+          '你不必完美，你已经足够好。',
+          '今天的你，比昨天更勇敢。',
+          '每一个小确幸，都是生活的礼物。',
+          '相信自己，你比想象中更强大。',
+          '慢慢来，一切都会好起来的。',
+          '你值得被爱，值得拥有所有美好。'
+        ];
+        finalBlindBoxQuote = quotes[Math.floor(Math.random() * quotes.length)];
+      }
+      
+      // 更新日记列表中的条目
+      const updatedItem = this.createTypedPostItem({
+        id: editingPostId,
+        content: postContent.trim(),
+        title: postTitle,
+        location: postLocation,
+        time: '刚刚',
+        nickname: this.data.userInfo.nickname,
+        writingTime: now.getTime(),
+        writingTimeText: writingTimeText,
+        publishTime: now.getTime(),
+        publishTimeText: publishTimeText,
+        isPrivate: visibility !== 'public',
+        blindBoxQuote: finalBlindBoxQuote,
+        customBackground,
+        scenePackage: {
+          ...this.buildScenePackageSnapshot(),
+          sceneKey: activeScene,
+          sceneIntensity,
+          themeId: Number(theme && theme.id),
+          activeThemeType
+        }
+      });
+      
+      // 更新本地日记列表
+      updatedDiaryList = updatedDiaryList.map(item => 
+        item.id === editingPostId ? updatedItem : item
+      );
+      
+      // 更新全局日记列表
+      updatedGlobalDiaryList = updatedGlobalDiaryList.map(item => 
+        item.id === editingPostId ? updatedItem : item
+      );
+      
+      // 如果从私密变为公开，添加到广场列表
+      if (visibility === 'public') {
+        // 检查广场列表中是否已有该条目
+        const existsInSquare = updatedSquareList.some(item => item.id === editingPostId);
+        if (!existsInSquare) {
+          updatedSquareList = [updatedItem, ...updatedSquareList];
+        } else {
+          updatedSquareList = updatedSquareList.map(item => 
+            item.id === editingPostId ? updatedItem : item
+          );
+        }
+      } else {
+        // 如果从公开变为私密，从广场列表中移除
+        updatedSquareList = updatedSquareList.filter(item => item.id !== editingPostId);
+      }
+      
+      console.log('更新完成，updatedItem:', updatedItem);
+      console.log('更新后的日记列表长度:', updatedDiaryList.length);
+      console.log('更新后的广场列表长度:', updatedSquareList.length);
+      
+    } else {
+      console.log('新建模式，创建新条目');
+      
+      // 创建新条目
+      // 检查用户是否抽取了盲盒（默认值表示未抽取）
+    const DEFAULT_SUBTITLE = '慢慢写，不必着急。先把心放下来，再把话写出来。';
+    let finalBlindBoxQuote = writingAmbientSubtitle;
+    
+    if (writingAmbientSubtitle === DEFAULT_SUBTITLE) {
+      // 用户没有抽取盲盒，随机生成一个
+      const quotes = [
+        '每一个清晨都是新的开始，愿你今天充满阳光。',
+        '生活不是等待暴风雨过去，而是学会在雨中跳舞。',
+        '你不必完美，你已经足够好。',
+        '今天的你，比昨天更勇敢。',
+        '每一个小确幸，都是生活的礼物。',
+        '相信自己，你比想象中更强大。',
+        '慢慢来，一切都会好起来的。',
+        '你值得被爱，值得拥有所有美好。'
+      ];
+      finalBlindBoxQuote = quotes[Math.floor(Math.random() * quotes.length)];
+    }
+    
     const newItem = this.createTypedPostItem({
       id: `my-${Date.now()}`,
-      type: activePostType,
       content: postContent.trim(),
+      title: postTitle,
+      location: postLocation,
       time: '刚刚',
-      letterSalutation,
-      letterSignature,
-      postcardLocation,
-      diaryWeather,
-      diaryMoodScore,
-      vlogScriptTemplate,
+      nickname: this.data.userInfo.nickname,
+      writingTime: now.getTime(),
+      writingTimeText: writingTimeText,
+      publishTime: now.getTime(),
+      publishTimeText: publishTimeText,
+      isPrivate: visibility !== 'public',
+      blindBoxQuote: finalBlindBoxQuote,
+      customBackground,
       scenePackage: {
         ...this.buildScenePackageSnapshot(),
         sceneKey: activeScene,
@@ -2295,34 +3478,196 @@ Page({
         activeThemeType
       }
     });
-
+      
+      updatedDiaryList = [newItem, ...updatedDiaryList];
+      updatedGlobalDiaryList = [newItem, ...updatedGlobalDiaryList];
+      
+      if (visibility === 'public') {
+        updatedSquareList = [newItem, ...updatedSquareList];
+      }
+      
+      console.log('新建条目完成:', newItem);
+      console.log('新建后的日记列表长度:', updatedDiaryList.length);
+      console.log('新建后的广场列表长度:', updatedSquareList.length);
+      
+      // 保存newItem到作用域，以便回调函数访问
+      this.setData({ tempNewItem: newItem });
+    }
+    
+    // 保存到全局数据
+    app.globalData.diaryList = updatedGlobalDiaryList;
+    
+    // 保存到本地存储
+    try {
+      wx.setStorageSync('myDiaryList', updatedGlobalDiaryList);
+      console.log('保存到本地存储成功');
+      
+      // 清除自定义背景的本地存储
+      wx.removeStorageSync('customBackground');
+      console.log('清除自定义背景本地存储成功');
+      
+      // 立即验证是否保存成功
+      const verifyData = wx.getStorageSync('myDiaryList');
+      console.log('验证本地存储 - 读取到的数据:', verifyData);
+      console.log('验证本地存储 - 数据条数:', verifyData ? verifyData.length : 0);
+    } catch (e) {
+      console.error('保存到本地存储失败:', e);
+    }
+    
+    // 调用云函数上传到云端（后台异步执行，不影响本地显示）
+    if (visibility === 'public') {
+      const postData = {
+        content: postContent.trim(),
+        title: postTitle,
+        location: postLocation,
+        userId: app.globalData.userInfo.nickname,
+        nickname: app.globalData.userInfo.nickname,
+        isPrivate: false,
+        scenePackage: {
+          ...this.buildScenePackageSnapshot(),
+          sceneKey: activeScene,
+          sceneIntensity,
+          themeId: Number(theme && theme.id),
+          activeThemeType
+        }
+      };
+      
+      // 后台异步执行云端操作，不影响本地显示
+      setTimeout(() => {
+        if (editingPostId) {
+          // 编辑模式：先检查云端是否存在该动态
+          wx.cloud.callFunction({
+            name: 'getPosts',
+            data: {
+              postId: editingPostId
+            },
+            success: (res) => {
+              if (res.result.success && res.result.posts && res.result.posts.length > 0) {
+                // 云端存在，调用updatePost
+                wx.cloud.callFunction({
+                  name: 'updatePost',
+                  data: {
+                    post: {
+                      postId: editingPostId,
+                      ...postData
+                    }
+                  },
+                  success: (res) => {
+                    console.log('云函数调用成功: updatePost', res.result);
+                  },
+                  fail: (err) => {
+                    console.error('云函数调用失败: updatePost', err);
+                  }
+                });
+              } else {
+                // 云端不存在，调用createPost创建新动态
+                wx.cloud.callFunction({
+                  name: 'createPost',
+                  data: {
+                    post: postData
+                  },
+                  success: (res) => {
+                    console.log('云函数调用成功: createPost', res.result);
+                  },
+                  fail: (err) => {
+                    console.error('云函数调用失败: createPost', err);
+                  }
+                });
+              }
+            },
+            fail: (err) => {
+              console.error('检查云端动态失败:', err);
+              // 检查失败时，尝试直接更新
+              wx.cloud.callFunction({
+                name: 'updatePost',
+                data: {
+                  post: {
+                    postId: editingPostId,
+                    ...postData
+                  }
+                },
+                success: (res) => {
+                  console.log('云函数调用成功: updatePost', res.result);
+                },
+                fail: (err) => {
+                  console.error('云函数调用失败: updatePost', err);
+                }
+              });
+            }
+          });
+        } else {
+          // 新建模式，直接调用createPost
+          wx.cloud.callFunction({
+            name: 'createPost',
+            data: {
+              post: postData
+            },
+            success: (res) => {
+              console.log('云函数调用成功: createPost', res.result);
+            },
+            fail: (err) => {
+              console.error('云函数调用失败: createPost', err);
+            }
+          });
+        }
+      }, 0); // 立即在后台执行
+    }
+    
+    // 公开发布时，直接准备好动态列表数据
+    let finalSquareList = updatedSquareList;
+    if (visibility === 'public') {
+      // 从本地存储读取最新的点赞和收藏状态并应用，同时格式化时间
+      try {
+        const likedPostIds = wx.getStorageSync('likedPostIds') || [];
+        const collectedPostIds = wx.getStorageSync('collectedPostIds') || [];
+        finalSquareList = finalSquareList.map(item => ({
+          ...item,
+          isLiked: likedPostIds.includes(item.id),
+          isCollected: collectedPostIds.includes(item.id),
+          time: this.formatTimeAgo(item.publishTime || item.writingTime)
+        }));
+      } catch (e) {
+        console.error('应用交互状态失败:', e);
+      }
+    }
+    
     const nextData = {
       postContent: '',
-      currentPage: 0,
+      postTitle: '',
+      postLocation: '',
+      currentPage: visibility === 'public' ? 1 : 0, // 公开发布直接跳转到动态页
       isAmbientControlExpanded: false,
       showAudioPanel: false,
       isAnonymous: visibility !== 'public',
-      myDiaryList: [newItem, ...myDiaryList]
+      customBackground: '',
+      editingPostId: '', // 清除编辑状态
+      myDiaryList: updatedDiaryList,
+      squarePostList: finalSquareList
     };
-
-    if (visibility === 'public') {
-      nextData.squarePostList = [newItem, ...squarePostList];
-    }
-
-    const actionMeta = this.getPostActionMeta(activePostType);
-    const visibilityText = visibility === 'public' ? '并已公开到推荐' : '仅自己可见';
-
-    wx.showToast({
-      title: `${actionMeta.done}，${visibilityText}`,
-      icon: 'none'
-    });
     
-    this.setData(nextData);
+    this.setData(nextData, () => {
+      // 刷新我的发布列表
+      console.log('刷新我的发布列表');
+      this.loadProfileMyTopics();
+    });
     this.restoreCompanionStateByInput();
+
+    // 根据发布类型显示不同的提示
+    if (visibility === 'public') {
+      // 公开发布：显示成功提示
+      this.showToast({
+        message: editingPostId ? '更新成功' : '发布成功',
+        icon: '✓',
+        duration: 2000
+      });
+    } else {
+      // 保存私密：显示弹窗
+      this.setData({ showSaveSuccessDialog: true });
+    }
 
     this.triggerCompanionMoment({
       state: 'happy',
-      text: `${actionMeta.done}。${visibility === 'public' ? '大家也能看见这份心情了。' : '我会替你把它悄悄收好。'}`,
+      text: `${editingPostId ? '更新完成' : visibility === 'public' ? '发布完成。大家也能看见这份心情了。' : '保存完成。我会替你把它悄悄收好。'}`,
       duration: 1500
     });
   },
@@ -2333,6 +3678,16 @@ Page({
     this.setData({ postContent });
     this.updateCompanionEmotionByInput(postContent);
     this.maybeUpdateAmbientSubtitleByInput(postContent);
+  },
+
+  onPostTitleInput(e) {
+    const postTitle = e.detail.value;
+    this.setData({ postTitle });
+  },
+
+  onPostLocationInput(e) {
+    const postLocation = e.detail.value;
+    this.setData({ postLocation });
   },
 
   maybeUpdateAmbientSubtitleByInput(content = '') {
@@ -2381,26 +3736,7 @@ Page({
     this.maybeTriggerCompanionActionInteraction('blurInput', { cooldown: 12000 });
   },
 
-  onLetterSalutationInput(e) {
-    this.setData({ letterSalutation: e.detail.value });
-  },
 
-  onLetterSignatureInput(e) {
-    this.setData({ letterSignature: e.detail.value });
-  },
-
-  onPostcardLocationInput(e) {
-    this.setData({ postcardLocation: e.detail.value });
-  },
-
-  onDiaryWeatherInput(e) {
-    this.setData({ diaryWeather: e.detail.value });
-  },
-
-  onDiaryMoodScoreChange(e) {
-    const value = Number(e.detail.value);
-    this.setData({ diaryMoodScore: Number.isFinite(value) ? value : 5 });
-  },
 
 
 
@@ -2609,6 +3945,25 @@ Page({
     }
   },
 
+  startCompanionSelectedPulse() {
+    this.stopCompanionSelectedPulse();
+    this.companionSelectedPulseTimer = setInterval(() => {
+      this.setData({
+        isCompanionSelectedPulse: !this.data.isCompanionSelectedPulse
+      });
+    }, 600);
+  },
+
+  stopCompanionSelectedPulse() {
+    if (this.companionSelectedPulseTimer) {
+      clearInterval(this.companionSelectedPulseTimer);
+      this.companionSelectedPulseTimer = null;
+    }
+    this.setData({
+      isCompanionSelectedPulse: false
+    });
+  },
+
   onTapCompanion(e) {
     if (e && e.stopPropagation) {
       e.stopPropagation();
@@ -2624,13 +3979,21 @@ Page({
         isCompanionSelected: true,
         isCompanionMoving: false
       });
+      this.startCompanionSelectedPulse();
       return;
     }
     
     // 切换选中状态
+    const newSelectedState = !this.data.isCompanionSelected;
     this.setData({
-      isCompanionSelected: !this.data.isCompanionSelected
+      isCompanionSelected: newSelectedState
     });
+    
+    if (newSelectedState) {
+      this.startCompanionSelectedPulse();
+    } else {
+      this.stopCompanionSelectedPulse();
+    }
   },
 
   onTapScreenForCompanionMove(e) {
@@ -2925,7 +4288,7 @@ Page({
 
     this.triggerCompanionMoment({
       state: 'happy',
-      text: '已将内容设为私密，仅自己可见。',
+      text: '已将内容设为本地私密。',
       duration: 1500
     });
   },
@@ -2947,7 +4310,7 @@ Page({
       return;
     }
 
-    const restored = this.restoreScenePackage(target.scenePackage);
+    const restored = this.restoreScenePackage(target.scenePackage, { persist: true });
 
     this.setData({
       currentPage: 0,
@@ -3149,7 +4512,49 @@ Page({
       '每一个小确幸，都是生活的礼物。',
       '相信自己，你比想象中更强大。',
       '慢慢来，一切都会好起来的。',
-      '你值得被爱，值得拥有所有美好。'
+      '你值得被爱，值得拥有所有美好。',
+      '时光会温柔对待每一个认真生活的人。',
+      '你走过的每一步，都算数。',
+      '保持热爱，奔赴山海。',
+      '愿你眼中有光，心中有爱。',
+      '生活明朗，万物可爱。',
+      '今天的努力，明天的美好。',
+      '不辜负每一个当下，不放弃每一个梦想。',
+      '你比自己想象中更坚强。',
+      '温暖的话语，治愈的力量。',
+      '心存美好，所见皆美好。',
+      '愿你被世界温柔以待。',
+      '相信美好，美好就会发生。',
+      '每一次坚持，都是成长。',
+      '慢慢来，时光会给你答案。',
+      '你值得拥有更好的一切。',
+      '保持善良，心怀希望。',
+      '生活需要仪式感，也需要温暖。',
+      '愿你既有勇气，又有温柔。',
+      '每一个平凡的日子，都值得珍惜。',
+      '相信自己，未来可期。',
+      '生活不只是眼前的苟且，还有诗和远方。',
+      '愿你的每一天，都充满阳光和希望。',
+      '你是独一无二的存在。',
+      '保持初心，砥砺前行。',
+      '愿你在困境中看到希望，在迷茫中找到方向。',
+      '每一个努力的人，都值得被尊重。',
+      '生活需要一点浪漫，也需要一点勇气。',
+      '愿你成为自己想成为的样子。',
+      '保持热爱，保持善良。',
+      '每一个梦想，都值得追逐。',
+      '愿你在平凡的日子里，发现不平凡的美好。',
+      '相信自己，你能行。',
+      '生活需要一点仪式感，也需要一点温暖。',
+      '愿你既有能力，又有运气。',
+      '每一个坚持，都是胜利。',
+      '愿你在风雨中学会坚强，在阳光下学会感恩。',
+      '相信美好，美好就会发生。',
+      '生活需要一点勇气，也需要一点智慧。',
+      '愿你成为更好的自己。',
+      '保持初心，保持热爱。',
+      '每一个平凡的人，都有不平凡的故事。',
+      '愿你在生活中找到属于自己的光。'
     ];
     const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
 
@@ -3215,5 +4620,394 @@ Page({
         this.blindBoxRevealTimer = null;
       }, 450);
     }, 800);
+  },
+
+  // ==================== 我的页面相关函数 ====================
+  
+  onProfileLoad() {
+    this.loadProfileMyTopics();
+    this.loadProfileLiked();
+    this.loadProfileFavorites();
+  },
+
+  onProfileShow() {
+    this.loadProfileMyTopics();
+    this.loadProfileLiked();
+    this.loadProfileFavorites();
+  },
+
+  onProfileSwitchTab(e) {
+    const tab = e.currentTarget.dataset.tab;
+    this.setData({ profileActiveTab: tab });
+  },
+
+  loadProfileMyTopics() {
+    try {
+      console.log('loadProfileMyTopics 被调用');
+      const app = getApp();
+      
+      // 优先从本地存储读取，确保数据最新
+      let myDiaryList = [];
+      try {
+        myDiaryList = wx.getStorageSync('myDiaryList') || [];
+        console.log('从本地存储读取到:', myDiaryList.length, '条');
+        // 同步到全局数据
+        app.globalData.diaryList = myDiaryList;
+        console.log('已同步到全局数据');
+      } catch (e) {
+        console.error('从本地存储读取失败:', e);
+        // 本地存储读取失败，再从全局数据读取
+        myDiaryList = app.globalData.diaryList || [];
+        console.log('从全局数据获取 - diaryList:', myDiaryList.length, '条');
+      }
+      
+      const myPostList = app.globalData.myPostList || [];
+      console.log('从全局数据获取 - myPostList:', myPostList.length, '条');
+      
+      const merged = [...myDiaryList, ...myPostList].map(item => ({
+        ...item,
+        time: this.formatTimeAgo(item.publishTime || item.writingTime)
+      }));
+      const publicList = merged.filter(item => !item.isPrivate);
+      const privateList = merged.filter(item => item.isPrivate);
+      
+      console.log('合并后的数据:', merged.length, '条');
+      console.log('公开内容:', publicList.length, '条');
+      console.log('本地私密:', privateList.length, '条');
+      
+      this.setData({ 
+        profileMyTopicsList: merged,
+        publicMyTopicsList: publicList,
+        privateMyTopicsList: privateList,
+        privateContentCount: privateList.length
+      });
+    } catch (e) {
+      console.error('加载我的话题失败:', e);
+    }
+  },
+
+  onOpenPrivatePosts() {
+    wx.navigateTo({
+      url: '/pages/private/index'
+    });
+  },
+
+  onEditUserInfo() {
+    wx.navigateTo({
+      url: '/pages/profile-edit/index'
+    });
+  },
+
+  onEditMyPost(e) {
+    const id = e.currentTarget.dataset.id;
+    if (!id) return;
+    
+    // 从我的发布列表中找到要编辑的内容
+    const target = this.data.publicMyTopicsList.find(item => item.id === id);
+    if (!target) return;
+    
+    // 设置编辑内容到写点页面
+    this.setData({
+      currentPage: 0,
+      postTitle: target.title || '',
+      postContent: target.content || '',
+      postLocation: target.location || '',
+      activePostType: target.type || 'diary',
+      isPostPrivate: target.isPrivate || false,
+      editingPostId: id // 标记当前正在编辑的帖子ID
+    });
+    
+    // 如果有场景包，还原场景
+    if (target.scenePackage) {
+      this.restoreScenePackage(target.scenePackage);
+    }
+  },
+
+  onDeleteMyPost(e) {
+    const id = e.currentTarget.dataset.id;
+    wx.showModal({
+      title: '确认删除',
+      content: '确定要删除这条内容吗？',
+      success: (res) => {
+        if (res.confirm) {
+          this.deleteMyPost(id);
+        }
+      }
+    });
+  },
+
+  updateLocalPostId(oldId, newId) {
+    try {
+      console.log('更新本地post ID:', oldId, '->', newId);
+      
+      const app = getApp();
+      let myDiaryList = app.globalData.diaryList || [];
+      let squarePostList = app.globalData.squarePostList || [];
+      
+      // 更新日记列表中的ID
+      myDiaryList = myDiaryList.map(item => {
+        if (item.id === oldId) {
+          return { ...item, id: newId };
+        }
+        return item;
+      });
+      
+      // 更新广场列表中的ID
+      squarePostList = squarePostList.map(item => {
+        if (item.id === oldId) {
+          return { ...item, id: newId };
+        }
+        return item;
+      });
+      
+      // 更新全局数据
+      app.globalData.diaryList = myDiaryList;
+      app.globalData.squarePostList = squarePostList;
+      
+      // 更新本地存储
+      try {
+        wx.setStorageSync('myDiaryList', myDiaryList);
+        console.log('本地存储ID更新成功');
+      } catch (e) {
+        console.error('保存到本地存储失败:', e);
+      }
+      
+      // 更新页面数据
+      this.setData({
+        myDiaryList,
+        squarePostList
+      });
+      
+      // 刷新我的发布列表
+      this.loadProfileMyTopics();
+      
+      console.log('ID更新完成');
+    } catch (e) {
+      console.error('更新本地post ID失败:', e);
+    }
+  },
+  
+  deleteMyPost(id) {
+    try {
+      const app = getApp();
+      const userId = app.globalData.userInfo?.nickname;
+      
+      console.log('开始删除，ID:', id);
+      console.log('用户ID:', userId);
+      
+      if (!userId) {
+        wx.showToast({ title: '用户未登录', icon: 'none' });
+        return;
+      }
+      
+      // 检查是否是本地日记（ID以"my-"开头）
+      const isLocalDiary = id.startsWith('my-');
+      console.log('是否本地日记:', isLocalDiary);
+      
+      let myDiaryList = app.globalData.diaryList || [];
+      let squarePostList = app.globalData.squarePostList || [];
+      
+      myDiaryList = myDiaryList.filter(item => item.id !== id);
+      squarePostList = squarePostList.filter(item => item.id !== id);
+      
+      app.globalData.diaryList = myDiaryList;
+      app.globalData.squarePostList = squarePostList;
+      
+      // 保存到本地存储
+      try {
+        wx.setStorageSync('myDiaryList', myDiaryList);
+      } catch (e) {
+        console.error('保存到本地存储失败:', e);
+      }
+      
+      // 只有非本地日记才调用云函数删除云端数据（后台异步执行，不影响本地显示）
+      if (!isLocalDiary) {
+        setTimeout(() => {
+          console.log('调用云函数删除云端数据，ID:', id);
+          wx.cloud.callFunction({
+            name: 'deletePost',
+            data: {
+              postId: id,
+              userId: userId
+            },
+            success: (res) => {
+              console.log('云函数调用成功:', res);
+              if (res.result && res.result.success) {
+                console.log('云端删除成功:', res.result);
+              } else {
+                console.error('云端删除失败:', res.result?.message);
+              }
+            },
+            fail: (err) => {
+              console.error('调用云函数失败:', err);
+            }
+          });
+        }, 0);
+      } else {
+        console.log('本地日记，不调用云函数');
+      }
+      
+      this.setData({ 
+        myDiaryList, 
+        squarePostList 
+      });
+      
+      this.loadProfileMyTopics();
+      
+      wx.showToast({
+        title: '删除成功',
+        icon: 'success'
+      });
+    } catch (e) {
+      console.error('删除失败:', e);
+      wx.showToast({
+        title: '删除失败',
+        icon: 'none'
+      });
+    }
+  },
+
+  loadProfileLiked() {
+    try {
+      const likedPostIds = wx.getStorageSync('likedPostIds') || [];
+      const collectedPostIds = wx.getStorageSync('collectedPostIds') || [];
+      const app = getApp();
+      const squarePostList = app.globalData.squarePostList || [];
+      
+      const likedList = squarePostList
+        .filter(item => likedPostIds.includes(item.id))
+        .map(item => ({
+          ...item,
+          isLiked: true,
+          isCollected: collectedPostIds.includes(item.id)
+        }));
+      
+      this.setData({ profileLikedList: likedList });
+    } catch (e) {
+      console.error('加载点赞列表失败:', e);
+    }
+  },
+
+  loadProfileFavorites() {
+    try {
+      const likedPostIds = wx.getStorageSync('likedPostIds') || [];
+      const collectedPostIds = wx.getStorageSync('collectedPostIds') || [];
+      const app = getApp();
+      const squarePostList = app.globalData.squarePostList || [];
+      
+      const favoriteList = squarePostList
+        .filter(item => collectedPostIds.includes(item.id))
+        .map(item => ({
+          ...item,
+          time: this.formatTimeAgo(item.publishTime || item.writingTime),
+          isCollected: true,
+          isLiked: likedPostIds.includes(item.id)
+        }))
+        .sort((a, b) => {
+          // 按收藏顺序倒序排列（最新的在顶部）
+          const indexA = collectedPostIds.indexOf(a.id);
+          const indexB = collectedPostIds.indexOf(b.id);
+          return indexB - indexA;
+        });
+      
+      this.setData({ profileFavoriteList: favoriteList });
+    } catch (e) {
+      console.error('加载收藏列表失败:', e);
+    }
+  },
+
+  goToHomeWrite() {
+    this.setData({ currentPage: 0 });
+  },
+
+  goToHomeSquare() {
+    this.setData({ currentPage: 1 });
+  },
+
+  onProfileOpenPostDetail(e) {
+    const { id, type = 'topic' } = e.currentTarget.dataset || {};
+    if (!id) return;
+    
+    const target = this.data.profileMyTopicsList.find(item => item.id === id);
+    if (!target) return;
+    
+    const payload = encodeURIComponent(JSON.stringify({
+      ...target,
+      sourceTab: type,
+      isOwner: true
+    }));
+    
+    wx.navigateTo({
+      url: `/pages/detail/index?payload=${payload}`
+    });
+  },
+
+  onProfileOpenSquarePostDetail(e) {
+    const { id } = e.currentTarget.dataset;
+    if (!id) return;
+    
+    const app = getApp();
+    const squarePostList = app.globalData.squarePostList || [];
+    const target = squarePostList.find(item => item.id === id);
+    if (!target) return;
+    
+    const payload = encodeURIComponent(JSON.stringify({
+      ...target,
+      sourceTab: 'square',
+      isOwner: false
+    }));
+    
+    wx.navigateTo({
+      url: `/pages/detail/index?payload=${payload}`
+    });
+  },
+
+  onProfileNotificationTap() {
+    wx.showToast({
+      title: '暂无新通知',
+      icon: 'none'
+    });
+  },
+
+  onProfileTopicsRefresh() {
+    this.setData({ profileTopicsRefreshing: true });
+    
+    setTimeout(() => {
+      this.loadProfileMyTopics();
+      this.setData({ profileTopicsRefreshing: false });
+      this.showToast({
+        message: '刷新成功',
+        icon: '✓',
+        duration: 2000
+      });
+    }, 1500);
+  },
+
+  onProfileLikesRefresh() {
+    this.setData({ profileLikesRefreshing: true });
+    
+    setTimeout(() => {
+      this.loadProfileLiked();
+      this.setData({ profileLikesRefreshing: false });
+      this.showToast({
+        message: '刷新成功',
+        icon: '✓',
+        duration: 2000
+      });
+    }, 1500);
+  },
+
+  onProfileFavoritesRefresh() {
+    this.setData({ profileFavoritesRefreshing: true });
+    
+    setTimeout(() => {
+      this.loadProfileFavorites();
+      this.setData({ profileFavoritesRefreshing: false });
+      this.showToast({
+        message: '刷新成功',
+        icon: '✓',
+        duration: 2000
+      });
+    }, 1500);
   }
 });

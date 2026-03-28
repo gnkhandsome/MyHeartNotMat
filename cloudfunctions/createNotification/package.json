@@ -1,0 +1,19 @@
+{
+  "name": "createNotification",
+  "version": "1.0.0",
+  "description": "创建通知",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "notification",
+    "cloud",
+    "function"
+  ],
+  "author": "",
+  "license": "ISC"
+}

@@ -1,0 +1,6 @@
+<view class="toast-container" wx:if="{{visible}}">
+  <view class="toast-content">
+    <text class="toast-icon">{{icon}}</text>
+    <text class="toast-text">{{message}}</text>
+  </view>
+</view>

@@ -3,20 +3,6 @@ import {
   getThemeById
 } from '../../theme.config.js';
 
-const SCENE_META = {
-  sunny: { label: '晴天', desc: '阳光从窗边落下，心口也亮了起来。' },
-  cloudy: { label: '阴天', desc: '云层很轻，情绪也可以慢慢落地。' },
-  rainy: { label: '下雨', desc: '雨滴声像背景白噪音，帮你把思绪放慢。' },
-  windy: { label: '有风', desc: '风会带走一点闷，让呼吸更顺一点。' },
-  snowy: { label: '大雪', desc: '雪很安静，适合把心事写得温柔些。' },
-  stream: { label: '水流', desc: '像溪流一样，让堵住的话慢慢流出来。' }
-};
-
-const SCENE_OPTIONS = Object.keys(SCENE_META).map((key) => ({
-  key,
-  label: SCENE_META[key].label
-}));
-
 function resolveSemanticTextPalette(theme = {}) {
   const parseColorToRgb = (color = '') => {
     const value = String(color || '').trim();
@@ -73,16 +59,23 @@ Page({
     theme: THEMES[0],
     textPalette: resolveSemanticTextPalette(THEMES[0]),
     post: null,
-    activeScene: 'rainy',
-    sceneLabel: SCENE_META.rainy.label,
-    sceneDescription: SCENE_META.rainy.desc,
-    sceneIntensity: 65,
-    rainDrops: [],
-    sceneParticles: [],
     comments: [],
-    sceneOptions: SCENE_OPTIONS,
     isOwnerPost: false,
-    isEditing: false
+    isEditing: false,
+    commentText: '',
+    replyTo: null,
+    menuButtonInfo: null,
+    inputFocus: false
+  },
+
+  onReady() {
+    const menuButtonInfo = wx.getMenuButtonBoundingClientRect();
+    this.setData({ menuButtonInfo });
+  },
+
+  truncateTitle(title) {
+    // 直接返回完整标题，不再截断
+    return title;
   },
 
   onLoad(options = {}) {
@@ -92,17 +85,51 @@ Page({
     const themeId = Number(scenePackage.themeId);
     const theme = Number.isFinite(themeId) ? getThemeById(themeId) : this.getThemeFromGlobal();
 
+    // 从存储中读取点赞和收藏状态
+    let isLiked = post.isLiked;
+    let isCollected = post.isCollected;
+    
+    try {
+      const likedPostIds = wx.getStorageSync('likedPostIds') || [];
+      const collectedPostIds = wx.getStorageSync('collectedPostIds') || [];
+      
+      if (likedPostIds.includes(post.id)) {
+        isLiked = true;
+      }
+      if (collectedPostIds.includes(post.id)) {
+        isCollected = true;
+      }
+    } catch (e) {
+      console.error('读取交互状态失败:', e);
+    }
+
+    const displayPost = {
+      ...post,
+      isLiked,
+      isCollected,
+      displayTitle: this.truncateTitle(post.title),
+      showTitleInNav: false  // 不再显示顶部标题
+    };
+
+    // 从本地存储加载评论
+    let comments = this.loadCommentsFromStorage(post.id);
+    if (comments.length === 0) {
+      comments = this.buildComments(post);
+    }
+
     this.setData({
       theme,
       textPalette: resolveSemanticTextPalette(theme),
-      post,
+      post: displayPost,
       isOwnerPost,
-      comments: this.buildComments(post)
+      comments
     });
 
-    this.applySceneFromPackage(scenePackage);
     this.updateNavigationBarColor();
-    wx.setNavigationBarTitle({ title: `${post.typeLabel || '内容'}详情` });
+  },
+
+  goBack() {
+    wx.navigateBack();
   },
 
   resolveIsOwnerPost(post = {}) {
@@ -138,22 +165,6 @@ Page({
         scenePackage: { sceneKey: 'rainy', sceneIntensity: 65 }
       };
     }
-  },
-
-  applySceneFromPackage(scenePackage = {}) {
-    const sceneKey = SCENE_META[scenePackage.sceneKey] ? scenePackage.sceneKey : 'rainy';
-    const sceneIntensity = Math.max(20, Math.min(100, Number(scenePackage.sceneIntensity) || 65));
-    const sceneMeta = SCENE_META[sceneKey] || SCENE_META.rainy;
-    this.setData({
-      activeScene: sceneKey,
-      sceneIntensity,
-      sceneLabel: sceneMeta.label,
-      sceneDescription: sceneMeta.desc,
-      rainDrops: sceneKey === 'rainy' ? this.buildRainDrops(sceneIntensity) : [],
-      sceneParticles: this.buildSceneParticles(sceneKey, sceneIntensity),
-      'post.scenePackage.sceneKey': sceneKey,
-      'post.scenePackage.sceneIntensity': sceneIntensity
-    });
   },
 
   onToggleEditMode() {
@@ -208,103 +219,246 @@ Page({
     });
   },
 
-  onDiaryWeatherInput(e) {
-    if (!this.data.isOwnerPost || !this.data.isEditing) return;
-    this.setData({
-      'post.diaryWeather': e.detail.value
-    });
-  },
-
-  onDiaryMoodScoreChange(e) {
-    if (!this.data.isOwnerPost || !this.data.isEditing) return;
-    const value = Number(e.detail.value);
-    this.setData({
-      'post.diaryMoodScore': Number.isFinite(value) ? value : 5
-    });
-  },
-
-  onSceneChange(e) {
-    if (!this.data.isOwnerPost || !this.data.isEditing) return;
-    const sceneKey = e.currentTarget.dataset.scene;
-    if (!SCENE_META[sceneKey]) {
-      return;
-    }
-    this.applySceneFromPackage({
-      sceneKey,
-      sceneIntensity: this.data.sceneIntensity
-    });
-  },
-
-  onSceneIntensityChange(e) {
-    if (!this.data.isOwnerPost || !this.data.isEditing) return;
-    const value = Number(e.detail.value);
-    const sceneIntensity = Number.isFinite(value) ? Math.max(20, Math.min(100, value)) : this.data.sceneIntensity;
-    this.applySceneFromPackage({
-      sceneKey: this.data.activeScene,
-      sceneIntensity
-    });
-  },
-
-  buildRainDrops(intensity = 65) {
-    const count = Math.max(8, Math.round(12 + (intensity / 100) * 18));
-    return Array.from({ length: count }, (_, index) => ({
-      id: `detail-rain-${index}`,
-      left: Math.round(Math.random() * 100),
-      height: Math.round(16 + Math.random() * 24),
-      duration: Math.round(1000 + Math.random() * 900),
-      delay: Math.round(Math.random() * 1600),
-      opacity: Number((0.2 + Math.random() * 0.28).toFixed(2))
-    }));
-  },
-
-  buildSceneParticles(sceneKey = 'rainy', intensity = 65) {
-    const kindsMap = {
-      sunny: ['sun', 'sun', 'cloud'],
-      cloudy: ['cloud', 'cloud', 'wind'],
-      rainy: ['rain', 'rain', 'cloud'],
-      windy: ['wind', 'leaf', 'cloud'],
-      snowy: ['snow', 'snow', 'cloud'],
-      stream: ['leaf', 'cloud', 'wind']
-    };
-    const kinds = kindsMap[sceneKey] || kindsMap.rainy;
-    const count = Math.max(8, Math.round(10 + (intensity / 100) * 18));
-    return Array.from({ length: count }, (_, index) => ({
-      id: `detail-scene-${index}`,
-      kind: kinds[index % kinds.length],
-      left: Math.round(Math.random() * 100),
-      top: Math.round(Math.random() * 100),
-      size: Math.round(8 + Math.random() * 18),
-      opacity: Number((0.16 + Math.random() * 0.36).toFixed(2)),
-      duration: Math.round(2200 + Math.random() * 2600),
-      delay: Math.round(Math.random() * 1800)
-    }));
-  },
-
   buildComments(post = {}) {
     if (Array.isArray(post.comments) && post.comments.length) {
       return post.comments.slice(0, 20);
     }
-    const typeLabel = post.typeLabel || '这条内容';
-    return [
-      {
-        id: `comment-${post.id || '1'}-1`,
-        nickname: '路过的小耳朵',
-        content: `读完 ${typeLabel}，有被温柔接住。`,
-        time: '刚刚'
-      },
-      {
-        id: `comment-${post.id || '1'}-2`,
-        nickname: '云朵收藏家',
-        content: '这段文字很有画面感，感谢分享。',
-        time: '2分钟前'
-      },
-      {
-        id: `comment-${post.id || '1'}-3`,
-        nickname: '晚风',
-        content: '留言打个卡，愿你今天也顺顺利利。',
-        time: '5分钟前'
+    // 不返回任何虚拟评论数据
+    return [];
+  },
+
+  onToggleLike() {
+    const post = this.data.post;
+    if (!post) return;
+
+    const newIsLiked = !post.isLiked;
+    const newLikeCount = newIsLiked ? (post.likeCount || 0) + 1 : Math.max(0, (post.likeCount || 0) - 1);
+
+    this.setData({
+      'post.isLiked': newIsLiked,
+      'post.likeCount': newLikeCount
+    });
+
+    this.syncToHomePage();
+    this.saveLikedPostsToStorage();
+
+    // 同步到云端（仅公开内容，后台异步执行，不影响本地显示）
+    if (!post.isPrivate) {
+      setTimeout(() => {
+        const app = getApp();
+        wx.cloud.callFunction({
+          name: 'toggleLike',
+          data: {
+            userId: app.globalData.userInfo.nickname,
+            postId: post.id,
+            action: newIsLiked ? 'add' : 'remove',
+            nickname: app.globalData.userInfo.nickname
+          },
+          success: (res) => {
+            console.log('点赞同步到云端成功:', res);
+          },
+          fail: (err) => {
+            console.error('点赞同步到云端失败:', err);
+          }
+        });
+      }, 0);
+    }
+  },
+
+  onToggleCollect() {
+    const post = this.data.post;
+    if (!post) return;
+
+    const newIsCollected = !post.isCollected;
+    const newCollectCount = newIsCollected ? (post.collectCount || 0) + 1 : Math.max(0, (post.collectCount || 0) - 1);
+
+    this.setData({
+      'post.isCollected': newIsCollected,
+      'post.collectCount': newCollectCount
+    });
+
+    this.syncToHomePage();
+    this.saveCollectedPostsToStorage();
+
+    // 同步到云端（仅公开内容，后台异步执行，不影响本地显示）
+    if (!post.isPrivate) {
+      setTimeout(() => {
+        const app = getApp();
+        wx.cloud.callFunction({
+          name: 'toggleFavorite',
+          data: {
+            userId: app.globalData.userInfo.nickname,
+            postId: post.id,
+            action: newIsCollected ? 'add' : 'remove',
+            nickname: app.globalData.userInfo.nickname
+          },
+          success: (res) => {
+            console.log('收藏同步到云端成功:', res);
+          },
+          fail: (err) => {
+            console.error('收藏同步到云端失败:', err);
+          }
+        });
+      }, 0);
+    }
+  },
+
+  syncToHomePage() {
+    const app = getApp();
+    const pages = getCurrentPages();
+    const prevPage = pages[pages.length - 2];
+    
+    if (prevPage && prevPage.route === 'pages/home/index') {
+      const updatedPost = this.data.post;
+      
+      // 更新广场帖子列表
+      if (prevPage.data.squarePostList) {
+        const newSquareList = prevPage.data.squarePostList.map(item => {
+          if (item.id === updatedPost.id) {
+            return updatedPost;
+          }
+          return item;
+        });
+        prevPage.setData({ squarePostList: newSquareList });
       }
-    ];
+      
+      // 更新 myDiaryList 列表
+      if (prevPage.data.myDiaryList) {
+        const newMyDiaryList = prevPage.data.myDiaryList.map(item => {
+          if (item.id === updatedPost.id) {
+            return updatedPost;
+          }
+          return item;
+        });
+        prevPage.setData({ myDiaryList: newMyDiaryList });
+      }
+      
+      // 同步到全局数据
+      if (app.globalData) {
+        if (app.globalData.squarePostList) {
+          app.globalData.squarePostList = app.globalData.squarePostList.map(item => {
+            if (item.id === updatedPost.id) {
+              return updatedPost;
+            }
+            return item;
+          });
+        }
+        if (app.globalData.diaryList) {
+          app.globalData.diaryList = app.globalData.diaryList.map(item => {
+            if (item.id === updatedPost.id) {
+              return updatedPost;
+            }
+            return item;
+          });
+        }
+      }
+      
+      // 更新我的收藏和点赞列表
+      if (prevPage.loadProfileLiked && prevPage.loadProfileFavorites) {
+        prevPage.loadProfileLiked();
+        prevPage.loadProfileFavorites();
+      }
+    }
+  },
+
+  saveLikedPostsToStorage() {
+    try {
+      const post = this.data.post;
+      let likedPostIds = wx.getStorageSync('likedPostIds') || [];
+      
+      if (post.isLiked) {
+        if (!likedPostIds.includes(post.id)) {
+          likedPostIds.push(post.id);
+        }
+      } else {
+        likedPostIds = likedPostIds.filter(id => id !== post.id);
+      }
+      
+      wx.setStorageSync('likedPostIds', likedPostIds);
+    } catch (e) {
+      console.error('保存点赞状态失败:', e);
+    }
+  },
+
+  saveCollectedPostsToStorage() {
+    try {
+      const post = this.data.post;
+      let collectedPostIds = wx.getStorageSync('collectedPostIds') || [];
+      
+      if (post.isCollected) {
+        if (!collectedPostIds.includes(post.id)) {
+          collectedPostIds.push(post.id);
+        }
+      } else {
+        collectedPostIds = collectedPostIds.filter(id => id !== post.id);
+      }
+      
+      wx.setStorageSync('collectedPostIds', collectedPostIds);
+      
+      const app = getApp();
+      if (app.globalData) {
+        let collectedPosts = app.globalData.collectedPosts || [];
+        
+        if (post.isCollected) {
+          if (!collectedPosts.find(p => p.id === post.id)) {
+            collectedPosts.unshift(post);
+          }
+        } else {
+          collectedPosts = collectedPosts.filter(p => p.id !== post.id);
+        }
+        
+        app.globalData.collectedPosts = collectedPosts;
+      }
+    } catch (e) {
+      console.error('保存收藏状态失败:', e);
+    }
+  },
+
+  onCommentInput(e) {
+    this.setData({ commentText: e.detail.value });
+  },
+
+  onCommentBlur() {
+    this.setData({ inputFocus: false });
+  },
+
+  onReplyToComment(e) {
+    const comment = e.currentTarget.dataset.comment;
+    this.setData({ 
+      replyTo: comment,
+      commentText: '',
+      inputFocus: true
+    });
+  },
+
+  cancelReply() {
+    this.setData({ 
+      replyTo: null,
+      commentText: ''
+    });
+  },
+
+
+
+  // 从本地存储加载评论
+  loadCommentsFromStorage(postId) {
+    try {
+      const commentsData = wx.getStorageSync(`comments_${postId}`);
+      return commentsData || [];
+    } catch (e) {
+      console.error('加载评论失败:', e);
+      return [];
+    }
+  },
+
+  // 保存评论到本地存储
+  saveCommentsToStorage(postId, comments) {
+    try {
+      wx.setStorageSync(`comments_${postId}`, comments);
+      console.log('评论保存到本地存储成功');
+    } catch (e) {
+      console.error('保存评论失败:', e);
+    }
   },
 
   updateNavigationBarColor() {
@@ -342,6 +496,82 @@ Page({
         frontColor: isDarkBg ? '#ffffff' : '#000000',
         backgroundColor: theme.bgColor
       });
+    }
+  },
+
+  // 修改sendComment函数，添加本地存储
+  sendComment() {
+    const commentText = this.data.commentText.trim();
+    if (!commentText) {
+      wx.showToast({ title: '请输入评论内容', icon: 'none' });
+      return;
+    }
+
+    const post = this.data.post;
+    const replyTo = this.data.replyTo;
+    const newComment = {
+      id: `comment-${Date.now()}`,
+      nickname: '我',
+      content: commentText,
+      time: '刚刚'
+    };
+
+    let newComments = [...this.data.comments];
+    
+    if (replyTo) {
+      newComments = newComments.map(comment => {
+        if (comment.id === replyTo.id) {
+          const replies = comment.replies || [];
+          return {
+            ...comment,
+            replies: [...replies, {
+              id: `reply-${Date.now()}`,
+              nickname: '我',
+              content: commentText,
+              time: '刚刚',
+              toUser: replyTo.nickname
+            }]
+          };
+        }
+        return comment;
+      });
+    } else {
+      newComments.unshift(newComment);
+    }
+
+    this.setData({
+      comments: newComments,
+      commentText: '',
+      replyTo: null
+    });
+
+    // 保存评论到本地存储
+    this.saveCommentsToStorage(post.id, newComments);
+
+    wx.showToast({ title: '评论成功', icon: 'success' });
+    
+    // 同步到云端（仅公开内容，后台异步执行，不影响本地显示）
+    if (!post.isPrivate) {
+      setTimeout(() => {
+        const app = getApp();
+        wx.cloud.callFunction({
+          name: 'createComment',
+          data: {
+            postId: post.id,
+            userId: app.globalData.userInfo.nickname,
+            nickname: app.globalData.userInfo.nickname,
+            content: commentText,
+            replyTo: replyTo ? replyTo.id : null,
+            replyToNickname: replyTo ? replyTo.nickname : null
+          },
+          success: (res) => {
+            console.log('评论同步到云端成功:', res);
+          },
+          fail: (err) => {
+            console.error('评论同步到云端失败:', err);
+          }
+        });
+      }, 0);
     }
   }
 });

@@ -1,0 +1,46 @@
+<view class="container" style="background-color: {{theme.bgColor}};">
+  <view class="content">
+    <view class="avatar-section">
+      <view class="avatar" bindtap="onAvatarTap">
+        <image wx:if="{{tempAvatar}}" class="avatar-image" src="{{tempAvatar}}" mode="aspectFill"></image>
+        <view wx:else class="avatar-gradient" style="background: linear-gradient(145deg, {{theme.primaryColor}}, {{theme.primaryColor}}cc);">
+          <text class="avatar-text">{{tempNickname ? tempNickname.charAt(0) : '匿'}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="form-section">
+      <view class="form-item">
+        <text class="form-label" style="color: {{textPalette.title}};">昵称</text>
+        <input
+          class="form-input"
+          placeholder="请输入昵称"
+          placeholder-style="color: {{textPalette.tertiary}};"
+          value="{{tempNickname}}"
+          bindinput="onNicknameInput"
+          style="color: {{textPalette.body}};"
+          maxlength="8"
+        />
+        <text class="form-count" style="color: {{textPalette.tertiary}};">{{tempNickname.length}}/8</text>
+      </view>
+
+      <view class="form-item">
+        <text class="form-label" style="color: {{textPalette.title}};">签名</text>
+        <textarea
+          class="form-textarea"
+          placeholder="说点什么..."
+          placeholder-style="color: {{textPalette.tertiary}};"
+          value="{{tempMood}}"
+          bindinput="onMoodInput"
+          style="color: {{textPalette.body}};"
+          maxlength="50"
+        />
+        <text class="form-count" style="color: {{textPalette.tertiary}};">{{tempMood.length}}/50</text>
+      </view>
+
+      <view class="save-button" bindtap="onSave">
+        <text class="save-button-text" style="color: #fff;">保存</text>
+      </view>
+    </view>
+  </view>
+</view>
