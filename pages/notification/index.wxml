@@ -26,22 +26,24 @@
     </view>
 
     <!-- 通知列表 -->
-    <view wx:else wx:for="{{notifications}}" wx:key="id" class="notification-item {{item.read ? 'read' : ''}}">
-      <view class="notification-avatar" style="background: linear-gradient(145deg, {{theme.primaryColor}}, {{theme.primaryColor}}cc);">
-        <text wx:if="{{item.type === 'like'}}" class="notification-type-icon">❤️</text>
-        <text wx:elif="{{item.type === 'favorite'}}" class="notification-type-icon">⭐</text>
-        <text wx:elif="{{item.type === 'comment'}}" class="notification-type-icon">💬</text>
-      </view>
-      <view class="notification-content">
-        <text class="notification-sender" style="color: {{textPalette.title}};">{{item.senderNickname}}</text>
-        <text class="notification-text" style="color: {{textPalette.body}};">
-          {{item.type === 'like' ? '点赞了你的动态' : item.type === 'favorite' ? '收藏了你的动态' : '评论了你的动态'}}
-        </text>
-        <text class="notification-time" style="color: {{textPalette.subtitle}};">{{item.time}}</text>
-      </view>
-      <view class="notification-actions">
-        <text wx:if="{{!item.read}}" class="notification-unread-dot"></text>
-        <text class="notification-delete" style="color: {{textPalette.subtitle}};" bindtap="onDeleteNotification" data-id="{{item.id}}">删除</text>
+    <view wx:else>
+      <view wx:for="{{notifications}}" wx:key="id" class="notification-item {{item.read ? 'read' : ''}}">
+        <view class="notification-avatar" style="background: linear-gradient(145deg, {{theme.primaryColor}}, {{theme.primaryColor}}cc);">
+          <text wx:if="{{item.type === 'like'}}" class="notification-type-icon">❤️</text>
+          <text wx:elif="{{item.type === 'favorite'}}" class="notification-type-icon">⭐</text>
+          <text wx:elif="{{item.type === 'comment'}}" class="notification-type-icon">💬</text>
+        </view>
+        <view class="notification-content">
+          <text class="notification-sender" style="color: {{textPalette.title}};">{{item.senderNickname}}</text>
+          <text class="notification-text" style="color: {{textPalette.body}};">
+            {{item.type === 'like' ? '点赞了你的动态' : item.type === 'favorite' ? '收藏了你的动态' : '评论了你的动态'}}
+          </text>
+          <text class="notification-time" style="color: {{textPalette.subtitle}};">{{item.time}}</text>
+        </view>
+        <view class="notification-actions">
+          <text wx:if="{{!item.read}}" class="notification-unread-dot"></text>
+          <text class="notification-delete" style="color: {{textPalette.subtitle}};" bindtap="onDeleteNotification" data-id="{{item.id}}">删除</text>
+        </view>
       </view>
     </view>
   </scroll-view>
