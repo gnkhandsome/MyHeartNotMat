@@ -401,47 +401,59 @@
           refresher-triggered="{{squareRefreshing}}"
           bindrefresherrefresh="onSquareRefresh"
         >
-          <view class="square-post-item" wx:for="{{squarePostList}}" wx:key="id" id="home-card-{{item.id}}" bindtap="onOpenSquarePostDetail" data-id="{{item.id}}" data-tab="square">
-            <view class="square-post-header">
-              <view class="square-user-avatar" style="background: linear-gradient(145deg, {{theme.primaryColor}}, {{theme.primaryColor}}cc);">
-                <text class="square-avatar-text" style="color: {{textPalette.inverse}};">{{item.nickname ? item.nickname.charAt(0) : '匿'}}</text>
-              </view>
-              <view class="square-user-info">
-                <text class="square-user-nickname" style="color: {{textPalette.title}};">{{item.nickname || '匿名用户'}}</text>
-              </view>
+          <!-- 空状态 -->
+          <view wx:if="{{squarePostList.length === 0}}" class="square-empty-state">
+            <text class="square-empty-icon">🌱</text>
+            <text class="square-empty-text" style="color: {{textPalette.subtitle}};">广场暂无动态</text>
+            <view class="square-empty-action-btn" bindtap="goToHomeWrite" style="background: linear-gradient(135deg, {{theme.primaryColor}}, #8b5cf6);">
+              <text class="square-empty-action-text">去发布第一条动态</text>
             </view>
+          </view>
 
-            <view class="square-post-content">
-              <view class="square-post-content-inner">
-                <view wx:if="{{item.title}}" class="square-post-title" style="color: {{textPalette.title}};">
-                  <view class="square-post-title-bar" style="background-color: {{theme.primaryColor}};"></view>
-                  {{item.title}}
+          <!-- 动态列表 -->
+          <view wx:else>
+            <view class="square-post-item" wx:for="{{squarePostList}}" wx:key="id" id="home-card-{{item.id}}" bindtap="onOpenSquarePostDetail" data-id="{{item.id}}" data-tab="square">
+              <view class="square-post-header">
+                <view class="square-user-avatar" style="background: linear-gradient(145deg, {{theme.primaryColor}}, {{theme.primaryColor}}cc);">
+                  <text class="square-avatar-text" style="color: {{textPalette.inverse}};">{{item.nickname ? item.nickname.charAt(0) : '匿'}}</text>
                 </view>
-                <view class="square-post-text" style="color: {{textPalette.body}};">{{item.content}}</view>
-                <view wx:if="{{item.location}}" class="square-post-location" style="color: {{textPalette.subtitle}};">📍 {{item.location}}</view>
-                <view wx:if="{{item.blindBoxQuote}}" class="square-post-quote" style="color: {{theme.primaryColor}};">「{{item.blindBoxQuote}}」</view>
-              </view>
-            </view>
-
-            <view class="square-post-footer">
-              <view class="square-post-footer-inner">
-                <view class="square-post-actions-group">
-                  <view class="square-post-action like-action" catchtap="onToggleLike" data-id="{{item.id}}">
-                    <text class="action-icon">{{item.isLiked ? '❤️' : '🤍'}}</text>
-                  </view>
-                  <view class="square-post-action collect-action" catchtap="onToggleCollect" data-id="{{item.id}}">
-                    <text class="action-icon {{item.isCollected ? '' : 'white-star'}}">{{item.isCollected ? '⭐' : '⭐'}}</text>
-                  </view>
-                  <view class="square-post-action comment-action" catchtap="onOpenPostDetail" data-id="{{item.id}}" data-tab="square">
-                    <text class="action-icon">💬</text>
-                    <text class="action-text" style="color: {{textPalette.title}};">评论</text>
-                  </view>
+                <view class="square-user-info">
+                  <text class="square-user-nickname" style="color: {{textPalette.title}};">{{item.nickname || '匿名用户'}}</text>
                 </view>
-                <text class="square-post-time-footer" style="color: {{textPalette.subtitle}};">{{item.time}}</text>
               </view>
-            </view>
 
-            <view class="square-post-divider"></view>
+              <view class="square-post-content">
+                <view class="square-post-content-inner">
+                  <view wx:if="{{item.title}}" class="square-post-title" style="color: {{textPalette.title}};">
+                    <view class="square-post-title-bar" style="background-color: {{theme.primaryColor}};"></view>
+                    {{item.title}}
+                  </view>
+                  <view class="square-post-text" style="color: {{textPalette.body}};">{{item.content}}</view>
+                  <view wx:if="{{item.location}}" class="square-post-location" style="color: {{textPalette.subtitle}};">📍 {{item.location}}</view>
+                  <view wx:if="{{item.blindBoxQuote}}" class="square-post-quote" style="color: {{theme.primaryColor}};">「{{item.blindBoxQuote}}」</view>
+                </view>
+              </view>
+
+              <view class="square-post-footer">
+                <view class="square-post-footer-inner">
+                  <view class="square-post-actions-group">
+                    <view class="square-post-action like-action" catchtap="onToggleLike" data-id="{{item.id}}">
+                      <text class="action-icon">{{item.isLiked ? '❤️' : '🤍'}}</text>
+                    </view>
+                    <view class="square-post-action collect-action" catchtap="onToggleCollect" data-id="{{item.id}}">
+                      <text class="action-icon {{item.isCollected ? '' : 'white-star'}}">{{item.isCollected ? '⭐' : '⭐'}}</text>
+                    </view>
+                    <view class="square-post-action comment-action" catchtap="onOpenPostDetail" data-id="{{item.id}}" data-tab="square">
+                      <text class="action-icon">💬</text>
+                      <text class="action-text" style="color: {{textPalette.title}};">评论</text>
+                    </view>
+                  </view>
+                  <text class="square-post-time-footer" style="color: {{textPalette.subtitle}};">{{item.time}}</text>
+                </view>
+              </view>
+
+              <view class="square-post-divider"></view>
+            </view>
           </view>
         </scroll-view>
       </view>

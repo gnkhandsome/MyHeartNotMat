@@ -3246,6 +3246,47 @@
   min-height: 0;
 }
 
+/* 广场空状态样式 */
+.square-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80rpx 40rpx;
+  gap: 32rpx;
+}
+
+.square-empty-icon {
+  font-size: 80rpx;
+  line-height: 1;
+}
+
+.square-empty-text {
+  font-size: 28rpx;
+  color: #64748b;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.square-empty-action-btn {
+  padding: 18rpx 40rpx;
+  border-radius: 999rpx;
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #fff;
+  box-shadow: 0 12rpx 28rpx rgba(99, 102, 241, 0.35);
+  transition: all 0.3s ease;
+}
+
+.square-empty-action-btn:active {
+  transform: translateY(-2rpx);
+  box-shadow: 0 8rpx 20rpx rgba(99, 102, 241, 0.4);
+}
+
+.square-empty-action-text {
+  color: #fff;
+}
+
 .post-card {
   padding: 26rpx 24rpx;
   margin: 16rpx 20rpx;
