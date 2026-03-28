@@ -221,14 +221,14 @@ App({
   // 初始化主题
   initTheme() {
     try {
-      const themeId = wx.getStorageSync('themeId') || 0;
+      const themeId = wx.getStorageSync('themeId') || 1; // 默认使用法式玫瑰奶油主题（ID = 1）
       this.syncThemeState(themeId, {
         persist: false,
         switchAudio: false
       });
     } catch (e) {
       console.error('初始化主题失败:', e);
-      this.syncThemeState(0, {
+      this.syncThemeState(1, { // 默认使用法式玫瑰奶油主题（ID = 1）
         persist: false,
         switchAudio: false
       });
@@ -511,10 +511,12 @@ App({
     const safeVolume = Math.min(1, Math.max(0, Number(volume) || 0));
     this.globalData.audioVolume = safeVolume;
 
+    // 更新主音频上下文音量
     if (this.globalData.audioContext) {
       this.globalData.audioContext.volume = safeVolume;
     }
 
+    // 更新场景音频上下文音量
     this.applySceneAudioVolumes();
 
     if (persist) {

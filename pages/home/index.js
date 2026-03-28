@@ -364,6 +364,21 @@ function getColorWithAlpha(color = '', alpha = 1) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
+function getColorWithBrightness(color, percent) {
+  const rgb = parseColorToRgb(color);
+  if (!rgb) return color;
+  
+  let { r, g, b } = rgb;
+  const factor = percent / 100;
+  
+  // 根据百分比调整亮度
+  r = Math.min(255, Math.max(0, Math.round(r + r * factor)));
+  g = Math.min(255, Math.max(0, Math.round(g + g * factor)));
+  b = Math.min(255, Math.max(0, Math.round(b + b * factor)));
+  
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
 function resolveSemanticTextPalette(theme = {}) {
   const isDarkColor = (color = '') => {
     const rgb = parseColorToRgb(color);
@@ -375,14 +390,28 @@ function resolveSemanticTextPalette(theme = {}) {
 
   const darkBg = isDarkColor(theme.bgColor);
   const darkPrimary = isDarkColor(theme.primaryColor);
-  const body = theme.bodyTextColor || theme.textColor || (darkBg ? '#E5E7EB' : '#334155');
-  return {
-    title: theme.titleTextColor || theme.textColor || (darkBg ? '#F8FAFC' : '#1F2937'),
-    body,
-    subtitle: theme.subtitleTextColor || (darkBg ? '#CBD5E1' : '#64748B'),
-    tertiary: theme.tertiaryTextColor || (darkBg ? '#94A3B8' : '#94A3B8'),
-    inverse: theme.inverseTextColor || (darkPrimary ? '#FFFFFF' : '#0F172A')
-  };
+  
+  // 对于浅色背景的柔美型主题，使用主题色的衍生色，让文本颜色更接近主题色
+  if (!darkBg && theme.id >= 0 && theme.id<= 11) {
+    // 柔美型主题：使用主题色的不同亮度版本
+    return {
+      title: theme.titleTextColor || getColorWithBrightness(theme.primaryColor, -20), // 稍微深一点的主题色
+      body: theme.bodyTextColor || getColorWithBrightness(theme.primaryColor, -10), // 稍深的主题色
+      subtitle: theme.subtitleTextColor || getColorWithBrightness(theme.primaryColor, 10), // 稍浅的主题色
+      tertiary: theme.tertiaryTextColor || getColorWithBrightness(theme.primaryColor, 30), // 更浅的主题色
+      inverse: theme.inverseTextColor || (darkPrimary ? '#FFFFFF' : '#0F172A')
+    };
+  } else {
+    // 深色背景或深邃型主题：使用原有逻辑
+    const body = theme.bodyTextColor || theme.textColor || (darkBg ? '#E5E7EB' : '#334155');
+    return {
+      title: theme.titleTextColor || theme.textColor || (darkBg ? '#F8FAFC' : '#1F2937'),
+      body,
+      subtitle: theme.subtitleTextColor || (darkBg ? '#CBD5E1' : '#64748B'),
+      tertiary: theme.tertiaryTextColor || (darkBg ? '#94A3B8' : '#94A3B8'),
+      inverse: theme.inverseTextColor || (darkPrimary ? '#FFFFFF' : '#0F172A')
+    };
+  }
 }
 
 function pickRandom(list = []) {
@@ -405,6 +434,8 @@ Page({
     writingDateText: '',
     isAnonymous: true,
     isPostPrivate: true, // 是否本地私密
+    activePostType: 'diary', // 默认发布类型
+    postPlaceholder: '写下此刻的心情与想法...', // 默认占位文案
     
     // 风格相关
     activeThemeStyle: 'minimalist',
@@ -444,12 +475,12 @@ Page({
     isRainModeEnabled: false,
     rainDrops: [],
     rainPerfLevel: 'normal',
-    activeScene: 'rainy',
-    sceneLabel: IMMERSIVE_SCENE_META.rainy.label,
+    activeScene: 'cloudy',
+    sceneLabel: IMMERSIVE_SCENE_META.cloudy.label,
     sceneOptions: IMMERSIVE_SCENES,
     sceneParticles: [],
-    sceneDescription: IMMERSIVE_SCENE_META.rainy.desc,
-    sceneSoundLabel: IMMERSIVE_SCENE_META.rainy.soundLabel,
+    sceneDescription: IMMERSIVE_SCENE_META.cloudy.desc,
+    sceneSoundLabel: IMMERSIVE_SCENE_META.cloudy.soundLabel,
     selectedHangingOrnament: 'knot',
     pendingHangingOrnament: 'knot',
     hangingOrnamentOptions: HANGING_ORNAMENT_OPTIONS,
@@ -480,7 +511,7 @@ Page({
     sceneRestoreHintText: '',
     sceneRestoreHintScene: 'rainy',
     ambientTimeSlot: 'morning',
-    writingLightEnabled: true,
+    writingLightEnabled: false,
     writingLightColorMode: 'warm',
     writingLightFromSide: 'right',
     writingLightIntensity: 86,
@@ -518,7 +549,7 @@ Page({
     newPostCount: 0,
     
     // 我的页面相关
-    profileActiveTab: 'favorites',
+    profileActiveTab: 'topics',
     profileMyTopicsList: [],
     profileLikedList: [],
     profileFavoriteList: [],
@@ -572,9 +603,10 @@ Page({
         } catch (e) {
           console.error('保存自定义背景失败:', e);
         }
-        wx.showToast({
-          title: '背景已设置',
-          icon: 'success'
+        this.showToast({
+          message: '背景已设置',
+          icon: '✓',
+          duration: 2000
         });
         // 关闭自定义背景弹窗
         this.closeToolPanel();
@@ -589,9 +621,10 @@ Page({
     } catch (e) {
       console.error('清除自定义背景失败:', e);
     }
-    wx.showToast({
-      title: '背景已清除',
-      icon: 'success'
+    this.showToast({
+      message: '背景已清除',
+      icon: '✓',
+      duration: 2000
     });
   },
 
@@ -1723,9 +1756,8 @@ Page({
         const bottomReserve = Math.round((104 + 20 + 40) * rpxRatio);
         const topReserve = Math.round(8);
         
-        // 让弹窗的中间对齐按钮的中间
-        const buttonCenter = anchorRect.top + anchorRect.height / 2;
-        let panelTop = buttonCenter - panelHeightPx / 2;
+        // 让弹窗的顶部对齐按钮的顶部
+        let panelTop = anchorRect.top;
         
         // 确保弹窗在可视区域内
         const maxTop = Math.max(topReserve, viewportRect.height - panelHeightPx - bottomReserve);
@@ -1735,7 +1767,6 @@ Page({
           anchorId,
           anchorTop: anchorRect.top,
           anchorHeight: anchorRect.height,
-          buttonCenter,
           panelHeightPx,
           panelTop,
           viewportHeight: viewportRect.height
@@ -1756,17 +1787,14 @@ Page({
 
     this.clearToolPanelAutoCloseTimer();
     
-    // 先显示弹窗，再更新位置
-    this.setData({
-      activeToolPanel: panel
-    }, () => {
-      // 使用 setTimeout 确保弹窗已经渲染，然后更新位置
-      setTimeout(() => {
-        this.updateMiniToolTopByAnchor(anchorId, panel).then(() => {
-          this.startToolPanelAutoCloseTimer(panel);
-          this.updateCompanionNestBounds();
-        });
-      }, 100);
+    // 先计算位置，再显示弹窗，避免抖动
+    this.updateMiniToolTopByAnchor(anchorId, panel).then(() => {
+      this.setData({
+        activeToolPanel: panel
+      }, () => {
+        this.startToolPanelAutoCloseTimer(panel);
+        this.updateCompanionNestBounds();
+      });
     });
   },
 
@@ -1803,7 +1831,7 @@ Page({
   },
 
   onTapToolAmbience() {
-    this.openToolPanel('scene');
+    this.openToolPanel('scene', { anchorId: 'toolEntryScene' });
   },
 
   onTapToolScene() {
@@ -1957,7 +1985,11 @@ Page({
 
   onSaveDraftPackage() {
     this.setData({ showPackageConfirmDialog: false });
-    wx.showToast({ title: '已存草稿', icon: 'success' });
+    this.showToast({
+      message: '已存草稿',
+      icon: '✓',
+      duration: 2000
+    });
     this.triggerCompanionMoment({
       state: 'happy',
       text: '草稿收好啦，随时继续写。',
@@ -1967,7 +1999,11 @@ Page({
 
   onConfirmPackageStart() {
     if (!String(this.data.postContent || '').trim()) {
-      wx.showToast({ title: '先写一点内容再封装', icon: 'none' });
+      this.showToast({
+        message: '先写一点内容再封装',
+        icon: '⚠️',
+        duration: 2000
+      });
       return;
     }
 
@@ -3212,9 +3248,10 @@ Page({
     this.restoreCompanionStateByInput();
 
     if (!silent && wasActive) {
-      wx.showToast({
-        title: '呼吸引导已结束',
-        icon: 'none'
+      this.showToast({
+        message: '呼吸引导已结束',
+        icon: '✓',
+        duration: 2000
       });
     }
   },
@@ -3287,9 +3324,10 @@ Page({
 
   onPackagePost() {
     if (!this.data.postContent.trim()) {
-      wx.showToast({
-        title: '先写点内容再保存吧',
-        icon: 'none'
+      this.showToast({
+        message: '先写点内容再保存吧',
+        icon: '⚠️',
+        duration: 2000
       });
       return;
     }
@@ -3331,9 +3369,10 @@ Page({
     } = this.data;
     
     if (!postContent.trim()) {
-      wx.showToast({
-        title: '请输入内容',
-        icon: 'none'
+      this.showToast({
+        message: '请输入内容',
+        icon: '⚠️',
+        duration: 2000
       });
       return;
     }
@@ -4144,9 +4183,10 @@ Page({
     const { postContent } = this.data;
     
     if (!postContent.trim()) {
-      wx.showToast({
-        title: '请输入内容',
-        icon: 'none'
+      this.showToast({
+        message: '请输入内容',
+        icon: '⚠️',
+        duration: 2000
       });
       return;
     }
@@ -4168,9 +4208,10 @@ Page({
       });
       this.restoreCompanionStateByInput();
 
-      wx.showToast({
-        title: '已粉碎，不入流',
-        icon: 'success'
+      this.showToast({
+        message: '已粉碎，不入流',
+        icon: '✓',
+        duration: 2000
       });
     }, 420);
   },
@@ -4259,9 +4300,10 @@ Page({
         shatteringCardIds: this.data.shatteringCardIds.filter((cardId) => cardId !== id)
       });
 
-      wx.showToast({
-        title: '已粉碎删除',
-        icon: 'success'
+      this.showToast({
+        message: '删除成功',
+        icon: '✓',
+        duration: 2000
       });
     }, 360);
   },
@@ -4281,9 +4323,10 @@ Page({
       squarePostList: nextSquareList
     });
 
-    wx.showToast({
-      title: '已设置为私密',
-      icon: 'success'
+    this.showToast({
+      message: '已设置为私密',
+      icon: '✓',
+      duration: 2000
     });
 
     this.triggerCompanionMoment({
@@ -4641,6 +4684,13 @@ Page({
     this.setData({ profileActiveTab: tab });
   },
 
+  onProfileSwiperChange(e) {
+    const currentIndex = e.detail.current;
+    this.setData({
+      profileActiveTab: currentIndex === 0 ? 'topics' : 'favorites'
+    });
+  },
+
   loadProfileMyTopics() {
     try {
       console.log('loadProfileMyTopics 被调用');
@@ -4796,7 +4846,11 @@ Page({
       console.log('用户ID:', userId);
       
       if (!userId) {
-        wx.showToast({ title: '用户未登录', icon: 'none' });
+        this.showToast({
+        message: '用户未登录',
+        icon: '⚠️',
+        duration: 2000
+      });
         return;
       }
       
