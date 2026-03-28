@@ -2571,7 +2571,7 @@ Page({
   updateNavigationBarColor() {
     const { theme } = this.data;
     if (theme && theme.bgColor) {
-      const rgb = (() => {
+      const rgb = (() =>{
         const value = String(theme.bgColor || '').trim();
         if (value.startsWith('#')) {
           const hex = value.slice(1);
@@ -2596,20 +2596,25 @@ Page({
         if (![r, g, b].every(Number.isFinite)) return null;
         return { r, g, b };
       })();
-      const isDarkBg = rgb
-        ? ((0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255) < 0.52
-        : false;
 
-      wx.setNavigationBarColor({
-        frontColor: isDarkBg ? '#ffffff' : '#000000',
-        backgroundColor: theme.bgColor
-      });
+      if (rgb) {
+        const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
+        const isDark = luminance < 0.52;
+        const frontColor = isDark ? '#ffffff' : '#000000';
+        wx.setNavigationBarColor({
+          frontColor,
+          backgroundColor: theme.bgColor
+        });
+      }
     }
   },
   // 切换页面
   switchPage(e) {
     const page = parseInt(e.currentTarget.dataset.page);
-    this.setData({ currentPage: page });
+    this.setData({ 
+      currentPage: page,
+      activeToolPanel: '' // 关闭工具栏弹窗
+    });
     this.initMovableFab({ keepPosition: true });
     
     // 如果切换到「动态」页面，从 myDiaryList 中刷新广场数据，并应用点赞收藏状态
@@ -2930,7 +2935,7 @@ Page({
       }
       
       // 从 myDiaryList 中筛选公开内容作为广场数据
-      const squarePostList = myDiaryList.filter(item => !item.isPrivate);
+      let squarePostList = myDiaryList.filter(item => !item.isPrivate);
       
       // 从本地存储读取点赞和收藏状态并应用
       const likedPostIds = wx.getStorageSync('likedPostIds') || [];
@@ -3404,7 +3409,7 @@ Page({
       let finalBlindBoxQuote = writingAmbientSubtitle;
       
       if (writingAmbientSubtitle === DEFAULT_SUBTITLE) {
-        // 用户没有抽取盲盒，随机生成一个
+        // 用户没有抽取盲盒，随机生成一个（使用完整的盲盒文案数组）
         const quotes = [
           '每一个清晨都是新的开始，愿你今天充满阳光。',
           '生活不是等待暴风雨过去，而是学会在雨中跳舞。',
@@ -3413,7 +3418,49 @@ Page({
           '每一个小确幸，都是生活的礼物。',
           '相信自己，你比想象中更强大。',
           '慢慢来，一切都会好起来的。',
-          '你值得被爱，值得拥有所有美好。'
+          '你值得被爱，值得拥有所有美好。',
+          '时光会温柔对待每一个认真生活的人。',
+          '你走过的每一步，都算数。',
+          '保持热爱，奔赴山海。',
+          '愿你眼中有光，心中有爱。',
+          '生活明朗，万物可爱。',
+          '今天的努力，明天的美好。',
+          '不辜负每一个当下，不放弃每一个梦想。',
+          '你比自己想象中更坚强。',
+          '温暖的话语，治愈的力量。',
+          '心存美好，所见皆美好。',
+          '愿你被世界温柔以待。',
+          '相信美好，美好就会发生。',
+          '每一次坚持，都是成长。',
+          '慢慢来，时光会给你答案。',
+          '你值得拥有更好的一切。',
+          '保持善良，心怀希望。',
+          '生活需要仪式感，也需要温暖。',
+          '愿你既有勇气，又有温柔。',
+          '每一个平凡的日子，都值得珍惜。',
+          '相信自己，未来可期。',
+          '生活不只是眼前的苟且，还有诗和远方。',
+          '愿你的每一天，都充满阳光和希望。',
+          '你是独一无二的存在。',
+          '保持初心，砥砺前行。',
+          '愿你在困境中看到希望，在迷茫中找到方向。',
+          '每一个努力的人，都值得被尊重。',
+          '生活需要一点浪漫，也需要一点勇气。',
+          '愿你成为自己想成为的样子。',
+          '保持热爱，保持善良。',
+          '每一个梦想，都值得追逐。',
+          '愿你在平凡的日子里，发现不平凡的美好。',
+          '相信自己，你能行。',
+          '生活需要一点仪式感，也需要一点温暖。',
+          '愿你既有能力，又有运气。',
+          '每一个坚持，都是胜利。',
+          '愿你在风雨中学会坚强，在阳光下学会感恩。',
+          '相信美好，美好就会发生。',
+          '生活需要一点勇气，也需要一点智慧。',
+          '愿你成为更好的自己。',
+          '保持初心，保持热爱。',
+          '每一个平凡的人，都有不平凡的故事。',
+          '愿你在生活中找到属于自己的光。'
         ];
         finalBlindBoxQuote = quotes[Math.floor(Math.random() * quotes.length)];
       }
@@ -3481,7 +3528,7 @@ Page({
     let finalBlindBoxQuote = writingAmbientSubtitle;
     
     if (writingAmbientSubtitle === DEFAULT_SUBTITLE) {
-      // 用户没有抽取盲盒，随机生成一个
+      // 用户没有抽取盲盒，随机生成一个（使用完整的盲盒文案数组）
       const quotes = [
         '每一个清晨都是新的开始，愿你今天充满阳光。',
         '生活不是等待暴风雨过去，而是学会在雨中跳舞。',
@@ -3490,7 +3537,49 @@ Page({
         '每一个小确幸，都是生活的礼物。',
         '相信自己，你比想象中更强大。',
         '慢慢来，一切都会好起来的。',
-        '你值得被爱，值得拥有所有美好。'
+        '你值得被爱，值得拥有所有美好。',
+        '时光会温柔对待每一个认真生活的人。',
+        '你走过的每一步，都算数。',
+        '保持热爱，奔赴山海。',
+        '愿你眼中有光，心中有爱。',
+        '生活明朗，万物可爱。',
+        '今天的努力，明天的美好。',
+        '不辜负每一个当下，不放弃每一个梦想。',
+        '你比自己想象中更坚强。',
+        '温暖的话语，治愈的力量。',
+        '心存美好，所见皆美好。',
+        '愿你被世界温柔以待。',
+        '相信美好，美好就会发生。',
+        '每一次坚持，都是成长。',
+        '慢慢来，时光会给你答案。',
+        '你值得拥有更好的一切。',
+        '保持善良，心怀希望。',
+        '生活需要仪式感，也需要温暖。',
+        '愿你既有勇气，又有温柔。',
+        '每一个平凡的日子，都值得珍惜。',
+        '相信自己，未来可期。',
+        '生活不只是眼前的苟且，还有诗和远方。',
+        '愿你的每一天，都充满阳光和希望。',
+        '你是独一无二的存在。',
+        '保持初心，砥砺前行。',
+        '愿你在困境中看到希望，在迷茫中找到方向。',
+        '每一个努力的人，都值得被尊重。',
+        '生活需要一点浪漫，也需要一点勇气。',
+        '愿你成为自己想成为的样子。',
+        '保持热爱，保持善良。',
+        '每一个梦想，都值得追逐。',
+        '愿你在平凡的日子里，发现不平凡的美好。',
+        '相信自己，你能行。',
+        '生活需要一点仪式感，也需要一点温暖。',
+        '愿你既有能力，又有运气。',
+        '每一个坚持，都是胜利。',
+        '愿你在风雨中学会坚强，在阳光下学会感恩。',
+        '相信美好，美好就会发生。',
+        '生活需要一点勇气，也需要一点智慧。',
+        '愿你成为更好的自己。',
+        '保持初心，保持热爱。',
+        '每一个平凡的人，都有不平凡的故事。',
+        '愿你在生活中找到属于自己的光。'
       ];
       finalBlindBoxQuote = quotes[Math.floor(Math.random() * quotes.length)];
     }

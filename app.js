@@ -120,15 +120,17 @@ function updatePostsUserInfo(userInfo) {
     let myDiaryList = app.globalData.diaryList || [];
     let myPostList = app.globalData.myPostList || [];
     
-    // 更新所有发布内容中的用户信息
+    // 更新所有发布内容中的用户信息（包括头像和昵称）
     myDiaryList = myDiaryList.map(item => ({
       ...item,
-      nickname: userInfo.nickname
+      nickname: userInfo.nickname,
+      avatar: userInfo.avatar
     }));
     
     myPostList = myPostList.map(item => ({
       ...item,
-      nickname: userInfo.nickname
+      nickname: userInfo.nickname,
+      avatar: userInfo.avatar
     }));
     
     // 更新全局数据

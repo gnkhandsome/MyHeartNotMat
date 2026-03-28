@@ -402,21 +402,23 @@
           <view wx:else>
             <view class="square-post-item" wx:for="{{squarePostList}}" wx:key="id" id="home-card-{{item.id}}" bindtap="onOpenSquarePostDetail" data-id="{{item.id}}" data-tab="square">
               <view class="square-post-header">
-                <view class="square-user-avatar" style="background: linear-gradient(145deg, {{theme.primaryColor}}, {{theme.primaryColor}}cc);">
-                  <text class="square-avatar-text" style="color: {{textPalette.inverse}};">{{item.nickname ? item.nickname.charAt(0) : '匿'}}</text>
+                <view class="square-user-avatar">
+                  <image wx:if="{{item.avatar}}" class="square-avatar-image" src="{{item.avatar}}" mode="aspectFill"></image>
+                  <view wx:else class="square-avatar-placeholder" style="background: linear-gradient(145deg, {{theme.primaryColor}}, {{theme.primaryColor}}cc);">
+                    <text class="square-avatar-text" style="color: {{textPalette.inverse}};">{{item.nickname ? item.nickname.charAt(0) : '匿'}}</text>
+                  </view>
                 </view>
                 <view class="square-user-info">
-                  <text class="square-user-nickname" style="color: {{textPalette.title}};">{{item.nickname || '匿名用户'}}</text>
+                  <text class="square-user-nickname" style="color: {{theme.primaryColor}};">{{item.nickname || '匿名用户'}}</text>
                 </view>
               </view>
 
               <view class="square-post-content">
                 <view class="square-post-content-inner">
                   <view wx:if="{{item.title}}" class="square-post-title" style="color: {{textPalette.title}};">
-                    <view class="square-post-title-bar" style="background-color: {{theme.primaryColor}};"></view>
                     {{item.title}}
                   </view>
-                  <view class="square-post-text" style="color: {{textPalette.body}};">{{item.content}}</view>
+                  <view class="square-post-text" style="color: {{textPalette.title}}; opacity: 0.7;">{{item.content}}</view>
                   <view wx:if="{{item.location}}" class="square-post-location" style="color: {{textPalette.subtitle}};">📍 {{item.location}}</view>
                   <view wx:if="{{item.blindBoxQuote}}" class="square-post-quote" style="color: {{theme.primaryColor}};">「{{item.blindBoxQuote}}」</view>
                 </view>
@@ -458,8 +460,11 @@
             </view>
           </view>
           <view class="profile-avatar-wrapper">
-            <view class="profile-avatar" style="background: linear-gradient(145deg, {{theme.primaryColor}}, {{theme.primaryColor}}cc);">
-              <text class="profile-avatar-text">{{userInfo.nickname.charAt(0)}}</text>
+            <view class="profile-avatar">
+              <image wx:if="{{userInfo.avatar}}" class="profile-avatar-image" src="{{userInfo.avatar}}" mode="aspectFill"></image>
+              <view wx:else class="profile-avatar-placeholder" style="background: linear-gradient(145deg, {{theme.primaryColor}}, {{theme.primaryColor}}cc);">
+                <text class="profile-avatar-text">{{userInfo.nickname.charAt(0)}}</text>
+              </view>
             </view>
             <view class="profile-avatar-edit-btn" bindtap="onEditUserInfo" style="background-color: {{theme.primaryColor}};">
               <text class="profile-edit-icon">🖌️</text>
@@ -525,11 +530,14 @@
             <view wx:else>
               <view wx:for="{{publicMyTopicsList}}" wx:key="id" class="square-post-item" bindtap="onProfileOpenPostDetail" data-id="{{item.id}}" data-type="topic">
                 <view class="square-post-header">
-                  <view class="square-user-avatar" style="background: linear-gradient(145deg, {{theme.primaryColor}}, {{theme.primaryColor}}cc);">
-                    <text class="square-avatar-text" style="color: {{textPalette.inverse}};">{{userInfo.nickname.charAt(0)}}</text>
+                  <view class="square-user-avatar">
+                    <image wx:if="{{userInfo.avatar}}" class="square-avatar-image" src="{{userInfo.avatar}}" mode="aspectFill"></image>
+                    <view wx:else class="square-avatar-placeholder" style="background: linear-gradient(145deg, {{theme.primaryColor}}, {{theme.primaryColor}}cc);">
+                      <text class="square-avatar-text" style="color: {{textPalette.inverse}};">{{userInfo.nickname.charAt(0)}}</text>
+                    </view>
                   </view>
                   <view class="square-user-info">
-                    <text class="square-user-nickname" style="color: {{textPalette.title}};">{{userInfo.nickname}}</text>
+                    <text class="square-user-nickname" style="color: {{theme.primaryColor}};">{{userInfo.nickname}}</text>
                   </view>
                 </view>
 
@@ -539,7 +547,7 @@
                       <view class="square-post-title-bar" style="background-color: {{theme.primaryColor}};"></view>
                       {{item.title}}
                     </view>
-                    <view class="square-post-text" style="color: {{textPalette.body}};">{{item.content}}</view>
+                    <view class="square-post-text" style="color: {{textPalette.title}}; opacity: 0.7;">{{item.content}}</view>
                     <view wx:if="{{item.location}}" class="square-post-location" style="color: {{textPalette.subtitle}};">📍 {{item.location}}</view>
                     <view wx:if="{{item.blindBoxQuote}}" class="square-post-quote" style="color: {{theme.primaryColor}};">「{{item.blindBoxQuote}}」</view>
                   </view>
@@ -588,11 +596,14 @@
             <view wx:else>
               <view wx:for="{{profileFavoriteList}}" wx:key="id" class="square-post-item" bindtap="onProfileOpenSquarePostDetail" data-id="{{item.id}}">
                 <view class="square-post-header">
-                  <view class="square-user-avatar" style="background: linear-gradient(145deg, {{theme.primaryColor}}, {{theme.primaryColor}}cc);">
+                  <view class="square-user-avatar">
+                  <image wx:if="{{item.avatar}}" class="square-avatar-image" src="{{item.avatar}}" mode="aspectFill"></image>
+                  <view wx:else class="square-avatar-placeholder" style="background: linear-gradient(145deg, {{theme.primaryColor}}, {{theme.primaryColor}}cc);">
                     <text class="square-avatar-text" style="color: {{textPalette.inverse}};">{{item.nickname ? item.nickname.charAt(0) : '匿'}}</text>
                   </view>
+                </view>
                   <view class="square-user-info">
-                    <text class="square-user-nickname" style="color: {{textPalette.title}};">{{item.nickname || '匿名用户'}}</text>
+                    <text class="square-user-nickname" style="color: {{theme.primaryColor}};">{{item.nickname || '匿名用户'}}</text>
                   </view>
                 </view>
 
@@ -602,7 +613,7 @@
                       <view class="square-post-title-bar" style="background-color: {{theme.primaryColor}};"></view>
                       {{item.title}}
                     </view>
-                    <view class="square-post-text" style="color: {{textPalette.body}};">{{item.content}}</view>
+                    <view class="square-post-text" style="color: {{textPalette.title}}; opacity: 0.7;">{{item.content}}</view>
                     <view wx:if="{{item.location}}" class="square-post-location" style="color: {{textPalette.subtitle}};">📍 {{item.location}}</view>
                     <view wx:if="{{item.blindBoxQuote}}" class="square-post-quote" style="color: {{theme.primaryColor}};">「{{item.blindBoxQuote}}」</view>
                   </view>

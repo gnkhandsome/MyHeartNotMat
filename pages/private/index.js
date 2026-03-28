@@ -55,6 +55,7 @@ Page({
     },
     theme: THEMES[0],
     textPalette: resolveSemanticTextPalette(THEMES[0]),
+    themeType: 'female',
     refreshing: false
   },
 
@@ -104,9 +105,11 @@ Page({
       const app = getApp();
       const currentTheme = app.globalData.theme;
       if (currentTheme) {
+        const themeType = currentTheme.id >= 0 && currentTheme.id<= 11 ? 'female' : 'male';
         this.setData({
           theme: currentTheme,
-          textPalette: resolveSemanticTextPalette(currentTheme)
+          textPalette: resolveSemanticTextPalette(currentTheme),
+          themeType: themeType
         });
         this.updateNavigationBarColor();
       }
@@ -118,7 +121,7 @@ Page({
   updateNavigationBarColor() {
     const { theme } = this.data;
     if (theme && theme.bgColor) {
-      const rgb = (() => {
+      const rgb = (() =>{
         const value = String(theme.bgColor || '').trim();
         if (value.startsWith('#')) {
           const hex = value.slice(1);
@@ -146,7 +149,7 @@ Page({
 
       if (rgb) {
         const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
-        const isDark = luminance < 0.52;
+        const isDark = luminance< 0.52;
         const frontColor = isDark ? '#ffffff' : '#000000';
         wx.setNavigationBarColor({
           frontColor,
@@ -205,10 +208,11 @@ Page({
           const timeB = b.publishTime || b.writingTime || 0;
           return timeB - timeA;
         });
-      console.log('筛选出本地私密:', privateList.length, '条');
       
       this.setData({ privateList });
-      console.log('本地私密页面数据已更新，数据:', privateList);
+      
+      // 重新同步主题，确保主题不会被数据影响
+      this.syncThemeFromGlobal();
     } catch (e) {
       console.error('加载本地私密失败:', e);
     }

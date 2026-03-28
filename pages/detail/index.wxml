@@ -3,14 +3,17 @@
   <view wx:if="{{post.scenePackage && post.scenePackage.customBackground}}" class="custom-background-overlay"></view>
   
   <!-- 顶部导航栏 -->
-  <view class="detail-nav" style="padding-top: {{menuButtonInfo ? menuButtonInfo.top + 'px' : 'env(safe-area-inset-top)'}}; background-color: {{theme.bgColor}};">
+  <view class="detail-nav" style="padding-top: {{menuButtonInfo ? menuButtonInfo.top + 'px' : 'env(safe-area-inset-top)'}};">
     <view class="nav-left" style="height: {{menuButtonInfo ? menuButtonInfo.height + 'px' : '64rpx'}};">
       <view class="nav-back" bindtap="goBack">
         <text class="nav-back-icon" style="color: {{textPalette.title}};">‹</text>
       </view>
       <view class="nav-user-info">
-        <view class="nav-user-avatar" style="background: linear-gradient(145deg, {{theme.primaryColor}}, {{theme.primaryColor}}cc);">
-          <text class="nav-user-avatar-text">{{post.nickname ? post.nickname.charAt(0) : '匿'}}</text>
+        <view class="nav-user-avatar">
+          <image wx:if="{{post.avatar}}" class="nav-user-avatar-image" src="{{post.avatar}}" mode="aspectFill"></image>
+          <view wx:else class="nav-user-avatar-placeholder" style="background: linear-gradient(145deg, {{theme.primaryColor}}, {{theme.primaryColor}}cc);">
+            <text class="nav-user-avatar-text">{{post.nickname ? post.nickname.charAt(0) : '匿'}}</text>
+          </view>
         </view>
         <text class="nav-user-nickname" style="color: {{textPalette.title}};">{{post.nickname || '匿名用户'}}</text>
       </view>
