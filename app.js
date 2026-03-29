@@ -4,41 +4,99 @@ import { getThemeById, getThemeTypeById, THEME_STYLE_TYPES } from './theme.confi
 const SCENE_SOUND_PROFILES = {
   sunny: {
     tracks: [
-      { src: '/static/audio/morning_birds.mp3', weight: 0.62, role: 'accent' },
-      { src: '/static/audio/soft_wind.mp3', weight: 0.38, role: 'bed' }
+      { src: 'https://assets.mixkit.co/active_storage/sfx/1185/1185-preview.mp3', weight: 0.34, role: 'accent' },
+      { src: 'https://assets.mixkit.co/active_storage/sfx/1153/1153-preview.mp3', weight: 0.76, role: 'bed' }
     ]
   },
   cloudy: {
     tracks: [
-      { src: '/static/audio/soft_wind.mp3', weight: 0.72, role: 'bed' },
-      { src: '/static/audio/obsidian_hum.mp3', weight: 0.28, role: 'accent' }
+      { src: 'https://assets.mixkit.co/active_storage/sfx/1153/1153-preview.mp3', weight: 0.7, role: 'bed' },
+      { src: 'https://assets.mixkit.co/active_storage/sfx/1736/1736-preview.mp3', weight: 0.22, role: 'accent' }
     ]
   },
   rainy: {
     tracks: [
-      { src: '/static/audio/thunder_rain.mp3', weight: 0.78, role: 'bed' },
-      { src: '/static/audio/rain_leaf.mp3', weight: 0.34, role: 'accent' }
+      { src: 'https://assets.mixkit.co/active_storage/sfx/1199/1199-preview.mp3', weight: 0.88, role: 'bed' },
+      { src: 'https://assets.mixkit.co/active_storage/sfx/1248/1248-preview.mp3', weight: 0.28, role: 'accent' }
     ]
   },
   windy: {
     tracks: [
-      { src: '/static/audio/autumn_leaves.mp3', weight: 0.66, role: 'bed' },
-      { src: '/static/audio/aurora_wind.mp3', weight: 0.38, role: 'accent' }
+      { src: 'https://assets.mixkit.co/active_storage/sfx/1162/1162-preview.mp3', weight: 0.74, role: 'bed' },
+      { src: 'https://assets.mixkit.co/active_storage/sfx/1175/1175-preview.mp3', weight: 0.36, role: 'accent' }
     ]
   },
   snowy: {
     tracks: [
-      { src: '/static/audio/ice_wind.mp3', weight: 0.66, role: 'bed' },
-      { src: '/static/audio/night_signal.mp3', weight: 0.3, role: 'accent' }
+      { src: 'https://assets.mixkit.co/active_storage/sfx/1267/1267-preview.mp3', weight: 0.72, role: 'bed' },
+      { src: 'https://assets.mixkit.co/active_storage/sfx/2420/2420-preview.mp3', weight: 0.2, role: 'accent' }
     ]
   },
   stream: {
     tracks: [
-      { src: '/static/audio/sea_waves.mp3', weight: 0.62, role: 'bed' },
-      { src: '/static/audio/morning_birds.mp3', weight: 0.36, role: 'accent' }
+      { src: 'https://assets.mixkit.co/active_storage/sfx/1195/1195-preview.mp3', weight: 0.8, role: 'bed' },
+      { src: 'https://assets.mixkit.co/active_storage/sfx/1185/1185-preview.mp3', weight: 0.24, role: 'accent' }
     ]
   }
 };
+
+const DEFAULT_AMBIENT_AUDIO_SRC = 'https://assets.mixkit.co/active_storage/sfx/1153/1153-preview.mp3';
+const AUDIO_CONFIG_CACHE_KEY = 'remoteAudioConfigCache';
+const AUDIO_CONFIG_FUNCTION_NAME = 'getAudioConfig';
+const AUDIO_SCENE_KEYS = Object.keys(SCENE_SOUND_PROFILES);
+
+function isNonEmptyString(value) {
+  return typeof value === 'string' && !!value.trim();
+}
+
+function cloneSceneProfiles(source = SCENE_SOUND_PROFILES) {
+  return JSON.parse(JSON.stringify(source || {}));
+}
+
+function normalizeTrack(track = {}) {
+  if (!track || typeof track !== 'object' || !isNonEmptyString(track.src)) {
+    return null;
+  }
+
+  const weight = Number(track.weight);
+  const role = String(track.role || 'balanced').trim();
+
+  return {
+    src: track.src.trim(),
+    weight: Number.isFinite(weight) ? Math.min(1, Math.max(0, weight)) : 0.5,
+    role: ['bed', 'accent', 'balanced'].includes(role) ? role : 'balanced'
+  };
+}
+
+function normalizeSceneProfiles(sceneProfiles = {}) {
+  const normalized = {};
+  AUDIO_SCENE_KEYS.forEach((sceneKey) => {
+    const scene = sceneProfiles && sceneProfiles[sceneKey];
+    const tracks = Array.isArray(scene && scene.tracks)
+      ? scene.tracks.map((track) => normalizeTrack(track)).filter(Boolean).slice(0, 2)
+      : [];
+    if (tracks.length) {
+      normalized[sceneKey] = { tracks };
+    }
+  });
+  return normalized;
+}
+
+function normalizeRemoteAudioConfig(rawConfig = {}) {
+  const payload = rawConfig && typeof rawConfig === 'object' ? rawConfig : {};
+  const normalizedProfiles = normalizeSceneProfiles(payload.sceneProfiles || {});
+
+  return {
+    defaultAmbientSrc: isNonEmptyString(payload.defaultAmbientSrc)
+      ? payload.defaultAmbientSrc.trim()
+      : DEFAULT_AMBIENT_AUDIO_SRC,
+    sceneProfiles: Object.keys(normalizedProfiles).length
+      ? normalizedProfiles
+      : cloneSceneProfiles(SCENE_SOUND_PROFILES),
+    version: Number(payload.version) || 0,
+    updatedAt: payload.updatedAt || null
+  };
+}
 
 // 随机用户信息生成
 const RANDOM_NICKNAMES = [
@@ -181,9 +239,14 @@ App({
     this.initData();
     // 初始化主题
     this.initTheme();
+    // 初始化音频配置（先本地兜底）
+    this.initAudioConfig();
     // 初始化音频管理
     this.initAudioManager();
     this.initSceneAudioManager();
+
+    // 异步拉取云端音频配置，成功后热更新
+    this.loadRemoteAudioConfig();
   },
 
   initData() {
@@ -313,6 +376,98 @@ App({
       switchAudio: true
     });
   },
+
+  getDefaultAudioConfig() {
+    return {
+      defaultAmbientSrc: DEFAULT_AMBIENT_AUDIO_SRC,
+      sceneProfiles: cloneSceneProfiles(SCENE_SOUND_PROFILES),
+      version: 0,
+      updatedAt: null,
+      source: 'local-default'
+    };
+  },
+
+  initAudioConfig() {
+    let config = this.getDefaultAudioConfig();
+
+    try {
+      const cachedConfig = wx.getStorageSync(AUDIO_CONFIG_CACHE_KEY);
+      if (cachedConfig && typeof cachedConfig === 'object') {
+        const normalized = normalizeRemoteAudioConfig(cachedConfig);
+        config = {
+          ...normalized,
+          source: 'local-cache'
+        };
+      }
+    } catch (e) {
+      console.warn('读取音频配置缓存失败，使用本地默认配置:', e);
+    }
+
+    this.globalData.audioConfig = config;
+    return config;
+  },
+
+  applyAudioConfig(nextConfig = {}, options = {}) {
+    const { persist = true, source = 'cloud' } = options;
+    const normalized = normalizeRemoteAudioConfig(nextConfig);
+
+    this.globalData.audioConfig = {
+      ...normalized,
+      source
+    };
+
+    if (persist) {
+      try {
+        wx.setStorageSync(AUDIO_CONFIG_CACHE_KEY, normalized);
+      } catch (e) {
+        console.warn('缓存音频配置失败:', e);
+      }
+    }
+
+    if (this.globalData.audioContext) {
+      const targetAudioSrc = this.getResolvedAudioSrc();
+      if (this.globalData.currentAudioSrc !== targetAudioSrc) {
+        this.switchAudio(targetAudioSrc);
+      }
+    }
+
+    if (this.globalData.sceneAudioContexts && this.globalData.sceneAudioContexts.length) {
+      this.setSceneSoundscape(this.globalData.sceneAudioProfileKey || 'rainy', {
+        autoPlay: this.globalData.isAudioPlaying,
+        enabled: this.globalData.sceneAudioEnabled !== false
+      });
+    }
+
+    return this.globalData.audioConfig;
+  },
+
+  async loadRemoteAudioConfig() {
+    try {
+      const res = await wx.cloud.callFunction({
+        name: AUDIO_CONFIG_FUNCTION_NAME,
+        data: {}
+      });
+      const result = (res && res.result) || {};
+      if (!result.success) {
+        throw new Error(result.message || '云端音频配置获取失败');
+      }
+
+      const remoteConfig = normalizeRemoteAudioConfig(result.data && result.data.config);
+      this.applyAudioConfig(remoteConfig, {
+        persist: true,
+        source: 'cloud'
+      });
+
+      console.log('已加载云端音频配置:', {
+        version: remoteConfig.version,
+        updatedAt: remoteConfig.updatedAt
+      });
+      return remoteConfig;
+    } catch (e) {
+      console.warn('加载云端音频配置失败，继续使用本地配置:', e);
+      return null;
+    }
+  },
   
   // 初始化音频管理
   initAudioManager() {
@@ -377,11 +532,13 @@ App({
   },
 
   getResolvedAudioSrc() {
-    return '/raining.mp3';
+    const runtimeSrc = this.globalData.audioConfig && this.globalData.audioConfig.defaultAmbientSrc;
+    return isNonEmptyString(runtimeSrc) ? runtimeSrc : DEFAULT_AMBIENT_AUDIO_SRC;
   },
 
   getSceneProfile(sceneKey = 'rainy') {
-    return SCENE_SOUND_PROFILES[sceneKey] || SCENE_SOUND_PROFILES.rainy;
+    const profiles = (this.globalData.audioConfig && this.globalData.audioConfig.sceneProfiles) || SCENE_SOUND_PROFILES;
+    return profiles[sceneKey] || profiles.rainy || SCENE_SOUND_PROFILES.rainy;
   },
 
   initSceneAudioManager() {
@@ -393,11 +550,21 @@ App({
       ctx.obeyMuteSwitch = true;
       ctx.volume = 0;
       ctx.__trackIndex = i;
+      ctx.__trackRole = 'balanced';
       ctx.__fallbackApplied = false;
       ctx.onError(() => {
         if (!ctx.__fallbackApplied) {
           ctx.__fallbackApplied = true;
-          ctx.src = '/raining.mp3';
+          // 缺素材时避免所有分轨都回退成同一雨声，导致场景听感趋同
+          const fallbackSrc = ctx.__trackRole === 'accent' ? '' : DEFAULT_AMBIENT_AUDIO_SRC;
+
+          if (!fallbackSrc) {
+            ctx.stop();
+            ctx.volume = 0;
+            return;
+          }
+
+          ctx.src = fallbackSrc;
           if (this.globalData.isAudioPlaying && this.globalData.sceneAudioEnabled !== false) {
             ctx.play();
           }
@@ -437,7 +604,8 @@ App({
 
     const profile = this.getSceneProfile(this.globalData.sceneAudioProfileKey);
     const sceneIntensity = Number(this.globalData.sceneAudioIntensity) || 0.65;
-    const baseVolume = (Number(this.globalData.audioVolume) || 0.5) * sceneIntensity;
+    // 避免与 roleGain 内的 intensity 再次叠加，导致滑块体感偏弱
+    const baseVolume = Number(this.globalData.audioVolume) || 0.5;
     const enabled = this.globalData.sceneAudioEnabled !== false;
 
     contexts.forEach((ctx, index) => {
@@ -470,9 +638,11 @@ App({
     contexts.forEach((ctx, index) => {
       const track = profile.tracks[index];
       if (!track) {
+        ctx.__trackRole = 'balanced';
         ctx.stop();
         return;
       }
+      ctx.__trackRole = track.role || 'balanced';
       if (ctx.src !== track.src) {
         ctx.__fallbackApplied = false;
         ctx.src = track.src;
@@ -511,11 +681,13 @@ App({
   setAudioVolume(volume, options = {}) {
     const { persist = true } = options;
     const safeVolume = Math.min(1, Math.max(0, Number(volume) || 0));
-    this.globalData.audioVolume = safeVolume;
+    // 使用感知曲线拉开低中高段差异，提升滑杆可感知度
+    const perceivedVolume = Math.pow(safeVolume, 1.4);
+    this.globalData.audioVolume = perceivedVolume;
 
     // 更新主音频上下文音量
     if (this.globalData.audioContext) {
-      this.globalData.audioContext.volume = safeVolume;
+      this.globalData.audioContext.volume = perceivedVolume;
     }
 
     // 更新场景音频上下文音量
@@ -671,7 +843,7 @@ App({
   },
 
   // 粉碎音效（一次性）
-  playShatterSfx(audioSrc = '/raining.mp3') {
+  playShatterSfx(audioSrc = DEFAULT_AMBIENT_AUDIO_SRC) {
     try {
       if (!this.globalData.shatterAudioContext) {
         this.globalData.shatterAudioContext = wx.createInnerAudioContext();
@@ -722,6 +894,7 @@ App({
     fadeOutTimer: null,
     fadeInTimer: null,
     shatterAudioContext: null,
+    audioConfig: null,
     sceneAudioContexts: [],
     sceneAudioProfileKey: 'rainy',
     sceneAudioIntensity: 0.65,

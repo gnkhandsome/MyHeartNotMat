@@ -306,11 +306,13 @@
   animation-timing-function: linear;
   animation-iteration-count: infinite;
   will-change: transform, opacity;
+  transform-origin: center top;
+  filter: drop-shadow(0 0 6rpx rgba(191, 219, 254, 0.25));
 }
 
 @keyframes rain-fall {
   0% {
-    transform: translate3d(0, -8vh, 0);
+    transform: translate3d(0, -10vh, 0) rotate(var(--rain-tilt, 0deg));
     opacity: 0;
   }
 
@@ -318,8 +320,18 @@
     opacity: 1;
   }
 
+  38% {
+    transform: translate3d(calc(var(--rain-drift-x, -12rpx) * 0.42 + var(--rain-sway-mid, 0rpx)), 42vh, 0) rotate(var(--rain-tilt, 0deg));
+    opacity: 0.92;
+  }
+
+  68% {
+    transform: translate3d(calc(var(--rain-drift-x, -12rpx) * 0.76 - var(--rain-sway-amp, 0rpx)), 78vh, 0) rotate(var(--rain-tilt, 0deg));
+    opacity: 0.86;
+  }
+
   100% {
-    transform: translate3d(-12rpx, 115vh, 0);
+    transform: translate3d(calc(var(--rain-drift-x, -12rpx) + var(--rain-sway-amp, 0rpx)), 115vh, 0) rotate(var(--rain-tilt, 0deg));
     opacity: 0;
   }
 }
@@ -3491,7 +3503,7 @@
   align-items: center;
   gap: 6rpx;
 }
-
+年
 .post-action.private-btn {
   color: #0f766e;
   background: linear-gradient(135deg, rgba(153, 246, 228, 0.86), rgba(167, 243, 208, 0.92));
@@ -3851,6 +3863,25 @@
   inset: 0;
   pointer-events: none;
   z-index: 25;
+}
+
+.custom-tabbar.tabbar-editing {
+  justify-content: center;
+  padding: 0 24rpx;
+}
+
+.tabbar-editing-exit {
+  width: 100%;
+  max-width: 680rpx;
+  height: 72rpx;
+  border-radius: 999rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  font-weight: 600;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1rpx solid rgba(99, 102, 241, 0.24);
 }
 
 .companion-trail-dot {

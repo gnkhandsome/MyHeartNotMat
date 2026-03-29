@@ -325,7 +325,7 @@ Page({
     wx.vibrateShort();
     const app = getApp();
     if (app.playShatterSfx) {
-      app.playShatterSfx('/raining.mp3');
+      app.playShatterSfx();
     }
   },
 

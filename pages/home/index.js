@@ -308,7 +308,11 @@ const WRITING_LIGHT_COLOR_META = {
 
 const LOW_PERF_BENCHMARK_THRESHOLD = 20;
 const HOME_TOOLBAR_SETTINGS_KEY = 'homeToolbarSettings';
+const HOME_TOOLBAR_DEFAULTS_CACHE_KEY = 'homeToolbarDefaultsCache';
+const HOME_TOOLBAR_DEFAULTS_CONFIG_KEY = 'home_toolbar_defaults';
+const HOME_TOOLBAR_DEFAULTS_FUNCTION = 'getToolbarConfig';
 const TOOL_PANEL_AUTO_CLOSE_MS = 10000;
+const RAIN_DYNAMIC_REFRESH_MS = 2200;
 
 function resolvePerfLevelByBenchmark(benchmarkLevel) {
   const level = Number(benchmarkLevel || 0);
@@ -499,6 +503,7 @@ Page({
     showPackagePublishDialog: false,
     showPackagingAnimation: false,
     showSaveSuccessDialog: false,
+    editingPostId: '',
     pendingPackageType: 'letter',
     pendingPackageLabel: POST_TYPE_META.letter.label,
     ornamentSwayDeg: 5,
@@ -694,6 +699,7 @@ Page({
     app.globalData.diaryList = initialMyDiaryList;
     app.globalData.squarePostList = initialSquarePostList;
     this.initRainPerfProfile();
+    this.loadToolbarDefaultsFromCache();
     this.initRainModeState();
     this.initScenePerfProfile();
     this.initImmersiveSceneState();
@@ -709,6 +715,7 @@ Page({
     this.setData({ writingDateText: this.getCurrentWritingDateText() });
     this.updateAmbientTimeSlot();
     this.updateWritingLightFxStyles();
+    this.loadToolbarDefaultsFromCloud();
 
     if (wx.onWindowResize) {
       this.handleWindowResize = () => {
@@ -804,6 +811,150 @@ Page({
       wx.setStorageSync(HOME_TOOLBAR_SETTINGS_KEY, next);
     } catch (e) {
       console.error('保存工具栏设置失败:', e);
+    }
+  },
+
+  normalizeToolbarDefaultsConfig(raw = {}) {
+    const config = raw && typeof raw === 'object' ? raw : {};
+    const normalized = {};
+
+    if (POST_TYPE_META[config.activePostType]) {
+      normalized.activePostType = config.activePostType;
+    }
+
+    if (HANGING_ORNAMENT_META[config.selectedHangingOrnament]) {
+      normalized.selectedHangingOrnament = config.selectedHangingOrnament;
+    }
+
+    if (typeof config.writingLightEnabled === 'boolean') {
+      normalized.writingLightEnabled = config.writingLightEnabled;
+    }
+
+    if (WRITING_LIGHT_COLOR_META[config.writingLightColorMode]) {
+      normalized.writingLightColorMode = config.writingLightColorMode;
+    }
+
+    const lightIntensity = Number(config.writingLightIntensity);
+    if (Number.isFinite(lightIntensity)) {
+      normalized.writingLightIntensity = Math.max(0, Math.min(100, Math.round(lightIntensity)));
+    }
+
+    const lightAngle = Number(config.writingLightAngle);
+    if (Number.isFinite(lightAngle)) {
+      normalized.writingLightAngle = Math.max(0, Math.min(65, Math.round(lightAngle)));
+    }
+
+    const lightFocus = Number(config.writingLightFocus);
+    if (Number.isFinite(lightFocus)) {
+      normalized.writingLightFocus = Math.max(20, Math.min(100, Math.round(lightFocus)));
+    }
+
+    const themeId = Number(config.themeId);
+    if (Number.isInteger(themeId) && THEMES.some((item) => item.id === themeId)) {
+      normalized.themeId = themeId;
+    }
+
+    if (IMMERSIVE_SCENE_META[config.sceneKey]) {
+      normalized.sceneKey = config.sceneKey;
+    }
+
+    const sceneIntensity = Number(config.sceneIntensity);
+    if (Number.isFinite(sceneIntensity)) {
+      normalized.sceneIntensity = Math.max(20, Math.min(100, Math.round(sceneIntensity)));
+    }
+
+    normalized.version = Number(config.version) || 0;
+    normalized.updatedAt = config.updatedAt || null;
+    return normalized;
+  },
+
+  applyCloudToolbarDefaults(raw = {}, options = {}) {
+    const { fromCache = false } = options;
+    const defaults = this.normalizeToolbarDefaultsConfig(raw);
+    if (!defaults || typeof defaults !== 'object') return;
+
+    const app = getApp();
+    const storedToolbar = wx.getStorageSync(HOME_TOOLBAR_SETTINGS_KEY) || {};
+    const hasToolbarSettings = storedToolbar && typeof storedToolbar === 'object' && Object.keys(storedToolbar).length > 0;
+    const hasThemeId = Number.isInteger(Number(wx.getStorageSync('themeId')));
+    const hasSceneKey = !!wx.getStorageSync('homeActiveScene');
+    const hasSceneIntensity = Number.isFinite(Number(wx.getStorageSync('homeSceneIntensity')));
+
+    if (!hasToolbarSettings) {
+      this.persistToolbarSettings(defaults);
+    }
+
+    if (!hasThemeId && Number.isInteger(defaults.themeId) && app && app.switchTheme) {
+      const themeState = app.switchTheme(defaults.themeId);
+      this.applyThemeState(themeState);
+      this.syncAudioFromGlobal();
+    }
+
+    const sceneKey = !hasSceneKey && IMMERSIVE_SCENE_META[defaults.sceneKey]
+      ? defaults.sceneKey
+      : null;
+    const intensity = !hasSceneIntensity && Number.isFinite(defaults.sceneIntensity)
+      ? defaults.sceneIntensity
+      : null;
+
+    if (sceneKey || Number.isFinite(intensity)) {
+      const nextScene = sceneKey || this.data.activeScene || 'rainy';
+      const nextIntensity = Number.isFinite(intensity) ? intensity : this.data.sceneIntensity;
+      this.setData({ sceneIntensity: nextIntensity }, () => {
+        this.updateOrnamentWindMotion(nextIntensity);
+        this.applyImmersiveScene(nextScene, {
+          persist: true,
+          silent: true,
+          updateAutoMode: false
+        });
+        try {
+          wx.setStorageSync('homeSceneIntensity', nextIntensity);
+        } catch (e) {
+          // ignore
+        }
+      });
+    }
+
+    if (!fromCache) {
+      try {
+        wx.setStorageSync(HOME_TOOLBAR_DEFAULTS_CACHE_KEY, defaults);
+      } catch (e) {
+        console.warn('缓存云端工具栏默认配置失败:', e);
+      }
+    }
+  },
+
+  loadToolbarDefaultsFromCache() {
+    try {
+      const cached = wx.getStorageSync(HOME_TOOLBAR_DEFAULTS_CACHE_KEY);
+      if (cached && typeof cached === 'object') {
+        this.applyCloudToolbarDefaults(cached, { fromCache: true });
+      }
+    } catch (e) {
+      console.warn('读取工具栏默认缓存失败:', e);
+    }
+  },
+
+  async loadToolbarDefaultsFromCloud() {
+    try {
+      const res = await wx.cloud.callFunction({
+        name: HOME_TOOLBAR_DEFAULTS_FUNCTION,
+        data: {
+          key: HOME_TOOLBAR_DEFAULTS_CONFIG_KEY
+        }
+      });
+
+      const result = (res && res.result) || {};
+      if (!result.success) {
+        throw new Error(result.message || '拉取工具栏默认配置失败');
+      }
+
+      const config = (result.data && result.data.config) || {};
+      this.applyCloudToolbarDefaults(config, { fromCache: false });
+      return config;
+    } catch (e) {
+      console.warn('加载云端工具栏默认配置失败，继续使用本地配置:', e);
+      return null;
     }
   },
 
@@ -1059,6 +1210,39 @@ Page({
       isRainModeEnabled,
       rainDrops: isRainModeEnabled ? this.buildRainDrops() : []
     });
+
+    if (isRainModeEnabled) {
+      this.startRainDynamicsLoop();
+    } else {
+      this.stopRainDynamicsLoop();
+    }
+  },
+
+  resolveDynamicWindRatio(intensityFactor = 0.6) {
+    const base = Math.max(0.15, Math.min(1, Number(intensityFactor) || 0.6));
+    const now = Date.now();
+    const slowWave = Math.sin(now / 6200) * 0.12;
+    const mediumWave = Math.sin(now / 2600 + 0.85) * 0.08;
+    const microNoise = (Math.random() - 0.5) * 0.08;
+    const gustBias = Math.random() < 0.16 ? (Math.random() - 0.5) * 0.26 : 0;
+    return Math.max(0.08, Math.min(1, base + slowWave + mediumWave + microNoise + gustBias));
+  },
+
+  startRainDynamicsLoop(interval = RAIN_DYNAMIC_REFRESH_MS) {
+    this.stopRainDynamicsLoop();
+    this.rainDynamicsTimer = setInterval(() => {
+      if (!this.data.isRainModeEnabled || this.data.activeScene !== 'rainy') {
+        return;
+      }
+      this.setData({ rainDrops: this.buildRainDrops() });
+    }, interval);
+  },
+
+  stopRainDynamicsLoop() {
+    if (this.rainDynamicsTimer) {
+      clearInterval(this.rainDynamicsTimer);
+      this.rainDynamicsTimer = null;
+    }
   },
 
   initScenePerfProfile() {
@@ -1231,6 +1415,12 @@ Page({
       isSceneAutoMode: nextAutoMode
     });
 
+    if (key === 'rainy') {
+      this.startRainDynamicsLoop();
+    } else {
+      this.stopRainDynamicsLoop();
+    }
+
     try {
       const app = getApp();
       if (app.setSceneSoundscape) {
@@ -1296,15 +1486,22 @@ Page({
   buildRainDrops() {
     const isLowPerf = this.data.rainPerfLevel === 'low';
     const intensityFactor = Math.max(0.2, Math.min(1, Number(this.data.sceneIntensity || 65) / 100));
+    const dynamicWindRatio = this.resolveDynamicWindRatio(intensityFactor);
+    const directionalBias = Math.sin(Date.now() / 7200) * 0.28;
     const baseCount = isLowPerf ? 14 : 28;
     const count = Math.max(8, Math.round(baseCount * (0.65 + intensityFactor * 0.9)));
     return Array.from({ length: count }, (_, idx) => ({
       id: `rain-${idx}`,
       left: Math.round(Math.random() * 100),
-      height: Math.round((isLowPerf ? 22 : 28) + Math.random() * (isLowPerf ? 18 : 28)),
-      duration: Math.round((isLowPerf ? 1400 : 1150) + Math.random() * 900),
+      height: Math.round((isLowPerf ? 20 : 26) + intensityFactor * (isLowPerf ? 22 : 34) + Math.random() * (isLowPerf ? 14 : 24)),
+      width: Number((isLowPerf ? 1.3 : 1.5) + intensityFactor * (isLowPerf ? 0.8 : 1.2) + Math.random() * 0.45).toFixed(2),
+      duration: Math.round((isLowPerf ? 1680 : 1400) - intensityFactor * (isLowPerf ? 260 : 360) + Math.random() * (isLowPerf ? 760 : 620)),
       delay: Math.round(Math.random() * 1600),
-      opacity: Number((isLowPerf ? 0.45 : 0.55) + Math.random() * 0.35).toFixed(2)
+      opacity: Number((isLowPerf ? 0.42 : 0.5) + intensityFactor * 0.2 + Math.random() * 0.24).toFixed(2),
+      driftX: Math.round((((Math.random() - 0.5) * 2) + directionalBias) * (isLowPerf ? 24 : 36) * dynamicWindRatio),
+      swayAmp: Math.round((isLowPerf ? 4 : 6) + dynamicWindRatio * (isLowPerf ? 10 : 18) + Math.random() * 8),
+      swayMid: Math.round((Math.random() - 0.5) * (isLowPerf ? 8 : 16) * dynamicWindRatio),
+      tiltDeg: Number((-2 + directionalBias * 10 + (Math.random() - 0.5) * 4) * dynamicWindRatio).toFixed(1)
     }));
   },
 
@@ -1452,6 +1649,90 @@ Page({
       isPostPrivate,
       capturedAt: Date.now()
     };
+  },
+
+  captureComposerSnapshotForEdit() {
+    if (this.editingSessionSnapshot) {
+      return this.editingSessionSnapshot;
+    }
+
+    const activePostType = this.data.activePostType || 'diary';
+    this.editingSessionSnapshot = {
+      scenePackage: this.buildScenePackageSnapshot(),
+      activePostType,
+      isPostPrivate: !!this.data.isPostPrivate
+    };
+
+    return this.editingSessionSnapshot;
+  },
+
+  consumeComposerSnapshotForEdit() {
+    const snapshot = this.editingSessionSnapshot || null;
+    this.editingSessionSnapshot = null;
+    return snapshot;
+  },
+
+  enterEditingMode(target = {}) {
+    if (!target || !target.id) {
+      return;
+    }
+
+    if (!this.data.editingPostId) {
+      this.captureComposerSnapshotForEdit();
+    }
+
+    this.setData({
+      currentPage: 0,
+      postTitle: target.title || '',
+      postContent: target.content || '',
+      postLocation: target.location || '',
+      activePostType: target.type || 'diary',
+      postPlaceholder: this.getPostTypeMeta(target.type || 'diary').placeholder,
+      isPostPrivate: !!target.isPrivate,
+      editingPostId: target.id
+    });
+
+    if (target.scenePackage) {
+      this.restoreScenePackage(target.scenePackage, { persist: false });
+    }
+  },
+
+  exitEditingMode(options = {}) {
+    const {
+      clearDraft = true,
+      restoreComposer = true,
+      keepCurrentPage = true
+    } = options;
+
+    if (!this.data.editingPostId) {
+      return;
+    }
+
+    const snapshot = this.consumeComposerSnapshotForEdit();
+    const fallbackPostType = snapshot?.activePostType || 'diary';
+    const nextData = {
+      editingPostId: '',
+      activePostType: fallbackPostType,
+      postPlaceholder: this.getPostTypeMeta(fallbackPostType).placeholder,
+      isPostPrivate: snapshot?.isPostPrivate !== undefined ? snapshot.isPostPrivate : this.data.isPostPrivate
+    };
+
+    if (clearDraft) {
+      nextData.postTitle = '';
+      nextData.postContent = '';
+      nextData.postLocation = '';
+    }
+
+    if (!keepCurrentPage) {
+      nextData.currentPage = 0;
+    }
+
+    this.setData(nextData, () => {
+      if (restoreComposer && snapshot && snapshot.scenePackage) {
+        this.restoreScenePackage(snapshot.scenePackage, { persist: false });
+      }
+      this.restoreCompanionStateByInput();
+    });
   },
 
   restoreScenePackage(scenePackage = {}, options = {}) {
@@ -2259,6 +2540,13 @@ Page({
         updateAutoMode: true
       });
     }
+
+    if (this.data.activeScene === 'rainy' && this.data.isRainModeEnabled) {
+      this.startRainDynamicsLoop();
+    } else {
+      this.stopRainDynamicsLoop();
+    }
+
     this.initMovableFab({ keepPosition: true });
     this.startDecoRefreshTimer();
     // 重新计算精灵窝边界，确保使用最新位置
@@ -2279,22 +2567,7 @@ Page({
     // 检查是否有正在编辑的帖子
     if (app.globalData.editingPost) {
       const target = app.globalData.editingPost;
-      
-      // 设置编辑内容到写点页面
-      this.setData({
-        currentPage: 0,
-        postTitle: target.title || '',
-        postContent: target.content || '',
-        postLocation: target.location || '',
-        activePostType: target.type || 'diary',
-        isPostPrivate: target.isPrivate || false,
-        editingPostId: target.id // 标记当前正在编辑的帖子ID
-      });
-      
-      // 如果有场景包，还原场景（编辑时不持久化）
-      if (target.scenePackage) {
-        this.restoreScenePackage(target.scenePackage, { persist: false });
-      }
+      this.enterEditingMode(target);
       
       // 清除全局数据中的编辑帖子
       app.globalData.editingPost = null;
@@ -2329,6 +2602,7 @@ Page({
     clearTimeout(this.sceneRestoreHintTimer);
     this.stopAmbientTimeSlotLoop();
     this.stopWritingDateLoop();
+    this.stopRainDynamicsLoop();
   },
 
   onUnload() {
@@ -2354,6 +2628,7 @@ Page({
     clearTimeout(this.sceneRestoreHintTimer);
     this.stopAmbientTimeSlotLoop();
     this.stopWritingDateLoop();
+    this.stopRainDynamicsLoop();
 
     if (this.handleWindowResize && wx.offWindowResize) {
       wx.offWindowResize(this.handleWindowResize);
@@ -3305,11 +3580,28 @@ Page({
   // 发布页面相关方法
   // 取消发布
   cancelPost() {
-    this.setData({ 
+    if (this.data.editingPostId) {
+      this.exitEditingMode({
+        clearDraft: true,
+        restoreComposer: true,
+        keepCurrentPage: false
+      });
+      return;
+    }
+
+    this.setData({
       postContent: '',
       currentPage: 0
     });
     this.restoreCompanionStateByInput();
+  },
+
+  onExitEditingTap() {
+    this.exitEditingMode({
+      clearDraft: true,
+      restoreComposer: true,
+      keepCurrentPage: true
+    });
   },
 
   onPostPrivateChange(e) {
@@ -3319,6 +3611,15 @@ Page({
 
   onPackagePost() {
     if (!this.data.postContent.trim()) {
+      if (this.data.editingPostId) {
+        this.exitEditingMode({
+          clearDraft: true,
+          restoreComposer: true,
+          keepCurrentPage: true
+        });
+        return;
+      }
+
       this.showToast({
         message: '先写点内容再保存吧',
         icon: '⚠️',
@@ -3749,11 +4050,33 @@ Page({
       myDiaryList: updatedDiaryList,
       squarePostList: finalSquareList
     };
+
+    const editSnapshot = editingPostId ? this.consumeComposerSnapshotForEdit() : null;
+    if (editSnapshot) {
+      const fallbackType = editSnapshot.activePostType || 'diary';
+      nextData.activePostType = fallbackType;
+      nextData.postPlaceholder = this.getPostTypeMeta(fallbackType).placeholder;
+      nextData.isPostPrivate = editSnapshot.isPostPrivate !== undefined
+        ? !!editSnapshot.isPostPrivate
+        : this.data.isPostPrivate;
+    }
     
     this.setData(nextData, () => {
       // 刷新我的发布列表
       console.log('刷新我的发布列表');
       this.loadProfileMyTopics();
+
+      if (editSnapshot && editSnapshot.scenePackage) {
+        this.restoreScenePackage(editSnapshot.scenePackage, { persist: false });
+      }
+
+      if (editingPostId) {
+        this.showToast({
+          message: '已退出编辑',
+          icon: '✓',
+          duration: 1500
+        });
+      }
     });
     this.restoreCompanionStateByInput();
 
@@ -3781,6 +4104,16 @@ Page({
   onPostInput(e) {
     const postContent = e.detail.value;
     this.setData({ postContent });
+
+    if (this.data.editingPostId && !String(postContent || '').trim()) {
+      this.exitEditingMode({
+        clearDraft: true,
+        restoreComposer: true,
+        keepCurrentPage: true
+      });
+      return;
+    }
+
     this.updateCompanionEmotionByInput(postContent);
     this.maybeUpdateAmbientSubtitleByInput(postContent);
   },
@@ -3788,11 +4121,37 @@ Page({
   onPostTitleInput(e) {
     const postTitle = e.detail.value;
     this.setData({ postTitle });
+
+    if (this.data.editingPostId) {
+      const title = String(postTitle || '').trim();
+      const content = String(this.data.postContent || '').trim();
+      const location = String(this.data.postLocation || '').trim();
+      if (!title && !content && !location) {
+        this.exitEditingMode({
+          clearDraft: true,
+          restoreComposer: true,
+          keepCurrentPage: true
+        });
+      }
+    }
   },
 
   onPostLocationInput(e) {
     const postLocation = e.detail.value;
     this.setData({ postLocation });
+
+    if (this.data.editingPostId) {
+      const title = String(this.data.postTitle || '').trim();
+      const content = String(this.data.postContent || '').trim();
+      const location = String(postLocation || '').trim();
+      if (!title && !content && !location) {
+        this.exitEditingMode({
+          clearDraft: true,
+          restoreComposer: true,
+          keepCurrentPage: true
+        });
+      }
+    }
   },
 
   maybeUpdateAmbientSubtitleByInput(content = '') {
@@ -4286,7 +4645,7 @@ Page({
     wx.vibrateShort();
     const app = getApp();
     if (app.playShatterSfx) {
-      app.playShatterSfx('/raining.mp3');
+      app.playShatterSfx();
     }
 
     this.triggerCompanionMoment({
@@ -4515,6 +4874,12 @@ Page({
       rainDrops: enabled ? this.buildRainDrops() : []
     });
 
+    if (enabled) {
+      this.startRainDynamicsLoop();
+    } else {
+      this.stopRainDynamicsLoop();
+    }
+
     try {
       wx.setStorageSync('homeRainModeEnabled', enabled);
     } catch (e) {
@@ -4544,6 +4909,10 @@ Page({
       sceneParticles: this.buildSceneParticles(activeScene),
       rainDrops: activeScene === 'rainy' ? this.buildRainDrops() : []
     });
+
+    if (activeScene === 'rainy' && this.data.isRainModeEnabled) {
+      this.startRainDynamicsLoop();
+    }
     this.updateOrnamentWindMotion(safe);
     this.maybeTriggerCompanionActionInteraction('sceneIntensity', { cooldown: 9000 });
 
@@ -4822,21 +5191,7 @@ Page({
     const target = this.data.publicMyTopicsList.find(item => item.id === id);
     if (!target) return;
     
-    // 设置编辑内容到写点页面
-    this.setData({
-      currentPage: 0,
-      postTitle: target.title || '',
-      postContent: target.content || '',
-      postLocation: target.location || '',
-      activePostType: target.type || 'diary',
-      isPostPrivate: target.isPrivate || false,
-      editingPostId: id // 标记当前正在编辑的帖子ID
-    });
-    
-    // 如果有场景包，还原场景
-    if (target.scenePackage) {
-      this.restoreScenePackage(target.scenePackage);
-    }
+    this.enterEditingMode(target);
   },
 
   onDeleteMyPost(e) {

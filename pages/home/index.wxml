@@ -23,7 +23,7 @@
       wx:for="{{rainDrops}}"
       wx:key="id"
       class="rain-drop"
-      style="left: {{item.left}}%; height: {{item.height}}rpx; animation-duration: {{item.duration}}ms; animation-delay: {{item.delay}}ms; opacity: {{item.opacity}};"
+      style="left: {{item.left}}%; height: {{item.height}}rpx; width: {{item.width}}rpx; animation-duration: {{item.duration}}ms; animation-delay: {{item.delay}}ms; opacity: {{item.opacity}}; --rain-drift-x: {{item.driftX}}rpx; --rain-sway-amp: {{item.swayAmp}}rpx; --rain-sway-mid: {{item.swayMid}}rpx; --rain-tilt: {{item.tiltDeg}}deg;"
     ></view>
   </view>
 
@@ -152,7 +152,7 @@
                       style="{{postContent && postContent.trim().length > 0 ? 'background: ' + publishBtnBgColor + '; border-color: ' + publishBtnTextColor + '; box-shadow: 0 0 20rpx ' + paperDateLineShadowColor + ';' : ''}}"
                     >
                       <text class="publish-btn-icon">📤</text>
-                      <text class="publish-btn-text" style="color: {{postContent && postContent.trim().length > 0 ? publishBtnTextColor : textPalette.subtitle}};">{{isPostPrivate ? '保存' : '发布'}}</text>
+                      <text class="publish-btn-text" style="color: {{postContent && postContent.trim().length > 0 ? publishBtnTextColor : textPalette.subtitle}};">{{editingPostId ? (isPostPrivate ? '重新保存' : '重新发布') : (isPostPrivate ? '保存' : '发布')}}</text>
                     </view>
                   </view>
                 </view>
@@ -279,11 +279,11 @@
             <view wx:if="{{activeToolPanel === 'package'}}" class="mini-tool-body package-tool-grid">
               <view class="package-tool-item" data-action="save" bindtap="onPackageAction">
                 <text class="package-tool-icon">💾</text>
-                <text class="package-tool-label">保存到本地</text>
+                <text class="package-tool-label">{{editingPostId ? '重新保存到本地' : '保存到本地'}}</text>
               </view>
               <view class="package-tool-item" data-action="publish" bindtap="onPackageAction">
                 <text class="package-tool-icon">📤</text>
-                <text class="package-tool-label">发布到广场</text>
+                <text class="package-tool-label">{{editingPostId ? '重新发布到广场' : '发布到广场'}}</text>
               </view>
             </view>
           </view>
@@ -742,8 +742,8 @@
     ></view>
   </view>
 
-  <!-- 自定义底部导航栏 -->
-  <view class="custom-tabbar" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border-top: ' + theme.borderStyle : ''}};">
+  <!-- 自定义底部导航栏（编辑态隐藏） -->
+  <view wx:if="{{!editingPostId}}" class="custom-tabbar" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border-top: ' + theme.borderStyle : ''}};">
     <view class="tabbar-item {{currentPage === 0 ? 'active' : ''}}" bindtap="switchPage" data-page="0">
       <text class="tabbar-icon" style="color: {{currentPage === 0 ? theme.primaryColor : textPalette.subtitle}};">📝</text>
       <text class="tabbar-text" style="color: {{currentPage === 0 ? theme.primaryColor : textPalette.subtitle}};">写点</text>
@@ -755,6 +755,13 @@
     <view class="tabbar-item {{currentPage === 2 ? 'active' : ''}}" bindtap="switchPage" data-page="2">
       <text class="tabbar-icon" style="color: {{currentPage === 2 ? theme.primaryColor : textPalette.subtitle}};">👤</text>
       <text class="tabbar-text" style="color: {{currentPage === 2 ? theme.primaryColor : textPalette.subtitle}};">我的</text>
+    </view>
+  </view>
+
+  <!-- 编辑态底部操作（替代导航栏） -->
+  <view wx:if="{{editingPostId}}" class="custom-tabbar tabbar-editing" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border-top: ' + theme.borderStyle : ''}};">
+    <view class="tabbar-editing-exit" bindtap="onExitEditingTap" style="color: {{theme.primaryColor}};">
+      退出编辑
     </view>
   </view>
 
