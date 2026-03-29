@@ -10,12 +10,16 @@ const db = cloud.database()
 // 云函数入口函数
 exports.main = async (event, context) => {
   try {
-    const { postId, userId } = event
+    const { OPENID } = cloud.getWXContext()
+    const { postId } = event
+    const userId = OPENID
     
-    if (!postId || !userId) {
+    if (!postId) {
       return {
         success: false,
-        message: '缺少必要参数'
+        code: 40001,
+        message: '缺少必要参数',
+        data: null
       }
     }
     
@@ -25,14 +29,18 @@ exports.main = async (event, context) => {
     if (!post.data) {
       return {
         success: false,
-        message: '动态不存在'
+        code: 40404,
+        message: '动态不存在',
+        data: null
       }
     }
     
     if (post.data.userId !== userId) {
       return {
         success: false,
-        message: '无权删除此动态'
+        code: 40301,
+        message: '无权删除此动态',
+        data: null
       }
     }
     
@@ -42,7 +50,9 @@ exports.main = async (event, context) => {
     if (result.stats.removed === 0) {
       return {
         success: false,
-        message: '删除失败'
+        code: 50010,
+        message: '删除失败',
+        data: null
       }
     }
     
@@ -58,14 +68,17 @@ exports.main = async (event, context) => {
     
     return {
       success: true,
-      message: '删除成功'
+      code: 0,
+      message: '删除成功',
+      data: null
     }
   } catch (error) {
     console.error('删除动态失败:', error)
     return {
       success: false,
+      code: 50000,
       message: '删除失败',
-      error: error.message
+      data: null
     }
   }
 }

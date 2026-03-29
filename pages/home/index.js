@@ -5,6 +5,7 @@ import {
   getThemesByType
 } from '../../theme.config.js';
 import { createPageShredHelper } from '../../utils/shredder.js';
+import { callCloud } from '../../utils/cloud.js';
 
 const homeShredHelper = createPageShredHelper({
   canvasSelector: '#homeShredCanvas'
@@ -2692,68 +2693,51 @@ Page({
   
   // 加载云端数据
   loadCloudPosts(isRefresh) {
-    wx.cloud.callFunction({
-      name: 'getPosts',
-      data: {
-        page: this.data.cloudPage,
-        limit: this.data.cloudPageSize
-      },
-      success: (res) => {
-        console.log('获取云端数据成功:', res.result);
-        if (res.result && res.result.success) {
-          const cloudPosts = res.result.posts || [];
-          const hasMore = cloudPosts.length >= this.data.cloudPageSize;
-          
-          // 应用点赞和收藏状态
-          try {
-            const likedPostIds = wx.getStorageSync('likedPostIds') || [];
-            const collectedPostIds = wx.getStorageSync('collectedPostIds') || [];
-            
-            const processedPosts = cloudPosts.map(post => ({
-              ...post,
-              id: post._id, // 统一ID字段
-              isLiked: likedPostIds.includes(post._id),
-              isCollected: collectedPostIds.includes(post._id),
-              time: this.formatTimeAgo(post.createdAt || post.publishTime)
-            }));
-            
-            let finalPosts = [];
-            if (isRefresh) {
-              finalPosts = processedPosts;
-            } else {
-              finalPosts = [...this.data.cloudPosts, ...processedPosts];
-            }
-            
-            this.setData({
-              cloudPosts: finalPosts,
-              squarePostList: finalPosts, // 更新动态列表显示
-              hasMoreCloudPosts: hasMore,
-              isLoadingCloudPosts: false
-            });
-          } catch (e) {
-            console.error('应用交互状态失败:', e);
-            this.setData({
-              isLoadingCloudPosts: false
-            });
-          }
-        } else {
-          console.error('获取云端数据失败:', res.result?.message);
+    callCloud('getPosts', {
+      page: this.data.cloudPage,
+      limit: this.data.cloudPageSize
+    }, {
+      silent: true
+    })
+      .then(({ data: resultData, result }) => {
+        console.log('获取云端数据成功:', result);
+        const cloudPosts = resultData.posts || [];
+        const hasMore = cloudPosts.length >= this.data.cloudPageSize;
+
+        try {
+          const likedPostIds = wx.getStorageSync('likedPostIds') || [];
+          const collectedPostIds = wx.getStorageSync('collectedPostIds') || [];
+
+          const processedPosts = cloudPosts.map(post => ({
+            ...post,
+            id: post._id,
+            isLiked: likedPostIds.includes(post._id),
+            isCollected: collectedPostIds.includes(post._id),
+            time: this.formatTimeAgo(post.createdAt || post.publishTime)
+          }));
+
+          const finalPosts = isRefresh
+            ? processedPosts
+            : [...this.data.cloudPosts, ...processedPosts];
+
           this.setData({
+            cloudPosts: finalPosts,
+            squarePostList: finalPosts,
+            hasMoreCloudPosts: hasMore,
             isLoadingCloudPosts: false
           });
+        } catch (e) {
+          console.error('应用交互状态失败:', e);
+          this.setData({ isLoadingCloudPosts: false });
         }
-        
-        // 停止下拉刷新
-        wx.stopPullDownRefresh();
-      },
-      fail: (err) => {
+      })
+      .catch((err) => {
         console.error('调用云函数失败:', err);
-        this.setData({
-          isLoadingCloudPosts: false
-        });
+        this.setData({ isLoadingCloudPosts: false });
+      })
+      .finally(() => {
         wx.stopPullDownRefresh();
-      }
-    });
+      });
   },
 
   // 点赞功能
@@ -2805,21 +2789,18 @@ Page({
     const post = myDiaryList.find(item => item.id === id) || squarePostList.find(item => item.id === id);
     if (post && !post.isPrivate) {
       setTimeout(() => {
-        wx.cloud.callFunction({
-          name: 'toggleLike',
-          data: {
-            userId: app.globalData.userInfo.nickname,
-            postId: id,
-            action: post.isLiked ? 'add' : 'remove',
-            nickname: app.globalData.userInfo.nickname
-          },
-          success: (res) => {
-            console.log('点赞同步到云端成功:', res);
-          },
-          fail: (err) => {
+        callCloud('toggleLike', {
+          postId: id,
+          action: post.isLiked ? 'add' : 'remove'
+        }, {
+          silent: true
+        })
+          .then(({ result }) => {
+            console.log('点赞同步到云端成功:', result);
+          })
+          .catch((err) => {
             console.error('点赞同步到云端失败:', err);
-          }
-        });
+          });
       }, 0);
     }
   },
@@ -2873,21 +2854,18 @@ Page({
     const post = myDiaryList.find(item => item.id === id) || squarePostList.find(item => item.id === id);
     if (post && !post.isPrivate) {
       setTimeout(() => {
-        wx.cloud.callFunction({
-          name: 'toggleFavorite',
-          data: {
-            userId: app.globalData.userInfo.nickname,
-            postId: id,
-            action: post.isCollected ? 'add' : 'remove',
-            nickname: app.globalData.userInfo.nickname
-          },
-          success: (res) => {
-            console.log('收藏同步到云端成功:', res);
-          },
-          fail: (err) => {
+        callCloud('toggleFavorite', {
+          postId: id,
+          action: post.isCollected ? 'add' : 'remove'
+        }, {
+          silent: true
+        })
+          .then(({ result }) => {
+            console.log('收藏同步到云端成功:', result);
+          })
+          .catch((err) => {
             console.error('收藏同步到云端失败:', err);
-          }
-        });
+          });
       }, 0);
     }
   },
@@ -3648,7 +3626,6 @@ Page({
         content: postContent.trim(),
         title: postTitle,
         location: postLocation,
-        userId: app.globalData.userInfo.nickname,
         nickname: app.globalData.userInfo.nickname,
         isPrivate: false,
         scenePackage: {
@@ -3664,79 +3641,61 @@ Page({
       setTimeout(() => {
         if (editingPostId) {
           // 编辑模式：先检查云端是否存在该动态
-          wx.cloud.callFunction({
-            name: 'getPosts',
-            data: {
-              postId: editingPostId
-            },
-            success: (res) => {
-              if (res.result.success && res.result.posts && res.result.posts.length > 0) {
-                // 云端存在，调用updatePost
-                wx.cloud.callFunction({
-                  name: 'updatePost',
-                  data: {
-                    post: {
-                      postId: editingPostId,
-                      ...postData
-                    }
-                  },
-                  success: (res) => {
-                    console.log('云函数调用成功: updatePost', res.result);
-                  },
-                  fail: (err) => {
-                    console.error('云函数调用失败: updatePost', err);
-                  }
-                });
-              } else {
-                // 云端不存在，调用createPost创建新动态
-                wx.cloud.callFunction({
-                  name: 'createPost',
-                  data: {
-                    post: postData
-                  },
-                  success: (res) => {
-                    console.log('云函数调用成功: createPost', res.result);
-                  },
-                  fail: (err) => {
-                    console.error('云函数调用失败: createPost', err);
-                  }
-                });
-              }
-            },
-            fail: (err) => {
-              console.error('检查云端动态失败:', err);
-              // 检查失败时，尝试直接更新
-              wx.cloud.callFunction({
-                name: 'updatePost',
-                data: {
+          callCloud('getPosts', {
+            postId: editingPostId
+          }, {
+            silent: true
+          })
+            .then(({ data: resultData }) => {
+              if (resultData.posts && resultData.posts.length > 0) {
+                return callCloud('updatePost', {
                   post: {
                     postId: editingPostId,
                     ...postData
                   }
-                },
-                success: (res) => {
-                  console.log('云函数调用成功: updatePost', res.result);
-                },
-                fail: (err) => {
-                  console.error('云函数调用失败: updatePost', err);
-                }
+                }, {
+                  silent: true
+                });
+              }
+              return callCloud('createPost', {
+                post: postData
+              }, {
+                silent: true
               });
-            }
-          });
+            })
+            .then(({ result }) => {
+              console.log('云函数调用成功:', result);
+            })
+            .catch((err) => {
+              console.error('检查云端动态失败，尝试直接更新:', err);
+              callCloud('updatePost', {
+                post: {
+                  postId: editingPostId,
+                  ...postData
+                }
+              }, {
+                silent: true
+              })
+                .then(({ result }) => {
+                  console.log('云函数调用成功: updatePost', result);
+                })
+                .catch((updateErr) => {
+                  console.error('云函数调用失败: updatePost', updateErr);
+                });
+            });
         } else {
           // 新建模式，直接调用createPost
-          wx.cloud.callFunction({
-            name: 'createPost',
-            data: {
-              post: postData
-            },
-            success: (res) => {
-              console.log('云函数调用成功: createPost', res.result);
-            },
-            fail: (err) => {
+          callCloud('createPost', {
+            post: postData
+          }, {
+            silent: true
+          })
+            .then(({ result }) => {
+              console.log('云函数调用成功: createPost', result);
+            })
+            .catch((err) => {
               console.error('云函数调用失败: createPost', err);
-            }
-          });
+            });
         }
       }, 0); // 立即在后台执行
     }
@@ -4929,19 +4888,9 @@ Page({
   deleteMyPost(id) {
     try {
       const app = getApp();
-      const userId = app.globalData.userInfo?.nickname;
       
       console.log('开始删除，ID:', id);
-      console.log('用户ID:', userId);
-      
-      if (!userId) {
-        this.showToast({
-        message: '用户未登录',
-        icon: '⚠️',
-        duration: 2000
-      });
-        return;
-      }
+      console.log('用户ID:', app.globalData.userInfo?.nickname);
       
       // 检查是否是本地日记（ID以"my-"开头）
       const isLocalDiary = id.startsWith('my-');
@@ -4967,24 +4916,13 @@ Page({
       if (!isLocalDiary) {
         setTimeout(() => {
           console.log('调用云函数删除云端数据，ID:', id);
-          wx.cloud.callFunction({
-            name: 'deletePost',
-            data: {
-              postId: id,
-              userId: userId
-            },
-            success: (res) => {
-              console.log('云函数调用成功:', res);
-              if (res.result && res.result.success) {
-                console.log('云端删除成功:', res.result);
-              } else {
-                console.error('云端删除失败:', res.result?.message);
-              }
-            },
-            fail: (err) => {
+          callCloud('deletePost', { postId: id }, { silent: true })
+            .then(({ result }) => {
+              console.log('云端删除成功:', result);
+            })
+            .catch((err) => {
               console.error('调用云函数失败:', err);
-            }
-          });
+            });
         }, 0);
       } else {
         console.log('本地日记，不调用云函数');

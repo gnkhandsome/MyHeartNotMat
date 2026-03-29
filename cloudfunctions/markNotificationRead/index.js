@@ -10,14 +10,8 @@ const db = cloud.database()
 // 云函数入口函数
 exports.main = async (event, context) => {
   try {
-    const { notificationId, userId, markAll = false } = event
-    
-    if (!userId) {
-      return {
-        success: false,
-        message: '缺少用户ID'
-      }
-    }
+    const { OPENID } = cloud.getWXContext()
+    const { notificationId, markAll = false } = event
     
     let result
     
@@ -25,7 +19,7 @@ exports.main = async (event, context) => {
       // 标记所有未读通知为已读
       result = await db.collection('notifications')
         .where({
-          receiverId: userId,
+          receiverId: OPENID,
           read: false
         })
         .update({
@@ -41,15 +35,19 @@ exports.main = async (event, context) => {
       if (!notification.data) {
         return {
           success: false,
-          message: '通知不存在'
+          code: 40404,
+          message: '通知不存在',
+          data: null
         }
       }
       
       // 确保只能标记自己的通知
-      if (notification.data.receiverId !== userId) {
+      if (notification.data.receiverId !== OPENID) {
         return {
           success: false,
-          message: '无权操作此通知'
+          code: 40301,
+          message: '无权操作此通知',
+          data: null
         }
       }
       
@@ -62,21 +60,28 @@ exports.main = async (event, context) => {
     } else {
       return {
         success: false,
-        message: '缺少必要参数'
+        code: 40001,
+        message: '缺少必要参数',
+        data: null
       }
     }
     
     return {
       success: true,
       updated: result.stats.updated,
-      message: '标记已读成功'
+      code: 0,
+      message: '标记已读成功',
+      data: {
+        updated: result.stats.updated
+      }
     }
   } catch (error) {
     console.error('标记通知已读失败:', error)
     return {
       success: false,
+      code: 50000,
       message: '标记已读失败',
-      error: error.message
+      data: null
     }
   }
 }

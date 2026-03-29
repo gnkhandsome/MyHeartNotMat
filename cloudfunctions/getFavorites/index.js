@@ -10,29 +10,30 @@ const db = cloud.database()
 // 云函数入口函数
 exports.main = async (event, context) => {
   try {
-    const { userId, page = 1, limit = 10 } = event
-    
-    if (!userId) {
-      return {
-        success: false,
-        message: '缺少用户ID'
-      }
-    }
+    const { OPENID } = cloud.getWXContext()
+    const { page = 1, limit = 10 } = event
+    const safePage = Math.max(1, Number(page) || 1)
+    const safeLimit = Math.min(50, Math.max(1, Number(limit) || 10))
     
     // 查询用户的收藏记录
     const favorites = await db.collection('favorites')
       .where({
-        userId: userId
+        userId: OPENID
       })
       .orderBy('createdAt', 'desc')
-      .limit(limit)
+      .skip((safePage - 1) * safeLimit)
+      .limit(safeLimit)
       .get()
     
     if (favorites.data.length === 0) {
       return {
         success: true,
-        posts: [],
-        total: 0
+        code: 0,
+        message: '获取成功',
+        data: {
+          posts: [],
+          total: 0
+        }
       }
     }
     
@@ -90,15 +91,20 @@ exports.main = async (event, context) => {
     
     return {
       success: true,
-      posts: result,
-      total: result.length
+      code: 0,
+      message: '获取成功',
+      data: {
+        posts: result,
+        total: result.length
+      }
     }
   } catch (error) {
     console.error('获取收藏列表失败:', error)
     return {
       success: false,
+      code: 50000,
       message: '获取失败',
-      error: error.message
+      data: null
     }
   }
 }

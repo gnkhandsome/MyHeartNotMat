@@ -2,6 +2,7 @@ import {
   THEMES,
   getThemeById
 } from '../../theme.config.js';
+import { callCloud } from '../../utils/cloud.js';
 
 function resolveSemanticTextPalette(theme = {}) {
   const parseColorToRgb = (color = '') => {
@@ -245,22 +246,18 @@ Page({
     // 同步到云端（仅公开内容，后台异步执行，不影响本地显示）
     if (!post.isPrivate) {
       setTimeout(() => {
-        const app = getApp();
-        wx.cloud.callFunction({
-          name: 'toggleLike',
-          data: {
-            userId: app.globalData.userInfo.nickname,
-            postId: post.id,
-            action: newIsLiked ? 'add' : 'remove',
-            nickname: app.globalData.userInfo.nickname
-          },
-          success: (res) => {
-            console.log('点赞同步到云端成功:', res);
-          },
-          fail: (err) => {
+        callCloud('toggleLike', {
+          postId: post.id,
+          action: newIsLiked ? 'add' : 'remove'
+        }, {
+          silent: true
+        })
+          .then(({ result }) => {
+            console.log('点赞同步到云端成功:', result);
+          })
+          .catch((err) => {
             console.error('点赞同步到云端失败:', err);
-          }
-        });
+          });
       }, 0);
     }
   },
@@ -283,22 +280,18 @@ Page({
     // 同步到云端（仅公开内容，后台异步执行，不影响本地显示）
     if (!post.isPrivate) {
       setTimeout(() => {
-        const app = getApp();
-        wx.cloud.callFunction({
-          name: 'toggleFavorite',
-          data: {
-            userId: app.globalData.userInfo.nickname,
-            postId: post.id,
-            action: newIsCollected ? 'add' : 'remove',
-            nickname: app.globalData.userInfo.nickname
-          },
-          success: (res) => {
-            console.log('收藏同步到云端成功:', res);
-          },
-          fail: (err) => {
+        callCloud('toggleFavorite', {
+          postId: post.id,
+          action: newIsCollected ? 'add' : 'remove'
+        }, {
+          silent: true
+        })
+          .then(({ result }) => {
+            console.log('收藏同步到云端成功:', result);
+          })
+          .catch((err) => {
             console.error('收藏同步到云端失败:', err);
-          }
-        });
+          });
       }, 0);
     }
   },
@@ -553,24 +546,20 @@ Page({
     // 同步到云端（仅公开内容，后台异步执行，不影响本地显示）
     if (!post.isPrivate) {
       setTimeout(() => {
-        const app = getApp();
-        wx.cloud.callFunction({
-          name: 'createComment',
-          data: {
-            postId: post.id,
-            userId: app.globalData.userInfo.nickname,
-            nickname: app.globalData.userInfo.nickname,
-            content: commentText,
-            replyTo: replyTo ? replyTo.id : null,
-            replyToNickname: replyTo ? replyTo.nickname : null
-          },
-          success: (res) => {
-            console.log('评论同步到云端成功:', res);
-          },
-          fail: (err) => {
+        callCloud('createComment', {
+          postId: post.id,
+          content: commentText,
+          replyTo: replyTo ? replyTo.id : null,
+          replyToNickname: replyTo ? replyTo.nickname : null
+        }, {
+          silent: true
+        })
+          .then(({ result }) => {
+            console.log('评论同步到云端成功:', result);
+          })
+          .catch((err) => {
             console.error('评论同步到云端失败:', err);
-          }
-        });
+          });
       }, 0);
     }
   }

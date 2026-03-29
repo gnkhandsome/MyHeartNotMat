@@ -1,4 +1,5 @@
 import { THEMES } from '../../theme.config.js';
+import { callCloud } from '../../utils/cloud.js';
 
 function resolveSemanticTextPalette(theme = {}) {
   const isDarkColor = (color = '') => {
@@ -289,7 +290,7 @@ Page({
       console.log('ID为空，无法删除');
       return;
     }
-    
+
     wx.showModal({
       title: '确认删除',
       content: '确定要删除这篇私密作品吗？',
@@ -306,33 +307,26 @@ Page({
     console.log('开始删除本地私密，ID:', id);
     try {
       const app = getApp();
-      const userId = app.globalData.userInfo?.nickname;
-      
-      console.log('用户ID:', userId);
-      
-      if (!userId) {
-        wx.showToast({ title: '用户未登录', icon: 'none' });
-        return;
-      }
-      
+      console.log('用户ID:', app.globalData.userInfo?.nickname);
+
       // 检查是否是本地日记（ID以"my-"开头）
       const isLocalDiary = id.startsWith('my-');
       console.log('是否本地日记:', isLocalDiary);
-      
+
       // 删除日记列表中的内容
       let diaryList = app.globalData.diaryList || [];
       console.log('删除前日记列表长度:', diaryList.length);
       diaryList = diaryList.filter(item => item.id !== id);
       console.log('删除后日记列表长度:', diaryList.length);
       app.globalData.diaryList = diaryList;
-      
+
       // 删除帖子列表中的内容
       let myPostList = app.globalData.myPostList || [];
       console.log('删除前帖子列表长度:', myPostList.length);
       myPostList = myPostList.filter(item => item.id !== id);
       console.log('删除后帖子列表长度:', myPostList.length);
       app.globalData.myPostList = myPostList;
-      
+
       // 保存到本地存储
       try {
         wx.setStorageSync('myDiaryList', diaryList);
@@ -341,36 +335,25 @@ Page({
       } catch (e) {
         console.error('保存到本地存储失败:', e);
       }
-      
+
       // 只有非本地日记才调用云函数删除云端数据（后台异步执行，不影响本地显示）
       if (!isLocalDiary) {
         setTimeout(() => {
           console.log('调用云函数删除云端数据，ID:', id);
-          wx.cloud.callFunction({
-            name: 'deletePost',
-            data: {
-              postId: id,
-              userId: userId
-            },
-            success: (res) => {
-              console.log('云函数调用成功:', res);
-              if (res.result && res.result.success) {
-                console.log('云端删除成功:', res.result);
-              } else {
-                console.error('云端删除失败:', res.result?.message);
-              }
-            },
-            fail: (err) => {
+          callCloud('deletePost', { postId: id }, { silent: true })
+            .then(({ result }) => {
+              console.log('云端删除成功:', result);
+            })
+            .catch((err) => {
               console.error('调用云函数失败:', err);
-            }
-          });
+            });
         }, 0);
       } else {
         console.log('本地日记，不调用云函数');
       }
-      
+
       this.loadPrivatePosts();
-      
+
       wx.showToast({
         title: '删除成功',
         icon: 'success'

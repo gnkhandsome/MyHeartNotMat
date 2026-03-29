@@ -4,6 +4,7 @@ import {
   getThemeTypeById,
   getThemesByType
 } from '../../theme.config.js';
+import { callCloud } from '../../utils/cloud.js';
 
 function parseColorToRgb(color = '') {
   const value = String(color || '').trim();
@@ -412,12 +413,6 @@ Page({
   loadMyTopics(refresh = false) {
     try {
       const app = getApp();
-      const userId = app.globalData.userInfo?.nickname;
-      
-      if (!userId) {
-        console.error('用户未登录');
-        return;
-      }
       
       const page = refresh ? 1 : this.data.topicsPage;
       const pageSize = this.data.topicsPageSize;
@@ -425,16 +420,14 @@ Page({
       this.setData({ topicsLoading: true });
       
       // 从云端获取我的发布列表
-      wx.cloud.callFunction({
-        name: 'getMyPosts',
-        data: {
-          userId: userId,
-          page: page,
-          limit: pageSize
-        },
-        success: (res) => {
-          if (res.result && res.result.success) {
-            const cloudPosts = res.result.posts || [];
+      callCloud('getMyPosts', {
+        page,
+        limit: pageSize
+      }, {
+        silent: true
+      })
+        .then(({ data: resultData }) => {
+          const cloudPosts = resultData.posts || [];
             
             // 获取本地日记
             const myDiaryList = app.globalData.diaryList || [];
@@ -465,25 +458,20 @@ Page({
               return new Date(timeB) - new Date(timeA);
             });
             
-            this.setData({
-              myTopicsList: uniqueList,
-              topicsPage: refresh ? 2 : page + 1,
-              hasMoreTopics: cloudPosts.length >= pageSize,
-              topicsLoading: false
-            });
+          this.setData({
+            myTopicsList: uniqueList,
+            topicsPage: refresh ? 2 : page + 1,
+            hasMoreTopics: cloudPosts.length >= pageSize,
+            topicsLoading: false
+          });
             
-            // 更新全局数据
-            app.globalData.myPostList = cloudPosts;
-          } else {
-            console.error('获取我的发布列表失败:', res.result?.message);
-            this.setData({ topicsLoading: false });
-          }
-        },
-        fail: (err) => {
+          // 更新全局数据
+          app.globalData.myPostList = cloudPosts;
+        })
+        .catch((err) => {
           console.error('调用云函数失败:', err);
           this.setData({ topicsLoading: false });
-        }
-      });
+        });
     } catch (e) {
       console.error('加载我的话题失败:', e);
       this.setData({ topicsLoading: false });
@@ -509,12 +497,6 @@ Page({
   loadFavorites(refresh = false) {
     try {
       const app = getApp();
-      const userId = app.globalData.userInfo?.nickname;
-      
-      if (!userId) {
-        console.error('用户未登录');
-        return;
-      }
       
       const page = refresh ? 1 : this.data.favoritesPage;
       const pageSize = this.data.favoritesPageSize;
@@ -522,16 +504,14 @@ Page({
       this.setData({ favoritesLoading: true });
       
       // 从云端获取收藏列表
-      wx.cloud.callFunction({
-        name: 'getFavorites',
-        data: {
-          userId: userId,
-          page: page,
-          limit: pageSize
-        },
-        success: (res) => {
-          if (res.result && res.result.success) {
-            let favoritePosts = res.result.posts || [];
+      callCloud('getFavorites', {
+        page,
+        limit: pageSize
+      }, {
+        silent: true
+      })
+        .then(({ data: resultData }) => {
+          let favoritePosts = resultData.posts || [];
             
             // 处理本地日记，从本地存储获取完整数据
             favoritePosts = favoritePosts.map(post => {
@@ -557,26 +537,19 @@ Page({
               newFavoriteList = [...this.data.favoriteList, ...favoritePosts];
             }
             
-            this.setData({
-              favoriteList: newFavoriteList,
-              favoritesPage: refresh ? 2 : page + 1,
-              hasMoreFavorites: favoritePosts.length >= pageSize,
-              favoritesLoading: false
-            });
-          } else {
-            console.error('获取收藏列表失败:', res.result?.message);
-            this.setData({ favoritesLoading: false });
-            // 失败时从本地存储加载
-            this.loadFavoritesFromStorage();
-          }
-        },
-        fail: (err) => {
+          this.setData({
+            favoriteList: newFavoriteList,
+            favoritesPage: refresh ? 2 : page + 1,
+            hasMoreFavorites: favoritePosts.length >= pageSize,
+            favoritesLoading: false
+          });
+        })
+        .catch((err) => {
           console.error('调用云函数失败:', err);
           this.setData({ favoritesLoading: false });
           // 失败时从本地存储加载
           this.loadFavoritesFromStorage();
-        }
-      });
+        });
     } catch (e) {
       console.error('加载收藏列表失败:', e);
       this.setData({ favoritesLoading: false });
@@ -706,28 +679,21 @@ Page({
   
   updateNotificationCount() {
     const app = getApp();
-    const userId = app.globalData.userInfo?.nickname;
-    
-    if (!userId) return;
 
-    wx.cloud.callFunction({
-      name: 'getNotifications',
-      data: {
-        userId: userId,
-        unreadOnly: true,
-        pageSize: 1
-      },
-      success: (res) => {
-        if (res.result && res.result.success) {
-          const unreadCount = res.result.unreadCount || 0;
-          this.setData({ unreadNotificationCount: unreadCount });
-          app.globalData.unreadNotificationCount = unreadCount;
-        }
-      },
-      fail: (err) => {
+    callCloud('getNotifications', {
+      unreadOnly: true,
+      pageSize: 1
+    }, {
+      silent: true
+    })
+      .then(({ data }) => {
+        const unreadCount = data.unreadCount || 0;
+        this.setData({ unreadNotificationCount: unreadCount });
+        app.globalData.unreadNotificationCount = unreadCount;
+      })
+      .catch((err) => {
         console.error('更新通知数量失败:', err);
-      }
-    });
+      });
   },
 
   onTopicsRefresh() {
@@ -803,14 +769,7 @@ Page({
     console.log('开始删除，ID:', id);
     try {
       const app = getApp();
-      const userId = app.globalData.userInfo?.nickname;
-      
-      console.log('用户ID:', userId);
-      
-      if (!userId) {
-        wx.showToast({ title: '用户未登录', icon: 'none' });
-        return;
-      }
+      console.log('用户ID:', app.globalData.userInfo?.nickname);
       
       // 检查是否是本地日记（ID以"my-"开头）
       const isLocalDiary = id.startsWith('my-');
@@ -832,29 +791,18 @@ Page({
       } catch (e) {
         console.error('保存到本地存储失败:', e);
       }
-      
+
       // 只有非本地日记才调用云函数删除云端数据（后台异步执行，不影响本地显示）
       if (!isLocalDiary) {
         setTimeout(() => {
           console.log('调用云函数删除云端数据，ID:', id);
-          wx.cloud.callFunction({
-            name: 'deletePost',
-            data: {
-              postId: id,
-              userId: userId
-            },
-            success: (res) => {
-              console.log('云函数调用成功:', res);
-              if (res.result && res.result.success) {
-                console.log('云端删除成功:', res.result);
-              } else {
-                console.error('云端删除失败:', res.result?.message);
-              }
-            },
-            fail: (err) => {
+          callCloud('deletePost', { postId: id }, { silent: true })
+            .then(({ result }) => {
+              console.log('云端删除成功:', result);
+            })
+            .catch((err) => {
               console.error('调用云函数失败:', err);
-            }
-          });
+            });
         }, 0);
       } else {
         console.log('本地日记，不调用云函数');

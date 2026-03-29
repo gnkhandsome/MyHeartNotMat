@@ -29,16 +29,7 @@
   },
   "appid": "wx3a6496c84b992a3f",
   "projectname": "MyHeartNotMat",
-  "debugOptions": {
-    "hidedInDevtools": []
-  },
-  "scripts": {},
-  "staticServerOptions": {
-    "baseURL": "",
-    "servePath": ""
-  },
-  "isGameTourist": false,
-  "cloudfunctionRoot": "./cloudfunctions/",
+  "cloudfunctionRoot": "cloudfunctions/",
   "editorSetting": {
     "tabIndent": "insertSpaces",
     "tabSize": 2

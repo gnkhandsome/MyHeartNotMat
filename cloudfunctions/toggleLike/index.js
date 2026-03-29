@@ -10,12 +10,27 @@ const db = cloud.database()
 // 云函数入口函数
 exports.main = async (event, context) => {
   try {
-    const { userId, postId, action, nickname } = event
+    const { OPENID } = cloud.getWXContext()
+    const { postId, action, nickname } = event
+    const userId = OPENID
+    const safeAction = typeof action === 'string' ? action.trim() : ''
+    const safeNickname = typeof nickname === 'string' && nickname.trim() ? nickname.trim() : '匿名用户'
     
-    if (!userId || !postId || !action || !nickname) {
+    if (!postId || !safeAction) {
       return {
         success: false,
-        message: '缺少必要参数'
+        code: 40001,
+        message: '缺少必要参数',
+        data: null
+      }
+    }
+
+    if (safeAction !== 'add' && safeAction !== 'remove') {
+      return {
+        success: false,
+        code: 40002,
+        message: '无效的操作类型',
+        data: null
       }
     }
     
@@ -24,21 +39,23 @@ exports.main = async (event, context) => {
     if (!post.data) {
       return {
         success: false,
-        message: '动态不存在'
+        code: 40404,
+        message: '动态不存在',
+        data: null
       }
     }
     
-    if (action === 'add') {
+    if (safeAction === 'add') {
       // 给被点赞的用户发送通知（如果不是自己点赞自己的）
       if (post.data.userId !== userId) {
         await db.collection('notifications').add({
           data: {
             receiverId: post.data.userId,
             senderId: userId,
-            senderNickname: nickname,
+            senderNickname: safeNickname,
             type: 'like',
             postId: postId,
-            content: `${nickname} 点赞了你的动态`,
+            content: `${safeNickname} 点赞了你的动态`,
             read: false,
             createdAt: db.serverDate()
           }
@@ -47,25 +64,25 @@ exports.main = async (event, context) => {
       
       return {
         success: true,
-        message: '点赞成功'
+        code: 0,
+        message: '点赞成功',
+        data: null
       }
-    } else if (action === 'remove') {
+    } else if (safeAction === 'remove') {
       return {
         success: true,
-        message: '取消点赞成功'
-      }
-    } else {
-      return {
-        success: false,
-        message: '无效的操作类型'
+        code: 0,
+        message: '取消点赞成功',
+        data: null
       }
     }
   } catch (error) {
     console.error('切换点赞状态失败:', error)
     return {
       success: false,
+      code: 50000,
       message: '操作失败',
-      error: error.message
+      data: null
     }
   }
 }

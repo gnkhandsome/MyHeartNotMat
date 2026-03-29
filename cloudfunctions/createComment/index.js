@@ -10,12 +10,18 @@ const db = cloud.database()
 // 云函数入口函数
 exports.main = async (event, context) => {
   try {
-    const { postId, userId, nickname, content } = event
+    const { OPENID } = cloud.getWXContext()
+    const { postId, nickname, content } = event
+    const userId = OPENID
+    const safeContent = typeof content === 'string' ? content.trim() : ''
+    const safeNickname = typeof nickname === 'string' && nickname.trim() ? nickname.trim() : '匿名用户'
     
-    if (!postId || !userId || !nickname || !content) {
+    if (!postId || !safeContent) {
       return {
         success: false,
-        message: '缺少必要参数'
+        code: 40001,
+        message: '缺少必要参数',
+        data: null
       }
     }
     
@@ -24,7 +30,9 @@ exports.main = async (event, context) => {
     if (!post.data) {
       return {
         success: false,
-        message: '动态不存在'
+        code: 40404,
+        message: '动态不存在',
+        data: null
       }
     }
     
@@ -33,8 +41,8 @@ exports.main = async (event, context) => {
       data: {
         postId: postId,
         userId: userId,
-        nickname: nickname,
-        content: content,
+        nickname: safeNickname,
+        content: safeContent,
         createdAt: db.serverDate()
       }
     })
@@ -45,10 +53,10 @@ exports.main = async (event, context) => {
         data: {
           receiverId: post.data.userId,
           senderId: userId,
-          senderNickname: nickname,
+          senderNickname: safeNickname,
           type: 'comment',
           postId: postId,
-          content: `${nickname} 评论了你的动态: ${content}`,
+          content: `${safeNickname} 评论了你的动态: ${safeContent}`,
           read: false,
           createdAt: db.serverDate()
         }
@@ -57,15 +65,19 @@ exports.main = async (event, context) => {
     
     return {
       success: true,
-      commentId: result._id,
-      message: '评论成功'
+      code: 0,
+      message: '评论成功',
+      data: {
+        commentId: result._id
+      }
     }
   } catch (error) {
     console.error('创建评论失败:', error)
     return {
       success: false,
+      code: 50000,
       message: '评论失败',
-      error: error.message
+      data: null
     }
   }
 }

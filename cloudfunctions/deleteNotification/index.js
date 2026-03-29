@@ -10,14 +10,8 @@ const db = cloud.database()
 // 云函数入口函数
 exports.main = async (event, context) => {
   try {
-    const { notificationId, userId, deleteAll = false } = event
-    
-    if (!userId) {
-      return {
-        success: false,
-        message: '缺少用户ID'
-      }
-    }
+    const { OPENID } = cloud.getWXContext()
+    const { notificationId, deleteAll = false } = event
     
     let result
     
@@ -25,7 +19,7 @@ exports.main = async (event, context) => {
       // 删除用户所有通知
       result = await db.collection('notifications')
         .where({
-          receiverId: userId
+          receiverId: OPENID
         })
         .remove()
     } else if (notificationId) {
@@ -35,15 +29,19 @@ exports.main = async (event, context) => {
       if (!notification.data) {
         return {
           success: false,
-          message: '通知不存在'
+          code: 40404,
+          message: '通知不存在',
+          data: null
         }
       }
       
       // 确保只能删除自己的通知
-      if (notification.data.receiverId !== userId) {
+      if (notification.data.receiverId !== OPENID) {
         return {
           success: false,
-          message: '无权操作此通知'
+          code: 40301,
+          message: '无权操作此通知',
+          data: null
         }
       }
       
@@ -51,21 +49,28 @@ exports.main = async (event, context) => {
     } else {
       return {
         success: false,
-        message: '缺少必要参数'
+        code: 40001,
+        message: '缺少必要参数',
+        data: null
       }
     }
     
     return {
       success: true,
       deleted: result.stats.removed,
-      message: '删除通知成功'
+      code: 0,
+      message: '删除通知成功',
+      data: {
+        deleted: result.stats.removed
+      }
     }
   } catch (error) {
     console.error('删除通知失败:', error)
     return {
       success: false,
+      code: 50000,
       message: '删除通知失败',
-      error: error.message
+      data: null
     }
   }
 }

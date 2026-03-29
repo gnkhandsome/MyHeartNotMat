@@ -2,6 +2,7 @@ import {
   THEMES,
   getThemeById
 } from '../../theme.config.js';
+import { callCloud } from '../../utils/cloud.js';
 
 function parseColorToRgb(color = '') {
   const value = String(color || '').trim();
@@ -130,49 +131,32 @@ Page({
   },
 
   loadNotifications() {
-    const app = getApp();
-    const userId = app.globalData.userInfo?.nickname;
-    
-    if (!userId) {
-      wx.showToast({ title: '用户未登录', icon: 'none' });
-      return;
-    }
+    callCloud('getNotifications', {
+      page: this.data.page,
+      pageSize: this.data.pageSize
+    }, {
+      silent: true
+    })
+      .then(({ data }) => {
+        const notifications = data.notifications || [];
+        const hasMore = notifications.length >= this.data.pageSize;
 
-    wx.cloud.callFunction({
-      name: 'getNotifications',
-      data: {
-        userId: userId,
-        page: this.data.page,
-        pageSize: this.data.pageSize
-      },
-      success: (res) => {
-        console.log('获取通知成功:', res.result);
-        if (res.result && res.result.success) {
-          const notifications = res.result.notifications || [];
-          const hasMore = notifications.length >= this.data.pageSize;
-          
-          // 格式化通知数据
-          const formattedNotifications = notifications.map(item => ({
-            id: item._id,
-            ...item,
-            time: formatTimeAgo(item.createdAt)
-          }));
-          
-          this.setData({
-            notifications: formattedNotifications,
-            hasMore: hasMore,
-            refreshing: false
-          });
-        } else {
-          console.error('获取通知失败:', res.result?.message);
-          this.setData({ refreshing: false });
-        }
-      },
-      fail: (err) => {
-        console.error('调用云函数失败:', err);
+        const formattedNotifications = notifications.map(item => ({
+          id: item._id,
+          ...item,
+          time: formatTimeAgo(item.createdAt)
+        }));
+
+        this.setData({
+          notifications: formattedNotifications,
+          hasMore,
+          refreshing: false
+        });
+      })
+      .catch((err) => {
+        console.error('获取通知失败:', err);
         this.setData({ refreshing: false });
-      }
-    });
+      });
   },
 
   onRefresh() {
@@ -191,80 +175,47 @@ Page({
       page: this.data.page + 1
     });
     
-    const app = getApp();
-    const userId = app.globalData.userInfo?.nickname;
-    
-    if (!userId) return;
+    callCloud('getNotifications', {
+      page: this.data.page,
+      pageSize: this.data.pageSize
+    }, {
+      silent: true
+    })
+      .then(({ data }) => {
+        const notifications = data.notifications || [];
+        const hasMore = notifications.length >= this.data.pageSize;
 
-    wx.cloud.callFunction({
-      name: 'getNotifications',
-      data: {
-        userId: userId,
-        page: this.data.page,
-        pageSize: this.data.pageSize
-      },
-      success: (res) => {
-        if (res.result && res.result.success) {
-          const notifications = res.result.notifications || [];
-          const hasMore = notifications.length >= this.data.pageSize;
-          
-          // 格式化通知数据
-          const formattedNotifications = notifications.map(item => ({
-            id: item._id,
-            ...item,
-            time: formatTimeAgo(item.createdAt)
-          }));
-          
-          this.setData({
-            notifications: [...this.data.notifications, ...formattedNotifications],
-            hasMore: hasMore
-          });
-        }
-      },
-      fail: (err) => {
+        const formattedNotifications = notifications.map(item => ({
+          id: item._id,
+          ...item,
+          time: formatTimeAgo(item.createdAt)
+        }));
+
+        this.setData({
+          notifications: [...this.data.notifications, ...formattedNotifications],
+          hasMore
+        });
+      })
+      .catch((err) => {
         console.error('加载更多通知失败:', err);
-      }
-    });
+      });
   },
 
   onMarkAllRead() {
-    const app = getApp();
-    const userId = app.globalData.userInfo?.nickname;
-    
-    if (!userId) {
-      wx.showToast({ title: '用户未登录', icon: 'none' });
-      return;
-    }
+    callCloud('markNotificationRead', { markAll: true })
+      .then(() => {
+        const updatedNotifications = this.data.notifications.map(item => ({
+          ...item,
+          read: true
+        }));
 
-    wx.cloud.callFunction({
-      name: 'markNotificationRead',
-      data: {
-        userId: userId,
-        markAll: true
-      },
-      success: (res) => {
-        if (res.result && res.result.success) {
-          // 更新本地通知状态
-          const updatedNotifications = this.data.notifications.map(item => ({
-            ...item,
-            read: true
-          }));
-          
-          this.setData({ notifications: updatedNotifications });
-          wx.showToast({ title: '全部已读', icon: 'success' });
-          
-          // 更新通知数量
-          this.updateNotificationCount();
-        } else {
-          console.error('标记全部已读失败:', res.result?.message);
-          wx.showToast({ title: '操作失败', icon: 'none' });
-        }
-      },
-      fail: (err) => {
-        console.error('调用云函数失败:', err);
-        wx.showToast({ title: '操作失败', icon: 'none' });
-      }
-    });
+        this.setData({ notifications: updatedNotifications });
+        wx.showToast({ title: '全部已读', icon: 'success' });
+        this.updateNotificationCount();
+      })
+      .catch((err) => {
+        console.error('标记全部已读失败:', err);
+      });
   },
 
   onDeleteAll() {
@@ -273,37 +224,15 @@ Page({
       content: '确定要清空所有通知吗？',
       success: (res) => {
         if (res.confirm) {
-          const app = getApp();
-          const userId = app.globalData.userInfo?.nickname;
-          
-          if (!userId) {
-            wx.showToast({ title: '用户未登录', icon: 'none' });
-            return;
-          }
-
-          wx.cloud.callFunction({
-            name: 'deleteNotification',
-            data: {
-              userId: userId,
-              deleteAll: true
-            },
-            success: (res) => {
-              if (res.result && res.result.success) {
-                this.setData({ notifications: [] });
-                wx.showToast({ title: '已清空', icon: 'success' });
-                
-                // 更新通知数量
-                this.updateNotificationCount();
-              } else {
-                console.error('清空通知失败:', res.result?.message);
-                wx.showToast({ title: '操作失败', icon: 'none' });
-              }
-            },
-            fail: (err) => {
-              console.error('调用云函数失败:', err);
-              wx.showToast({ title: '操作失败', icon: 'none' });
-            }
-          });
+          callCloud('deleteNotification', { deleteAll: true })
+            .then(() => {
+              this.setData({ notifications: [] });
+              wx.showToast({ title: '已清空', icon: 'success' });
+              this.updateNotificationCount();
+            })
+            .catch((err) => {
+              console.error('清空通知失败:', err);
+            });
         }
       }
     });
@@ -317,39 +246,18 @@ Page({
       content: '确定要删除这条通知吗？',
       success: (res) => {
         if (res.confirm) {
-          const app = getApp();
-          const userId = app.globalData.userInfo?.nickname;
-          
-          if (!userId) {
-            wx.showToast({ title: '用户未登录', icon: 'none' });
-            return;
-          }
-
-          wx.cloud.callFunction({
-            name: 'deleteNotification',
-            data: {
-              notificationId: id,
-              userId: userId
-            },
-            success: (res) => {
-              if (res.result && res.result.success) {
-                // 更新本地通知列表
-                const updatedNotifications = this.data.notifications.filter(item => item.id !== id);
-                this.setData({ notifications: updatedNotifications });
-                wx.showToast({ title: '删除成功', icon: 'success' });
-                
-                // 更新通知数量
-                this.updateNotificationCount();
-              } else {
-                console.error('删除通知失败:', res.result?.message);
-                wx.showToast({ title: '操作失败', icon: 'none' });
-              }
-            },
-            fail: (err) => {
-              console.error('调用云函数失败:', err);
-              wx.showToast({ title: '操作失败', icon: 'none' });
-            }
-          });
+          callCloud('deleteNotification', {
+            notificationId: id
+          })
+            .then(() => {
+              const updatedNotifications = this.data.notifications.filter(item => item.id !== id);
+              this.setData({ notifications: updatedNotifications });
+              wx.showToast({ title: '删除成功', icon: 'success' });
+              this.updateNotificationCount();
+            })
+            .catch((err) => {
+              console.error('删除通知失败:', err);
+            });
         }
       }
     });
@@ -358,31 +266,23 @@ Page({
   updateNotificationCount() {
     // 更新全局通知数量
     const app = getApp();
-    const userId = app.globalData.userInfo?.nickname;
-    
-    if (!userId) return;
 
-    wx.cloud.callFunction({
-      name: 'getNotifications',
-      data: {
-        userId: userId,
-        unreadOnly: true,
-        pageSize: 1
-      },
-      success: (res) => {
-        if (res.result && res.result.success) {
-          const unreadCount = res.result.unreadCount || 0;
-          app.globalData.unreadNotificationCount = unreadCount;
-          
-          // 触发全局通知数量更新
-          if (app.updateNotificationCount) {
-            app.updateNotificationCount(unreadCount);
-          }
+    callCloud('getNotifications', {
+      unreadOnly: true,
+      pageSize: 1
+    }, {
+      silent: true
+    })
+      .then(({ data }) => {
+        const unreadCount = data.unreadCount || 0;
+        app.globalData.unreadNotificationCount = unreadCount;
+
+        if (app.updateNotificationCount) {
+          app.updateNotificationCount(unreadCount);
         }
-      },
-      fail: (err) => {
+      })
+      .catch((err) => {
         console.error('更新通知数量失败:', err);
-      }
-    });
+      });
   }
 });
