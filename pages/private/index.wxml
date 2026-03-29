@@ -1,6 +1,7 @@
 <view class="container theme-{{themeType}}" style="background-color: {{theme.bgColor}};">
     <scroll-view 
       class="profile-content-list" 
+      style="background-color: {{theme.bgColor}};"
       scroll-y="true" 
       scrollbar-hidden="true"
       refresher-enabled="{{true}}"

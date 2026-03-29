@@ -1,5 +1,26 @@
-import { THEMES } from '../../theme.config.js';
+import { THEMES, getThemeTypeById } from '../../theme.config.js';
 import { callCloud } from '../../utils/cloud.js';
+
+function getInitialThemeState() {
+  try {
+    const app = getApp();
+    const themeState = app && app.getThemeState
+      ? app.getThemeState()
+      : { theme: app && app.globalData ? app.globalData.theme : null };
+    const theme = themeState && themeState.theme ? themeState.theme : THEMES[0];
+    return {
+      theme,
+      themeType: getThemeTypeById(theme.id)
+    };
+  } catch (e) {
+    return {
+      theme: THEMES[0],
+      themeType: getThemeTypeById(THEMES[0].id)
+    };
+  }
+}
+
+const INITIAL_THEME_STATE = getInitialThemeState();
 
 function resolveSemanticTextPalette(theme = {}) {
   const isDarkColor = (color = '') => {
@@ -54,9 +75,9 @@ Page({
       nickname: '匿名用户',
       mood: '今天心情不错'
     },
-    theme: THEMES[0],
-    textPalette: resolveSemanticTextPalette(THEMES[0]),
-    themeType: 'female',
+    theme: INITIAL_THEME_STATE.theme,
+    textPalette: resolveSemanticTextPalette(INITIAL_THEME_STATE.theme),
+    themeType: INITIAL_THEME_STATE.themeType,
     refreshing: false
   },
 
@@ -89,6 +110,8 @@ Page({
   },
 
   onLoad() {
+    // 先设置页面窗口背景，降低页面切换首帧白闪
+    this.updatePageBackgroundColor();
     this.syncThemeFromGlobal();
     this.syncUserInfoFromGlobal();
     this.loadPrivatePosts();
@@ -96,6 +119,7 @@ Page({
   },
 
   onShow() {
+    this.updatePageBackgroundColor();
     this.syncThemeFromGlobal();
     this.syncUserInfoFromGlobal();
     this.loadPrivatePosts();
@@ -104,19 +128,36 @@ Page({
   syncThemeFromGlobal() {
     try {
       const app = getApp();
-      const currentTheme = app.globalData.theme;
+      const themeState = app.getThemeState
+        ? app.getThemeState()
+        : { theme: app.globalData.theme };
+      const currentTheme = themeState.theme;
       if (currentTheme) {
-        const themeType = currentTheme.id >= 0 && currentTheme.id<= 11 ? 'female' : 'male';
+        const themeType = getThemeTypeById(currentTheme.id);
         this.setData({
           theme: currentTheme,
           textPalette: resolveSemanticTextPalette(currentTheme),
           themeType: themeType
+        }, () => {
+          this.updateNavigationBarColor();
+          this.updatePageBackgroundColor();
         });
-        this.updateNavigationBarColor();
       }
     } catch (e) {
       console.error('同步主题失败:', e);
     }
+  },
+
+  updatePageBackgroundColor() {
+    const { theme } = this.data;
+    if (!theme || !theme.bgColor || typeof wx.setBackgroundColor !== 'function') {
+      return;
+    }
+    wx.setBackgroundColor({
+      backgroundColor: theme.bgColor,
+      backgroundColorTop: theme.bgColor,
+      backgroundColorBottom: theme.bgColor
+    });
   },
 
   updateNavigationBarColor() {
