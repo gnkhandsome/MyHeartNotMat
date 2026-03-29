@@ -1370,6 +1370,7 @@ Page({
     time = '刚刚',
     scenePackage = null,
     nickname = '',
+    avatar = '',
     title = '',
     location = '',
     blindBoxQuote = '',
@@ -1399,6 +1400,7 @@ Page({
       content,
       time,
       nickname,
+      avatar,
       title,
       location,
       blindBoxQuote,
@@ -2808,15 +2810,22 @@ Page({
   // 收藏功能
   onToggleCollect(e) {
     const id = e.currentTarget.dataset.id;
+    const targetPost = this.data.myDiaryList.find(item => item.id === id)
+      || this.data.squarePostList.find(item => item.id === id);
+
+    if (!targetPost) {
+      return;
+    }
+
+    const nextIsCollected = !targetPost.isCollected;
     
     // 更新 myDiaryList
     const myDiaryList = this.data.myDiaryList.map((item) => {
       if (item.id === id) {
-        const newIsCollected = !item.isCollected;
-        const newCollectCount = newIsCollected ? (item.collectCount || 0) + 1 : Math.max(0, (item.collectCount || 0) - 1);
+        const newCollectCount = nextIsCollected ? (item.collectCount || 0) + 1 : Math.max(0, (item.collectCount || 0) - 1);
         return {
           ...item,
-          isCollected: newIsCollected,
+          isCollected: nextIsCollected,
           collectCount: newCollectCount
         };
       }
@@ -2826,11 +2835,10 @@ Page({
     // 更新 squarePostList
     const squarePostList = this.data.squarePostList.map((item) => {
       if (item.id === id) {
-        const newIsCollected = !item.isCollected;
-        const newCollectCount = newIsCollected ? (item.collectCount || 0) + 1 : Math.max(0, (item.collectCount || 0) - 1);
+        const newCollectCount = nextIsCollected ? (item.collectCount || 0) + 1 : Math.max(0, (item.collectCount || 0) - 1);
         return {
           ...item,
-          isCollected: newIsCollected,
+          isCollected: nextIsCollected,
           collectCount: newCollectCount
         };
       }
@@ -2844,8 +2852,12 @@ Page({
     app.globalData.diaryList = myDiaryList;
     app.globalData.squarePostList = squarePostList;
 
-    // 保存收藏状态到本地存储
-    this.saveCollectedPostsToStorage();
+    // 收藏 ID 按操作顺序维护（最新收藏置顶）
+    const prevCollectedPostIds = wx.getStorageSync('collectedPostIds') || [];
+    const nextCollectedPostIds = nextIsCollected
+      ? [id, ...prevCollectedPostIds.filter(postId => postId !== id)]
+      : prevCollectedPostIds.filter(postId => postId !== id);
+    wx.setStorageSync('collectedPostIds', nextCollectedPostIds);
     
     // 刷新我的收藏列表
     this.loadProfileFavorites();
@@ -2856,7 +2868,7 @@ Page({
       setTimeout(() => {
         callCloud('toggleFavorite', {
           postId: id,
-          action: post.isCollected ? 'add' : 'remove'
+          action: nextIsCollected ? 'add' : 'remove'
         }, {
           silent: true
         })
@@ -3374,6 +3386,9 @@ Page({
     const publishTimeText = writingTimeText;
     
     const app = getApp();
+    const currentUserInfo = app.globalData.userInfo || this.data.userInfo || {};
+    const currentNickname = currentUserInfo.nickname || this.data.userInfo.nickname || '匿名用户';
+    const currentAvatar = currentUserInfo.avatar || this.data.userInfo.avatar || '';
     let updatedDiaryList = [...myDiaryList];
     let updatedSquareList = [...squarePostList];
     let updatedGlobalDiaryList = app.globalData.diaryList || [];
@@ -3450,7 +3465,8 @@ Page({
         title: postTitle,
         location: postLocation,
         time: '刚刚',
-        nickname: this.data.userInfo.nickname,
+        nickname: currentNickname,
+        avatar: currentAvatar,
         writingTime: now.getTime(),
         writingTimeText: writingTimeText,
         publishTime: now.getTime(),
@@ -3568,7 +3584,8 @@ Page({
       title: postTitle,
       location: postLocation,
       time: '刚刚',
-      nickname: this.data.userInfo.nickname,
+      nickname: currentNickname,
+      avatar: currentAvatar,
       writingTime: now.getTime(),
       writingTimeText: writingTimeText,
       publishTime: now.getTime(),
@@ -3626,7 +3643,8 @@ Page({
         content: postContent.trim(),
         title: postTitle,
         location: postLocation,
-        nickname: app.globalData.userInfo.nickname,
+        nickname: currentNickname,
+        avatar: currentAvatar,
         isPrivate: false,
         scenePackage: {
           ...this.buildScenePackageSnapshot(),
@@ -4974,21 +4992,26 @@ Page({
       const likedPostIds = wx.getStorageSync('likedPostIds') || [];
       const collectedPostIds = wx.getStorageSync('collectedPostIds') || [];
       const app = getApp();
-      const squarePostList = app.globalData.squarePostList || [];
+      const dataSquareList = this.data.squarePostList || [];
+      const squarePostList = dataSquareList.length ? dataSquareList : (app.globalData.squarePostList || []);
+      const currentAvatar = (this.data.userInfo && this.data.userInfo.avatar) || (app.globalData.userInfo && app.globalData.userInfo.avatar) || '';
       
       const favoriteList = squarePostList
         .filter(item => collectedPostIds.includes(item.id))
         .map(item => ({
           ...item,
+          avatar: item.avatar || (String(item.id || '').startsWith('my-') ? currentAvatar : ''),
           time: this.formatTimeAgo(item.publishTime || item.writingTime),
           isCollected: true,
           isLiked: likedPostIds.includes(item.id)
         }))
         .sort((a, b) => {
-          // 按收藏顺序倒序排列（最新的在顶部）
+          // 按收藏顺序排序（collectedPostIds 头部即最新收藏）
           const indexA = collectedPostIds.indexOf(a.id);
           const indexB = collectedPostIds.indexOf(b.id);
-          return indexB - indexA;
+          const safeIndexA = indexA === -1 ? Number.MAX_SAFE_INTEGER : indexA;
+          const safeIndexB = indexB === -1 ? Number.MAX_SAFE_INTEGER : indexB;
+          return safeIndexA - safeIndexB;
         });
       
       this.setData({ profileFavoriteList: favoriteList });
