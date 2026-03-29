@@ -108,16 +108,18 @@
   </scroll-view>
 
   <!-- 底部固定评论输入框 -->
-  <view class="comment-input-section" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}};">
+  <view class="comment-input-section" style="background-color: {{theme.cardColor}}; box-shadow: {{theme.shadow}}; transform: translateY(-{{keyboardHeight}}px);">
     <view class="comment-input-wrapper">
       <input
         class="comment-input"
         focus="{{inputFocus}}"
+        adjust-position="false"
         cursor-spacing="20"
         placeholder="{{replyTo ? '回复 ' + replyTo.nickname : '写下你的评论...'}}"
         placeholder-style="color: {{textPalette.tertiary}};"
         value="{{commentText}}"
         bindinput="onCommentInput"
+        bindkeyboardheightchange="onCommentKeyboardHeightChange"
         bindblur="onCommentBlur"
         style="color: {{textPalette.body}};"
       />

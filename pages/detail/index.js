@@ -66,7 +66,8 @@ Page({
     commentText: '',
     replyTo: null,
     menuButtonInfo: null,
-    inputFocus: false
+    inputFocus: false,
+    keyboardHeight: 0
   },
 
   onReady() {
@@ -412,7 +413,17 @@ Page({
   },
 
   onCommentBlur() {
-    this.setData({ inputFocus: false });
+    this.setData({
+      inputFocus: false,
+      keyboardHeight: 0
+    });
+  },
+
+  onCommentKeyboardHeightChange(e) {
+    const height = Number(e && e.detail && e.detail.height) || 0;
+    this.setData({
+      keyboardHeight: Math.max(0, height)
+    });
   },
 
   onReplyToComment(e) {

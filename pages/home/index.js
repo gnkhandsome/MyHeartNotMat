@@ -479,8 +479,13 @@ Page({
     isAmbientControlExpanded: false,
     isRainModeEnabled: false,
     rainDrops: [],
+    cardRainDrops: [],
+    cardClouds: [],
+    cardWindItems: [],
+    isWindGustActive: false,
     rainPerfLevel: 'normal',
     activeScene: 'cloudy',
+    sceneIcon: IMMERSIVE_SCENE_META.cloudy.icon,
     sceneLabel: IMMERSIVE_SCENE_META.cloudy.label,
     sceneOptions: IMMERSIVE_SCENES,
     sceneParticles: [],
@@ -1245,6 +1250,53 @@ Page({
     }
   },
 
+  startWindGustLoop() {
+    this.stopWindGustLoop(false);
+
+    const scheduleNext = () => {
+      const delay = 240000 + Math.round(Math.random() * 120000);
+      this.windGustTimer = setTimeout(() => {
+        if (this.data.activeScene !== 'windy') {
+          scheduleNext();
+          return;
+        }
+
+        const duration = 6000 + Math.round(Math.random() * 2000);
+        this.setData({
+          isWindGustActive: true,
+          cardWindItems: this.buildCardWindItems()
+        });
+
+        this.windGustResetTimer = setTimeout(() => {
+          this.setData({
+            isWindGustActive: false,
+            cardWindItems: this.buildCardWindItems()
+          });
+          this.windGustResetTimer = null;
+          scheduleNext();
+        }, duration);
+      }, delay);
+    };
+
+    scheduleNext();
+  },
+
+  stopWindGustLoop(resetState = true) {
+    if (this.windGustTimer) {
+      clearTimeout(this.windGustTimer);
+      this.windGustTimer = null;
+    }
+
+    if (this.windGustResetTimer) {
+      clearTimeout(this.windGustResetTimer);
+      this.windGustResetTimer = null;
+    }
+
+    if (resetState && this.data.isWindGustActive) {
+      this.setData({ isWindGustActive: false });
+    }
+  },
+
   initScenePerfProfile() {
     try {
       const info = wx.getSystemInfoSync ? wx.getSystemInfoSync() : {};
@@ -1399,19 +1451,21 @@ Page({
   },
 
   applyImmersiveScene(sceneKey = 'rainy', options = {}) {
-    const { persist = true, silent = false, updateAutoMode } = options;
+    const { persist = true, silent = false, updateAutoMode, forceUnmute = false } = options;
     const key = IMMERSIVE_SCENE_META[sceneKey] ? sceneKey : 'rainy';
     const meta = IMMERSIVE_SCENE_META[key];
     const nextAutoMode = typeof updateAutoMode === 'boolean' ? updateAutoMode : this.data.isSceneAutoMode;
 
     this.setData({
       activeScene: key,
+      sceneIcon: meta.icon,
       sceneLabel: meta.label,
       sceneDescription: meta.desc,
       sceneSoundLabel: meta.soundLabel,
       sceneParticles: this.buildSceneParticles(key),
       isRainModeEnabled: key === 'rainy',
       rainDrops: key === 'rainy' ? this.buildRainDrops() : [],
+      ...this.buildWritingCardWeatherFx(key),
       isSceneAutoMode: nextAutoMode
     });
 
@@ -1421,14 +1475,24 @@ Page({
       this.stopRainDynamicsLoop();
     }
 
+    if (key === 'windy') {
+      this.startWindGustLoop();
+    } else {
+      this.stopWindGustLoop();
+    }
+
     try {
       const app = getApp();
       if (app.setSceneSoundscape) {
         app.setSceneSoundscape(key, {
-          intensity: Number(this.data.sceneIntensity || 65) / 100,
           autoPlay: true,
           enabled: true
         });
+      }
+
+      if (forceUnmute && app.resumeAudio) {
+        app.resumeAudio();
+        this.setData({ isAudioPlaying: true });
       }
     } catch (e) {
       console.error('同步场景分轨音频失败:', e);
@@ -1460,7 +1524,8 @@ Page({
     this.applyImmersiveScene(scene, {
       persist: true,
       silent: false,
-      updateAutoMode: false
+      updateAutoMode: false,
+      forceUnmute: true
     });
   },
 
@@ -1470,7 +1535,8 @@ Page({
       this.applyImmersiveScene(this.resolveAutoSceneByTime(), {
         persist: true,
         silent: false,
-        updateAutoMode: true
+        updateAutoMode: true,
+        forceUnmute: true
       });
       return;
     }
@@ -1503,6 +1569,115 @@ Page({
       swayMid: Math.round((Math.random() - 0.5) * (isLowPerf ? 8 : 16) * dynamicWindRatio),
       tiltDeg: Number((-2 + directionalBias * 10 + (Math.random() - 0.5) * 4) * dynamicWindRatio).toFixed(1)
     }));
+  },
+
+  buildCardRainDrops() {
+    const isLowPerf = this.data.rainPerfLevel === 'low';
+    const intensityFactor = Math.max(0.2, Math.min(1, Number(this.data.sceneIntensity || 65) / 100));
+    const baseCount = isLowPerf ? 5 : 9;
+    const count = Math.max(3, Math.round(baseCount * (0.45 + intensityFactor * 0.75)));
+    return Array.from({ length: count }, (_, idx) => ({
+      id: `paper-rain-${Date.now()}-${idx}`,
+      left: Math.round(4 + Math.random() * 92),
+      delay: Math.round(Math.random() * 9200),
+      duration: Math.round((isLowPerf ? 3600 : 3000) + Math.random() * (isLowPerf ? 2600 : 2200) - intensityFactor * 560),
+      length: Math.round((isLowPerf ? 46 : 56) + Math.random() * (isLowPerf ? 48 : 68) + intensityFactor * 28),
+      driftX: Number((((Math.random() - 0.5) * 2) * (5 + intensityFactor * 14)).toFixed(1)),
+      opacity: Number((0.18 + Math.random() * 0.36).toFixed(2))
+    }));
+  },
+
+  buildCardCloudDrifts() {
+    const intensityFactor = Math.max(0.2, Math.min(1, Number(this.data.sceneIntensity || 65) / 100));
+    const count = 1;
+    return Array.from({ length: count }, (_, idx) => ({
+      id: `paper-cloud-${Date.now()}-${idx}`,
+      top: Math.round(4 + Math.random() * 32),
+      width: Math.round(120 + Math.random() * 70),
+      height: Math.round(36 + Math.random() * 18),
+      delay: Math.round(Math.random() * 24000),
+      duration: Math.round(108000 + Math.random() * 30000),
+      opacity: Number((0.34 + Math.random() * 0.2).toFixed(2)),
+      shadowOpacity: Number((0.18 + Math.random() * 0.16).toFixed(2)),
+      scale: Number((0.95 + Math.random() * 0.26).toFixed(2))
+    }));
+  },
+
+  buildCardWindItems() {
+    const intensityFactor = Math.max(0.2, Math.min(1, Number(this.data.sceneIntensity || 65) / 100));
+    const isGusting = !!this.data.isWindGustActive;
+    const symbols = ['🍃', '🍂', '🌸', '🌿'];
+    const intensityProgress = (intensityFactor - 0.2) / 0.8;
+    const count = isGusting ? 3 : (intensityFactor > 0.8 ? 3 : 2);
+
+    const minDuration = Math.max(
+      1150,
+      Math.round(2600 - intensityProgress * 1200 - (isGusting ? 420 : 0))
+    );
+    const maxDuration = Math.max(
+      minDuration + 280,
+      Math.round(4300 - intensityProgress * 1700 - (isGusting ? 620 : 0))
+    );
+
+    return Array.from({ length: count }, (_, idx) => {
+      const top = Math.round(6 + Math.random() * 74);
+      const bottomAffinity = Math.max(0, Math.min(1, (top - 36) / 44));
+      const willDropOutBottom = Math.random() < (0.28 + bottomAffinity * 0.56);
+      const endX = willDropOutBottom
+        ? Math.round(62 + Math.random() * 38 - bottomAffinity * 18)
+        : Math.round(126 + Math.random() * 18);
+
+      const downwardDistance = willDropOutBottom
+        ? 112 + bottomAffinity * 120 + Math.random() * 42
+        : 24 + bottomAffinity * 38 + Math.random() * 26;
+
+      return {
+        id: `paper-wind-${Date.now()}-${idx}`,
+        symbol: symbols[Math.floor(Math.random() * symbols.length)],
+        top,
+        startX: -24,
+        endX,
+        startY: Number((-14 + Math.random() * 18).toFixed(1)),
+        endY: Number(downwardDistance.toFixed(1)),
+        delay: isGusting ? Math.round(Math.random() * 560) : Math.round(Math.random() * 1100),
+        duration: Math.round(minDuration + Math.random() * (maxDuration - minDuration)),
+        swayDeg: Number(((Math.random() - 0.5) * 2 * (10 + intensityFactor * 16)).toFixed(1)),
+        scale: Number((0.82 + Math.random() * 0.42).toFixed(2)),
+        opacity: Number((0.5 + Math.random() * 0.34).toFixed(2))
+      };
+    });
+  },
+
+  buildWritingCardWeatherFx(sceneKey = 'rainy') {
+    if (sceneKey === 'rainy') {
+      return {
+        cardRainDrops: this.buildCardRainDrops(),
+        cardClouds: [],
+        cardWindItems: []
+      };
+    }
+
+    if (sceneKey === 'cloudy') {
+      return {
+        cardRainDrops: [],
+        cardClouds: this.buildCardCloudDrifts(),
+        cardWindItems: []
+      };
+    }
+
+    if (sceneKey === 'windy') {
+      return {
+        cardRainDrops: [],
+        cardClouds: [],
+        cardWindItems: this.buildCardWindItems()
+      };
+    }
+
+    return {
+      cardRainDrops: [],
+      cardClouds: [],
+      cardWindItems: []
+    };
   },
 
   initBreathingPerfProfile() {
@@ -1812,7 +1987,6 @@ Page({
       const app = getApp();
       if (app.setSceneSoundscape) {
         app.setSceneSoundscape(sceneKey, {
-          intensity: intensity / 100,
           autoPlay: true,
           enabled: true
         });
@@ -2547,6 +2721,12 @@ Page({
       this.stopRainDynamicsLoop();
     }
 
+    if (this.data.activeScene === 'windy') {
+      this.startWindGustLoop();
+    } else {
+      this.stopWindGustLoop();
+    }
+
     this.initMovableFab({ keepPosition: true });
     this.startDecoRefreshTimer();
     // 重新计算精灵窝边界，确保使用最新位置
@@ -2603,6 +2783,7 @@ Page({
     this.stopAmbientTimeSlotLoop();
     this.stopWritingDateLoop();
     this.stopRainDynamicsLoop();
+    this.stopWindGustLoop();
   },
 
   onUnload() {
@@ -2629,6 +2810,7 @@ Page({
     this.stopAmbientTimeSlotLoop();
     this.stopWritingDateLoop();
     this.stopRainDynamicsLoop();
+    this.stopWindGustLoop();
 
     if (this.handleWindowResize && wx.offWindowResize) {
       wx.offWindowResize(this.handleWindowResize);
@@ -4907,7 +5089,8 @@ Page({
     this.setData({
       sceneIntensity: safe,
       sceneParticles: this.buildSceneParticles(activeScene),
-      rainDrops: activeScene === 'rainy' ? this.buildRainDrops() : []
+      rainDrops: activeScene === 'rainy' ? this.buildRainDrops() : [],
+      ...this.buildWritingCardWeatherFx(activeScene)
     });
 
     if (activeScene === 'rainy' && this.data.isRainModeEnabled) {
@@ -4920,21 +5103,6 @@ Page({
       wx.setStorageSync('homeSceneIntensity', safe);
     } catch (e) {
       // ignore
-    }
-
-    try {
-      const app = getApp();
-      if (app.setSceneSoundscape) {
-        app.setSceneSoundscape(activeScene, {
-          intensity: safe / 100,
-          autoPlay: true,
-          enabled: true
-        });
-      } else if (app.setSceneIntensity) {
-        app.setSceneIntensity(safe / 100, { persist: true });
-      }
-    } catch (e) {
-      console.error('更新场景强度失败:', e);
     }
   },
 

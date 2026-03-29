@@ -81,10 +81,45 @@
             </view>
 
             <view class="writing-paper {{activePostType}}" style="background-color: {{theme.cardColor}}; {{customBackground ? 'background-image: url(' + customBackground + ')' : 'background-image: linear-gradient(160deg, ' + theme.cardColor + ', ' + theme.bgColor + ')'}}; background-size: cover; background-position: center; box-shadow: {{theme.shadow}}; {{theme.borderStyle ? 'border: ' + theme.borderStyle : ''}};">
+              <view wx:if="{{activeScene === 'rainy' && cardRainDrops.length}}" class="writing-card-weather-fx fx-rainy" aria-hidden="true">
+                <view
+                  wx:for="{{cardRainDrops}}"
+                  wx:key="id"
+                  class="paper-rain-drop"
+                  style="left: {{item.left}}%; --drop-delay: {{item.delay}}ms; --drop-duration: {{item.duration}}ms; --drop-length: {{item.length}}rpx; --drop-drift-x: {{item.driftX}}rpx; --drop-opacity: {{item.opacity}};"
+                ></view>
+              </view>
+
+              <view wx:if="{{activeScene === 'cloudy' && cardClouds.length}}" class="writing-card-weather-fx fx-cloudy" aria-hidden="true">
+                <view
+                  wx:for="{{cardClouds}}"
+                  wx:key="id"
+                  class="paper-cloud"
+                  style="top: {{item.top}}%; width: {{item.width}}rpx; height: {{item.height}}rpx; --cloud-delay: {{item.delay}}ms; --cloud-duration: {{item.duration}}ms; --cloud-opacity: {{item.opacity}}; --cloud-shadow-opacity: {{item.shadowOpacity}}; --cloud-scale: {{item.scale}};"
+                >
+                  <view class="paper-cloud-core"></view>
+                </view>
+              </view>
+
+              <view wx:if="{{activeScene === 'windy' && cardWindItems.length}}" class="writing-card-weather-fx fx-windy" aria-hidden="true">
+                <view
+                  wx:for="{{cardWindItems}}"
+                  wx:key="id"
+                  class="paper-wind-item"
+                  style="top: {{item.top}}%; --wind-start-x: {{item.startX}}%; --wind-end-x: {{item.endX}}%; --wind-start-y: {{item.startY}}rpx; --wind-end-y: {{item.endY}}rpx; --wind-delay: {{item.delay}}ms; --wind-duration: {{item.duration}}ms; --wind-sway: {{item.swayDeg}}deg; --wind-scale: {{item.scale}}; --wind-opacity: {{item.opacity}};"
+                >
+                  <text>{{item.symbol}}</text>
+                </view>
+              </view>
+
               <view class="paper-header">
                 <view class="paper-date-line" style="border-color: {{paperDateLineBorderColor}}; box-shadow: 0 0 20rpx {{paperDateLineShadowColor}};">
                   <text class="paper-date" style="color: {{textPalette.subtitle}};">{{writingDateText}}</text>
                   <text class="paper-subtitle {{isAmbientSubtitleAnimating ? 'is-updating' : ''}}" style="color: {{textPalette.subtitle}};">{{writingAmbientSubtitle}}</text>
+                  <view class="paper-scene-status paper-scene-status--corner" style="border-color: {{paperDateLineBorderColor}}; box-shadow: 0 0 20rpx {{paperDateLineShadowColor}};">
+                    <text class="paper-scene-status-title" style="color: {{theme.primaryColor}};">{{sceneIcon}} {{sceneLabel}}</text>
+                    <text class="paper-scene-status-sub">{{sceneSoundLabel}}</text>
+                  </view>
                 </view>
                 <view class="hanging-hook-zone {{isOrnamentHookHighlighted ? 'is-highlighted' : ''}}" aria-label="挂件挂钩区域">
                   <view class="hanging-hook"></view>
@@ -162,15 +197,16 @@
           </view>
 
           <view class="writing-right-rail">
-            <view id="toolEntryBackground" class="left-entry-card right-entry-card {{activeToolPanel === 'background' ? 'is-active' : ''}}" bindtap="onTapToolBackground">
-              <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{activeToolPanel === 'background' ? 14 : 8}}rpx {{theme.primaryColor}});">🖼️</text>
-            </view>
             <view id="toolEntryScene" class="left-entry-card right-entry-card {{activeToolPanel === 'scene' ? 'is-active' : ''}}" bindtap="onTapToolScene">
               <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{activeToolPanel === 'scene' ? 14 : 8}}rpx {{theme.primaryColor}});">🌤️</text>
             </view>
 
             <view id="toolEntryAudio" class="left-entry-card right-entry-card {{isAudioPlaying ? 'is-active' : ''}}" bindtap="toggleAudioPlay">
-              <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{isAudioPlaying ? 14 : 8}}rpx {{theme.primaryColor}});">{{isAudioPlaying ? '⏸' : '▶'}}</text>
+              <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{isAudioPlaying ? 14 : 8}}rpx {{theme.primaryColor}});">{{isAudioPlaying ? '🔊' : '🔇'}}</text>
+            </view>
+
+            <view id="toolEntryBackground" class="left-entry-card right-entry-card {{activeToolPanel === 'background' ? 'is-active' : ''}}" bindtap="onTapToolBackground">
+              <text class="left-entry-icon" style="filter: drop-shadow(0 0 {{activeToolPanel === 'background' ? 14 : 8}}rpx {{theme.primaryColor}});">🖼️</text>
             </view>
 
             <view id="toolEntryLight" class="left-entry-card right-entry-card {{activeToolPanel === 'light' ? 'is-active' : ''}}" bindtap="onTapToolLight">
@@ -345,6 +381,7 @@
                 >
                   <text class="scene-type-chip-icon">{{item.icon}}</text>
                   <text class="scene-type-chip-label">{{item.label}}</text>
+                  <text wx:if="{{activeScene === item.key}}" class="scene-type-chip-check">✓</text>
                 </view>
               </view>
             </view>

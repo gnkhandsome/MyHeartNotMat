@@ -499,6 +499,13 @@ App({
     // 音频异常处理
     audioContext.onError((res) => {
       console.error('音频播放错误:', res);
+      const hasSceneAudioFallback = Array.isArray(this.globalData.sceneAudioContexts)
+        && this.globalData.sceneAudioContexts.some((ctx) => ctx && ctx.src);
+
+      if (hasSceneAudioFallback) {
+        return;
+      }
+
       wx.showToast({
         title: '音频播放失败',
         icon: 'none'
@@ -575,7 +582,7 @@ App({
 
     this.globalData.sceneAudioContexts = contexts;
     this.globalData.sceneAudioProfileKey = 'rainy';
-    const storedIntensity = Number(wx.getStorageSync('homeSceneIntensity'));
+    const storedIntensity = Number(wx.getStorageSync('homeSceneAudioIntensity'));
     this.globalData.sceneAudioIntensity = Number.isFinite(storedIntensity)
       ? Math.min(1, Math.max(0.2, storedIntensity / 100))
       : 0.65;
@@ -593,7 +600,7 @@ App({
     this.globalData.sceneAudioIntensity = safe;
     this.applySceneAudioVolumes();
     if (persist) {
-      wx.setStorageSync('homeSceneIntensity', Math.round(safe * 100));
+      wx.setStorageSync('homeSceneAudioIntensity', Math.round(safe * 100));
     }
     return safe;
   },
