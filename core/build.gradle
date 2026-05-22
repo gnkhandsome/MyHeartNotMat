@@ -1,0 +1,22 @@
+buildscript {
+    ext {
+        compileSdkVersion = 35
+        minSdkVersion = 26
+        targetSdkVersion = 35
+        kotlin_version = '1.9.25'
+        agp_version = '8.8.2'
+        jdkVersion = JavaVersion.VERSION_17
+    }
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath "com.android.tools.build:gradle:${agp_version}"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlin_version}"
+    }
+}
+
+tasks.register('clean', Delete) {
+    delete layout.buildDirectory
+}

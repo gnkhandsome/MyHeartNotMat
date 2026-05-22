@@ -1,0 +1,43 @@
+package com.myheart.core.app.reborn.behavior
+
+import com.myheart.core.aidl.constant.SubscribeConstants
+import com.myheart.core.app.base.action.ActionType
+import com.myheart.core.app.base.action.Subscribe
+import com.myheart.core.app.base.action.SubscribeManager
+import com.myheart.core.app.base.behavior.BaseBehavior
+import com.myheart.core.app.reborn.store.DemoStore
+import com.myheart.core.app.utils.StateValueHelper
+import com.myheart.core.app.viewmodel.DemoViewModelStore
+import com.myheart.core.app.world.World
+import com.myheart.core.utils.Logger.f
+
+class DemoBehavior(world: World) : BaseBehavior(world) {
+
+    @Transient
+    private val demoStore: DemoStore = world.storeManager[DemoStore::class.java]
+    private val demoViewModelStore: DemoViewModelStore = world.storeManager[DemoViewModelStore::class.java]
+
+    override fun onStart() {
+        StateValueHelper.syncValue(demoStore.text, demoViewModelStore.text)
+    }
+
+    override fun onUpdate() {
+        StateValueHelper.ifChanged(demoStore.text) {
+            f(TAG, "text=${demoStore.text.getValue()}")
+        }
+    }
+
+    override fun onDestroy() {
+
+    }
+
+    @Subscribe(type = ActionType.Click, name = SubscribeConstants.DEMO_CLICK_EVENT)
+    fun onEidRearTrunkClick(action: SubscribeManager.Action) {
+        f(TAG, "onEidRearTrunkClick: clickIntent=${action.arg1}")
+
+    }
+
+    companion object {
+        const val TAG = "GlobalBehavior"
+    }
+}

@@ -313,6 +313,7 @@ const HOME_TOOLBAR_DEFAULTS_CONFIG_KEY = 'home_toolbar_defaults';
 const HOME_TOOLBAR_DEFAULTS_FUNCTION = 'getToolbarConfig';
 const TOOL_PANEL_AUTO_CLOSE_MS = 10000;
 const RAIN_DYNAMIC_REFRESH_MS = 2200;
+const WIND_DYNAMIC_REFRESH_MS = 1700;
 
 function resolvePerfLevelByBenchmark(benchmarkLevel) {
   const level = Number(benchmarkLevel || 0);
@@ -449,6 +450,7 @@ Page({
     moodStyles: MOOD_STYLES,
     decoPositions: {},
     decoOpacity: {},
+    writingPageContainerStyle: '',
     
     // 我的页面相关
     userInfo: {
@@ -1250,6 +1252,23 @@ Page({
     }
   },
 
+  startWindFlowLoop(interval = WIND_DYNAMIC_REFRESH_MS) {
+    this.stopWindFlowLoop();
+    this.windFlowTimer = setInterval(() => {
+      if (this.data.activeScene !== 'windy') {
+        return;
+      }
+      this.setData({ cardWindItems: this.buildCardWindItems() });
+    }, interval);
+  },
+
+  stopWindFlowLoop() {
+    if (this.windFlowTimer) {
+      clearInterval(this.windFlowTimer);
+      this.windFlowTimer = null;
+    }
+  },
+
   startWindGustLoop() {
     this.stopWindGustLoop(false);
 
@@ -1477,8 +1496,10 @@ Page({
 
     if (key === 'windy') {
       this.startWindGustLoop();
+      this.startWindFlowLoop();
     } else {
       this.stopWindGustLoop();
+      this.stopWindFlowLoop();
     }
 
     try {
@@ -1608,44 +1629,75 @@ Page({
     const isGusting = !!this.data.isWindGustActive;
     const symbols = ['🍃', '🍂', '🌸', '🌿'];
     const intensityProgress = (intensityFactor - 0.2) / 0.8;
-    const count = isGusting ? 3 : (intensityFactor > 0.8 ? 3 : 2);
+    const baseCount = isGusting ? 6 : 4;
+    const count = Math.max(4, baseCount + (intensityFactor > 0.78 ? 1 : 0));
 
-    const minDuration = Math.max(
-      1150,
-      Math.round(2600 - intensityProgress * 1200 - (isGusting ? 420 : 0))
-    );
-    const maxDuration = Math.max(
-      minDuration + 280,
-      Math.round(4300 - intensityProgress * 1700 - (isGusting ? 620 : 0))
-    );
+    const minDuration = Math.max(900, Math.round(2100 - intensityProgress * 980 - (isGusting ? 260 : 0)));
+    const maxDuration = Math.max(minDuration + 220, Math.round(3300 - intensityProgress * 1280 - (isGusting ? 380 : 0)));
 
     return Array.from({ length: count }, (_, idx) => {
-      const top = Math.round(6 + Math.random() * 74);
-      const bottomAffinity = Math.max(0, Math.min(1, (top - 36) / 44));
-      const willDropOutBottom = Math.random() < (0.28 + bottomAffinity * 0.56);
+      const top = Math.round(-6 + Math.random() * 88);
+      const normalizedTop = Math.max(0, Math.min(1, (top + 6) / 88));
+      const bottomAffinity = Math.max(0, Math.min(1, (top - 24) / 58));
+      const willDropOutBottom = Math.random() < (0.2 + bottomAffinity * 0.72);
+      const startX = Number((-38 + Math.random() * 16).toFixed(1));
       const endX = willDropOutBottom
-        ? Math.round(62 + Math.random() * 38 - bottomAffinity * 18)
-        : Math.round(126 + Math.random() * 18);
+        ? Math.round(52 + Math.random() * 44 - bottomAffinity * 14)
+        : Math.round(122 + Math.random() * 34);
 
-      const downwardDistance = willDropOutBottom
-        ? 112 + bottomAffinity * 120 + Math.random() * 42
-        : 24 + bottomAffinity * 38 + Math.random() * 26;
+      const startY = Number((-30 + Math.random() * 56).toFixed(1));
+      const fallDistance = willDropOutBottom
+        ? 128 + normalizedTop * 150 + Math.random() * 40
+        : 58 + normalizedTop * 86 + Math.random() * 26;
+      const endY = Number((startY + fallDistance).toFixed(1));
+
+      const travelX = endX - startX;
+      const travelY = endY - startY;
+      const midX1 = Number((startX + travelX * (0.32 + Math.random() * 0.08)).toFixed(1));
+      const midX2 = Number((startX + travelX * (0.68 + Math.random() * 0.1)).toFixed(1));
+      const midY1 = Number((startY + travelY * (0.18 + Math.random() * 0.08) - (8 + Math.random() * 12)).toFixed(1));
+      const midY2 = Number((startY + travelY * (0.62 + Math.random() * 0.12) + (10 + Math.random() * 16)).toFixed(1));
+
+      const duration = Math.round(
+        minDuration
+        + Math.random() * (maxDuration - minDuration)
+        + (1 - normalizedTop) * 220
+      );
 
       return {
         id: `paper-wind-${Date.now()}-${idx}`,
         symbol: symbols[Math.floor(Math.random() * symbols.length)],
         top,
-        startX: -24,
+        startX,
+        midX1,
+        midX2,
         endX,
-        startY: Number((-14 + Math.random() * 18).toFixed(1)),
-        endY: Number(downwardDistance.toFixed(1)),
-        delay: isGusting ? Math.round(Math.random() * 560) : Math.round(Math.random() * 1100),
-        duration: Math.round(minDuration + Math.random() * (maxDuration - minDuration)),
-        swayDeg: Number(((Math.random() - 0.5) * 2 * (10 + intensityFactor * 16)).toFixed(1)),
-        scale: Number((0.82 + Math.random() * 0.42).toFixed(2)),
-        opacity: Number((0.5 + Math.random() * 0.34).toFixed(2))
+        startY,
+        midY1,
+        midY2,
+        endY,
+        delay: isGusting ? Math.round(Math.random() * 320) : Math.round(Math.random() * 720),
+        duration,
+        swayDeg: Number(((Math.random() - 0.5) * 2 * (12 + intensityFactor * 22)).toFixed(1)),
+        scale: Number((0.78 + Math.random() * 0.48).toFixed(2)),
+        opacity: Number((0.66 + Math.random() * 0.26).toFixed(2))
       };
     });
+  },
+
+  resolveThemeEnhancement(theme = {}) {
+    const primary = theme.primaryColor || '#6366f1';
+    const bgColor = theme.bgColor || '#f8fafc';
+    const cardColor = theme.cardColor || '#ffffff';
+    const rgb = parseColorToRgb(bgColor);
+    const luminance = rgb ? (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255 : 0.72;
+    const isDark = luminance < 0.52;
+
+    return {
+      borderStyle: `1rpx solid ${getColorWithAlpha(primary, isDark ? 0.48 : 0.26)}`,
+      shadow: `0 22rpx 54rpx ${getColorWithAlpha(primary, isDark ? 0.4 : 0.2)}, 0 10rpx 24rpx ${getColorWithAlpha(bgColor, isDark ? 0.46 : 0.22)}`,
+      writingPageContainerStyle: `background: linear-gradient(138deg, ${getColorWithAlpha(bgColor, isDark ? 0.98 : 0.94)}, ${getColorWithAlpha(cardColor, isDark ? 0.9 : 0.88)}); background-image: radial-gradient(circle at 14% 16%, ${getColorWithAlpha(primary, isDark ? 0.34 : 0.18)} 0%, transparent 54%), radial-gradient(circle at 84% 78%, ${getColorWithAlpha(primary, isDark ? 0.22 : 0.12)} 0%, transparent 56%), radial-gradient(circle at 42% 82%, ${getColorWithAlpha(cardColor, isDark ? 0.2 : 0.14)} 0%, transparent 60%);`
+    };
   },
 
   buildWritingCardWeatherFx(sceneKey = 'rainy') {
@@ -2059,17 +2111,36 @@ Page({
       inverse: '#ffffff'
     };
 
-    const theme = {
+    const baseTheme = {
       ...this.data.theme,
       bgColor: styleMeta.bgColor,
       cardColor: styleMeta.cardColor,
       primaryColor: styleMeta.primaryColor
     };
+    const enhancement = this.resolveThemeEnhancement(baseTheme);
+    const theme = {
+      ...baseTheme,
+      borderStyle: enhancement.borderStyle,
+      shadow: enhancement.shadow
+    };
 
     this.setData({
       textPalette,
-      theme
+      theme,
+      writingPageContainerStyle: enhancement.writingPageContainerStyle,
+      paperDateLineBorderColor: theme.primaryColor,
+      paperDateLineShadowColor: getColorWithAlpha(theme.primaryColor, 0.25),
+      publishBtnBgColor: getColorWithAlpha(theme.primaryColor, 0.1),
+      publishBtnTextColor: theme.primaryColor,
+      companionSelectedShadow1: getColorWithAlpha(theme.primaryColor, 0.3),
+      companionSelectedShadow2: getColorWithAlpha(theme.primaryColor, 0.6),
+      companionSelectedShadow3: getColorWithAlpha(theme.primaryColor, 0.2),
+      companionSelectedShadow1Pulse: getColorWithAlpha(theme.primaryColor, 0.4),
+      companionSelectedShadow2Pulse: getColorWithAlpha(theme.primaryColor, 0.8),
+      companionSelectedShadow3Pulse: getColorWithAlpha(theme.primaryColor, 0.25)
     });
+
+    this.updateNavigationBarColor();
   },
 
   applyMoodStyle(key) {
@@ -2723,8 +2794,10 @@ Page({
 
     if (this.data.activeScene === 'windy') {
       this.startWindGustLoop();
+      this.startWindFlowLoop();
     } else {
       this.stopWindGustLoop();
+      this.stopWindFlowLoop();
     }
 
     this.initMovableFab({ keepPosition: true });
@@ -2784,6 +2857,7 @@ Page({
     this.stopWritingDateLoop();
     this.stopRainDynamicsLoop();
     this.stopWindGustLoop();
+    this.stopWindFlowLoop();
   },
 
   onUnload() {
@@ -2811,6 +2885,7 @@ Page({
     this.stopWritingDateLoop();
     this.stopRainDynamicsLoop();
     this.stopWindGustLoop();
+    this.stopWindFlowLoop();
 
     if (this.handleWindowResize && wx.offWindowResize) {
       wx.offWindowResize(this.handleWindowResize);
@@ -2987,22 +3062,30 @@ Page({
       ? getThemeTypeById(theme.id)
       : activeThemeType;
 
+    const enhancement = this.resolveThemeEnhancement(theme);
+    const enhancedTheme = {
+      ...theme,
+      borderStyle: enhancement.borderStyle,
+      shadow: enhancement.shadow
+    };
+
     this.setData({
-      theme: theme,
-      textPalette: resolveSemanticTextPalette(theme),
+      theme: enhancedTheme,
+      textPalette: resolveSemanticTextPalette(enhancedTheme),
       activeThemeType: resolvedType,
       filteredThemes: getThemesByType(resolvedType),
       companionVisualType: resolvedType === THEME_STYLE_TYPES.MALE ? 'core' : 'cloud',
-      paperDateLineBorderColor: theme.primaryColor,
-      paperDateLineShadowColor: getColorWithAlpha(theme.primaryColor, 0.25),
-      publishBtnBgColor: getColorWithAlpha(theme.primaryColor, 0.1),
-      publishBtnTextColor: theme.primaryColor,
-      companionSelectedShadow1: getColorWithAlpha(theme.primaryColor, 0.3),
-      companionSelectedShadow2: getColorWithAlpha(theme.primaryColor, 0.6),
-      companionSelectedShadow3: getColorWithAlpha(theme.primaryColor, 0.2),
-      companionSelectedShadow1Pulse: getColorWithAlpha(theme.primaryColor, 0.4),
-      companionSelectedShadow2Pulse: getColorWithAlpha(theme.primaryColor, 0.8),
-      companionSelectedShadow3Pulse: getColorWithAlpha(theme.primaryColor, 0.25)
+      paperDateLineBorderColor: enhancedTheme.primaryColor,
+      paperDateLineShadowColor: getColorWithAlpha(enhancedTheme.primaryColor, 0.25),
+      publishBtnBgColor: getColorWithAlpha(enhancedTheme.primaryColor, 0.1),
+      publishBtnTextColor: enhancedTheme.primaryColor,
+      companionSelectedShadow1: getColorWithAlpha(enhancedTheme.primaryColor, 0.3),
+      companionSelectedShadow2: getColorWithAlpha(enhancedTheme.primaryColor, 0.6),
+      companionSelectedShadow3: getColorWithAlpha(enhancedTheme.primaryColor, 0.2),
+      companionSelectedShadow1Pulse: getColorWithAlpha(enhancedTheme.primaryColor, 0.4),
+      companionSelectedShadow2Pulse: getColorWithAlpha(enhancedTheme.primaryColor, 0.8),
+      companionSelectedShadow3Pulse: getColorWithAlpha(enhancedTheme.primaryColor, 0.25),
+      writingPageContainerStyle: enhancement.writingPageContainerStyle
     });
 
     this.updateNavigationBarColor();
@@ -5095,6 +5178,9 @@ Page({
 
     if (activeScene === 'rainy' && this.data.isRainModeEnabled) {
       this.startRainDynamicsLoop();
+    }
+    if (activeScene === 'windy') {
+      this.startWindFlowLoop();
     }
     this.updateOrnamentWindMotion(safe);
     this.maybeTriggerCompanionActionInteraction('sceneIntensity', { cooldown: 9000 });

@@ -42,7 +42,7 @@
   <view class="page-swiper">
     <!-- 心语页面 -->
     <view class="page-wrapper {{currentPage === 0 ? 'page-active' : ''}}">
-      <view class="page-container">
+      <view class="page-container" style="{{writingPageContainerStyle}}">
         <!-- 写作场景 -->
         <view class="writing-workspace theme-{{activeThemeType}} {{isWritingFocused ? 'writing-focused' : ''}} {{writingLightEnabled ? 'writing-light-enabled' : ''}}">
 
@@ -106,7 +106,7 @@
                   wx:for="{{cardWindItems}}"
                   wx:key="id"
                   class="paper-wind-item"
-                  style="top: {{item.top}}%; --wind-start-x: {{item.startX}}%; --wind-end-x: {{item.endX}}%; --wind-start-y: {{item.startY}}rpx; --wind-end-y: {{item.endY}}rpx; --wind-delay: {{item.delay}}ms; --wind-duration: {{item.duration}}ms; --wind-sway: {{item.swayDeg}}deg; --wind-scale: {{item.scale}}; --wind-opacity: {{item.opacity}};"
+                  style="top: {{item.top}}%; --wind-start-x: {{item.startX}}%; --wind-mid-x-1: {{item.midX1}}%; --wind-mid-x-2: {{item.midX2}}%; --wind-end-x: {{item.endX}}%; --wind-start-y: {{item.startY}}rpx; --wind-mid-y-1: {{item.midY1}}rpx; --wind-mid-y-2: {{item.midY2}}rpx; --wind-end-y: {{item.endY}}rpx; --wind-delay: {{item.delay}}ms; --wind-duration: {{item.duration}}ms; --wind-sway: {{item.swayDeg}}deg; --wind-scale: {{item.scale}}; --wind-opacity: {{item.opacity}};"
                 >
                   <text>{{item.symbol}}</text>
                 </view>
@@ -412,7 +412,7 @@
     
     <!-- 广场页面 -->
     <view class="page-wrapper {{currentPage === 1 ? 'page-active' : ''}}">
-      <view class="page-container">
+      <view class="page-container" style="{{writingPageContainerStyle}}">
         <!-- 新内容提示浮窗 -->
         <view wx:if="{{newPostCount > 0}}" class="new-post-tip" bindtap="loadNewPosts">
           <text class="new-post-tip-text">{{newPostCount}}条新动态，点击刷新</text>
@@ -488,7 +488,7 @@
     
     <!-- 我的页面 -->
     <view class="page-wrapper {{currentPage === 2 ? 'page-active' : ''}}">
-      <view class="page-container profile-page-container">
+      <view class="page-container profile-page-container" style="{{writingPageContainerStyle}}">
         <!-- 用户信息区 -->
         <view class="profile-user-info-section">
           <view class="profile-notification-wrapper">
