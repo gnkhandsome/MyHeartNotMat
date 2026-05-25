@@ -4,8 +4,10 @@ import android.content.Context
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import androidx.databinding.DataBindingUtil
+import com.myheart.core.aidl.constant.SubscribeConstants
 import com.myheart.core.sdk.GlobalViewModelProvider
 import com.myheart.core.sdk.R
+import com.myheart.core.sdk.client.EventClient
 import com.myheart.core.sdk.databinding.LayoutDemoViewBinding
 import com.myheart.core.sdk.view.base.BaseComponent
 import com.myheart.core.sdk.viewmodel.DemoViewModel
@@ -36,5 +38,10 @@ class DemoComponent @JvmOverloads constructor(
         f(TAG, "init")
         binder.lifecycleOwner = innerLifecycleOwner
         binder.demoViewModel = adInfoViewModel
+
+        binder.btnSendChange.setOnClickListener {
+            f(TAG, "btnSendChange setOnClickListener")
+            EventClient.sendClick(SubscribeConstants.DEMO_CLICK_EVENT)
+        }
     }
 }

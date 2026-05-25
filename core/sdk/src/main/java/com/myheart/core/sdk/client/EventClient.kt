@@ -29,10 +29,13 @@ import kotlin.collections.forEach
 import kotlin.jvm.java
 
 /**
- * EID 和 SDK 的通讯通道 ，
+ * app 和 appview 的通讯通道 ，
  * 一个进程一个
  */
 object EventClient {
+
+    private const val EVENT_SERVER_PACKAGE = "com.myheart.core.app"
+    private const val EVENT_SERVER_CLASS = "com.myheart.core.app.service.EventBridgeService"
 
     enum class ClientStatus(val value: Int) {
         INIT(0),
@@ -49,15 +52,16 @@ object EventClient {
     private var DEBUG_RECEIVE_DETAIL = true
 
     //
-    private val TAG = "EidEventClient_$appId"
+    private val TAG = "EventClient_$appId"
 
-    private val runnableHelper = RunnableHelper.create("eid-event")
+    private val runnableHelper = RunnableHelper.create("myheart-event")
     private var mainHelper: RunnableHelper = RunnableHelper.main
 
     var eventServer: IEventServer? = null
         private set
 
     private val connectedStatusListeners = mutableListOf<EventClientListener>()
+    private val pendingReqs = mutableListOf<EventReq>()
 
     fun addConnectedStatusListener(listener: EventClientListener) {
         // 向前兼容，处理生命周期
@@ -99,7 +103,7 @@ object EventClient {
      */
     private val multiServiceIntent = Intent().also {
         it.component =
-            ComponentName(context.packageName, "com.myheart.core.app.service.EventBridgeService")
+            ComponentName(EVENT_SERVER_PACKAGE, EVENT_SERVER_CLASS)
         it.action = SdkAction.ACTION_EVENT
         // 设定Intent标识，区别Intent，Intent.FilterComparison
         // 用于Service.onBind回调多次
@@ -134,10 +138,13 @@ object EventClient {
         f(TAG, "doUnbind")
         serviceManager.stop()
     }
-
-    fun sendEvent(req: EventReq) {
         runnableHelper.post({
             try {
+                if (eventServer == null) {
+                    f(TAG, "sendEvent enqueue: eventServer is null, try rebind. reqType=${req.type}")
+                    pendingReqs.add(req)
+                    serviceManager.start()
+                }
                 f(TAG, "sendEvent ${req}")
                 eventServer?.request(req)
             } catch (e: Throwable) {
@@ -225,9 +232,9 @@ object EventClient {
                 serviceManager.start()
                 return
             }
-            // 简化以第一针 COMMAND 发布为准 , 仅回调第一次Connect
-            status = ClientStatus.CONNECTED
-            mainHelper.post({
+            runnableHelper.post {
+                flushPendingReqs()
+            }
                 connectedStatusListeners.forEach {
                     it.onConnected()
                 }
@@ -282,7 +289,21 @@ object EventClient {
         val req = EventReq(
             type = EventHelper.ReqType.TYPE_COMMAND,
             data = commandId.toString()
-        )
-        sendEvent(req)
     }
-}
+
+    private fun flushPendingReqs() {
+        if (pendingReqs.isEmpty()) {
+            return
+        }
+        val reqs = pendingReqs.toList()
+        pendingReqs.clear()
+        f(TAG, "flushPendingReqs size=${reqs.size}")
+        reqs.forEach { req ->
+            try {
+                eventServer?.request(req)
+            } catch (e: Throwable) {
+                trace(TAG, e)
+                pendingReqs.add(req)
+            }
+        }
+    }

@@ -14,10 +14,11 @@ class DemoViewModel : ViewModel() {
 
     val text = MutableLiveData("")
 
+    val receiveText = MutableLiveData<String>("")
+
     init {
         text.observeForever {
             f("DemoViewModel_Sdk", "text==${text.value.toString()}")
-            EventClient.sendClick(SubscribeConstants.DEMO_CLICK_EVENT, message = "receive:"+ text.value.toString())
         }
     }
 }

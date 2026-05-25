@@ -50,7 +50,7 @@ open class App : Application() {
 
 
     companion object {
-        private val TAG = App::class.java.simpleName + "_EID"
+        private val TAG = App::class.java.simpleName + "_MYHEART_CORE"
         val initTime: String = LocalDateTime.now().toString()
     }
 }

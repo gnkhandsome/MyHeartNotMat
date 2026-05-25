@@ -61,7 +61,11 @@ object SubscribeManager {
     }
 
     fun performAction(key: SubscribeKey, action: Action) {
-        val info = map[key] ?: return
+        val info = map[key]
+        if (info == null) {
+            f(TAG, "performAction miss key=$key, registeredKeys=${map.keys}")
+            return
+        }
         f(TAG, "performAction : $key, $action")
         info.method.invoke(info.instance, action)
     }

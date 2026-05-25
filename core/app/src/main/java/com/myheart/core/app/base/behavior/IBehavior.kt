@@ -6,7 +6,7 @@ import com.myheart.core.app.base.IPipeline
 /**
  * Behavior 行为接口
  * 
- * Behavior 是 EID 架构中的功能模块单元,类似于游戏引擎中的 Component 组件。
+ * Behavior 是 heart 架构中的功能模块单元,类似于游戏引擎中的 Component 组件。
  * 每个 Behavior 封装一个独立的功能逻辑,通过组合多个 Behavior 实现复杂的业务功能。
  * 
  * 设计理念:

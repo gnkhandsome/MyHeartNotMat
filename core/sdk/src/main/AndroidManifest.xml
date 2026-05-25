@@ -1,1 +1,22 @@
-<manifest/>
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application>
+        <activity
+            android:name=".AppViewMainActivity"
+            android:configChanges="keyboard|keyboardHidden|mcc|mnc|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|touchscreen|locale|layoutDirection|fontScale"
+            android:hardwareAccelerated="true"
+            android:exported="true"
+            android:launchMode="singleInstance">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.APP_MAPS" />
+                <category android:name="mindui.intent.category.HAIRTAIL_DRIVER_HOME" />
+            </intent-filter>
+        </activity>
+
+    </application>
+
+</manifest>

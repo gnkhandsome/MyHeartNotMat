@@ -24,7 +24,7 @@ class EventServer(
     private val callback: OnEventListenerCallback
 ) : IEventServer.Stub() {
 
-    private var TAG = "EidEventServer_${AppId.fromValue(appId)}"
+    private var TAG = "EventServer_${AppId.fromValue(appId)}"
 
     /**
      * 客户端添加，移除 EventListener 回调

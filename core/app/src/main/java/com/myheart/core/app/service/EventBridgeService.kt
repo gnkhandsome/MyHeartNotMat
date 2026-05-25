@@ -32,7 +32,7 @@ class EventBridgeService : Service() {
     override fun onBind(intent: Intent): IBinder? {
         f(TAG, "onBind intent=$intent")
         val action = intent.action
-        val appId = intent.identifier?.toInt()
+        val appId = intent.identifier?.toIntOrNull() ?: intent.getIntExtra(SdkAction.EXTRA_MULTI_APP_ID, AppId.INVALID.value)
         if (appId == null || appId == AppId.INVALID.value){
             e(TAG, "invalid appId appId=$appId !!!")
             return null

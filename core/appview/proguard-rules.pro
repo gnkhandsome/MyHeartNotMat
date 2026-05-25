@@ -1,0 +1,1 @@
+# appview proguard rules

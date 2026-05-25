@@ -20,6 +20,7 @@ class DemoBehavior(world: World) : BaseBehavior(world) {
     private val demoViewModelStore: DemoViewModelStore = world.storeManager[DemoViewModelStore::class.java]
 
     override fun onStart() {
+
     }
 
     override fun onUpdate() {
@@ -30,13 +31,15 @@ class DemoBehavior(world: World) : BaseBehavior(world) {
 
     }
 
+    var count = 0
     @Subscribe(type = ActionType.Click, name = SubscribeConstants.DEMO_CLICK_EVENT)
-    fun onEidRearTrunkClick(action: SubscribeManager.Action) {
-        f(TAG, "onEidRearTrunkClick: clickIntent=${action.data}")
-        demoViewModelStore.receiveText.setValue(action.data)
+    fun onDemoSendClick(action: SubscribeManager.Action) {
+        f(TAG, "onDemoSendClick: clickIntent=${action.data}")
+        demoViewModelStore.receiveText.setValue("receiveText${count++}")
+        demoViewModelStore.text.setValue("text${count++}")
     }
 
     companion object {
-        const val TAG = "GlobalBehavior"
+        const val TAG = "DemoBehavior"
     }
 }
