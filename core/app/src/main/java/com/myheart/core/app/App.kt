@@ -3,7 +3,10 @@ package com.myheart.core.app
 import android.app.Application
 import android.content.Context
 import android.content.res.Configuration
+import com.myheart.core.app.service.EventServerHolder
 import com.myheart.core.app.world.World
+import com.myheart.core.sdk.api.DemoApplication
+import com.myheart.core.utils.AppId
 import com.myheart.core.utils.Logger.f
 import java.time.LocalDateTime
 
@@ -16,13 +19,15 @@ import java.time.LocalDateTime
 open class App : Application() {
 
     lateinit var world: World
-    override fun onCreate() {
 
+    override fun onCreate() {
         super.onCreate()
         f(TAG, "onCreate")
         world = World(this)
         AppSingleton.setApp(this)
+        EventServerHolder.initWorld(world)
         world.start()
+        DemoApplication.onCreate(this, AppId.DEMO)
     }
 
     override fun onTerminate() {

@@ -5,6 +5,7 @@ import android.content.Context
 import android.os.Looper
 import com.myheart.core.app.AppSingleton
 import com.myheart.core.app.MainEngine
+import com.myheart.core.app.utils.GlobalStaticHelper
 import com.myheart.core.utils.Logger.f
 import com.myheart.core.utils.Logger.traceStart
 
@@ -54,6 +55,9 @@ class World(@Transient val app: Application) {
             repoManager.onStart()
             // 初始化实体
             entityManager.onStart()
+
+            GlobalStaticHelper.init(this@World)
+
             f(TAG, "onStart traversal")
             // traversal start
             repoManager.traversalOnStart()
@@ -158,7 +162,7 @@ class World(@Transient val app: Application) {
     }
 
     companion object {
-        private const val TAG = "World"
+        private const val TAG = "World_Demo"
         private const val START = 1
         private const val CREATE = 2
         private const val DESTROY = 3

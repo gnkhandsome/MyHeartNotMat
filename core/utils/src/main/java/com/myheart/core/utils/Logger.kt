@@ -3,7 +3,6 @@ package com.myheart.core.utils
 import android.os.SystemClock
 import android.text.TextUtils
 import android.util.Log
-import com.google.android.gms.common.util.JsonUtils
 import java.util.concurrent.atomic.AtomicLong
 
 object Logger {

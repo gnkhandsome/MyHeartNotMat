@@ -1,22 +1,19 @@
 package com.myheart.core.utils
 
+import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
 import android.os.Process
+import androidx.annotation.RequiresApi
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.collections.set
 
 /**
  * 异步线程工具，默认工作在work线程
  */
 class RunnableHelper private constructor(looper: Looper) {
     @Transient
-    private val handler: Handler
-
-    init {
-        handler = Handler(looper)
-    }
+    private val handler: Handler = Handler(looper)
 
     @Deprecated("Only use for Camera Image Loader and Watchdog")
     fun getHandler(): Handler {
@@ -93,6 +90,7 @@ class RunnableHelper private constructor(looper: Looper) {
      * @param action
      * @param token
      */
+    @RequiresApi(Build.VERSION_CODES.P)
     @JvmOverloads
     fun postWithCancel(action: Runnable, token: String, delayMillis: Long = 0) {
         cancel(token)
@@ -133,7 +131,7 @@ class RunnableHelper private constructor(looper: Looper) {
         init {
             Logger.f(TAG, "create default work RunnableHelper")
             val appMainRunnableName = Looper.getMainLooper().thread.name
-            runnableLooperMap[appMainRunnableName] set Looper.getMainLooper()
+            runnableLooperMap[appMainRunnableName] = Looper.getMainLooper()
         }
 
         @JvmStatic
@@ -148,7 +146,7 @@ class RunnableHelper private constructor(looper: Looper) {
                 val handlerThread = HandlerThread(name, priority)
                 handlerThread.start()
                 looper = handlerThread.looper
-                runnableLooperMap[name] set looper
+                runnableLooperMap[name] = looper
             } else {
                 Logger.f(TAG, "create", "reuse", name, "priority", priority)
             }

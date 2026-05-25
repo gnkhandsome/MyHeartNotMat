@@ -15,16 +15,15 @@ class DemoBehavior(world: World) : BaseBehavior(world) {
 
     @Transient
     private val demoStore: DemoStore = world.storeManager[DemoStore::class.java]
+
+    @Transient
     private val demoViewModelStore: DemoViewModelStore = world.storeManager[DemoViewModelStore::class.java]
 
     override fun onStart() {
-        StateValueHelper.syncValue(demoStore.text, demoViewModelStore.text)
     }
 
     override fun onUpdate() {
-        StateValueHelper.ifChanged(demoStore.text) {
-            f(TAG, "text=${demoStore.text.getValue()}")
-        }
+        StateValueHelper.syncValue(demoStore.text, demoViewModelStore.text)
     }
 
     override fun onDestroy() {
@@ -33,8 +32,8 @@ class DemoBehavior(world: World) : BaseBehavior(world) {
 
     @Subscribe(type = ActionType.Click, name = SubscribeConstants.DEMO_CLICK_EVENT)
     fun onEidRearTrunkClick(action: SubscribeManager.Action) {
-        f(TAG, "onEidRearTrunkClick: clickIntent=${action.arg1}")
-
+        f(TAG, "onEidRearTrunkClick: clickIntent=${action.data}")
+        demoViewModelStore.receiveText.setValue(action.data)
     }
 
     companion object {

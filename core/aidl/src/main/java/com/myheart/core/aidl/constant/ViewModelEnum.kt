@@ -10,7 +10,7 @@ enum class ViewModelEnum(val code: Int) {
         ;
         companion object {
                 fun fromCode(code: Int): ViewModelEnum? {
-                        return ViewModelEnum.values().find { it.code == code }
+                        return values().find { it.code == code }
                 }
         }
 }

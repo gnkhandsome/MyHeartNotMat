@@ -23,7 +23,9 @@ android {
     }
 
     buildFeatures {
-        viewBinding true
+        buildConfig true
+        aidl true
+        dataBinding true
     }
 
     compileOptions {
@@ -36,9 +38,9 @@ android {
 }
 
 dependencies {
-    implementation project(':sdk')
     implementation project(':aidl')
     implementation project(':utils')
+    implementation project(':sdk')
 
     implementation 'androidx.core:core-ktx:1.16.0'
     implementation 'androidx.appcompat:appcompat:1.7.1'

@@ -16,7 +16,7 @@ class EngineThread private constructor(name: String) : HandlerThread(name) {
     }
 
     companion object {
-        private const val THREAD_NAME = "t_ENGINE"
+        private const val THREAD_NAME = "t_ENGINE_DEMO"
         @JvmStatic
         fun get(): EngineThread {
             return Holder.instance

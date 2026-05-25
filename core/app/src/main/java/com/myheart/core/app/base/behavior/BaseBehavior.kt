@@ -6,8 +6,7 @@ import com.myheart.core.app.world.World
 
 
 open class BaseBehavior(// transient 关键字，解除Gson循环依赖
-        @field:Transient val world: World
-) : IBehavior {
+        @field:Transient val world: World) : IBehavior {
 
         private val methodMonitor = PerformanceUtils.Companion.MethodMonitor()
         override fun traversal(name: String, action: (ILifecycle) -> Unit) {

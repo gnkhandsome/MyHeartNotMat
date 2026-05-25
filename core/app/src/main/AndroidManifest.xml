@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+
     <application
         android:allowBackup="true"
         android:label="CoreDemo"
+        android:name=".App"
         android:supportsRtl="true"
         android:theme="@style/Theme.Material3.DayNight.NoActionBar">
 
@@ -21,6 +25,15 @@
             android:exported="false">
             <intent-filter>
                 <action android:name="com.myheart.core.action.DATA_BRIDGE_SERVICE" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".service.EventBridgeService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync">
+            <intent-filter>
+                <action android:name="com.lixiang.eid.sdk.event" />
             </intent-filter>
         </service>
 

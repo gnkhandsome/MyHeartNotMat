@@ -215,6 +215,6 @@ class MainEngine(@field:Transient val engineCallback: EngineCallback) {
     }
 
     companion object {
-        private const val TAG = "MainEngine"
+        private const val TAG = "MainEngine_Demo"
     }
 }
