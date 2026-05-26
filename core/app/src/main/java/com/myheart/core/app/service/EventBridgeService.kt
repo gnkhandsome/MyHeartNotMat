@@ -32,8 +32,9 @@ class EventBridgeService : Service() {
     override fun onBind(intent: Intent): IBinder? {
         f(TAG, "onBind intent=$intent")
         val action = intent.action
-        val appId = intent.identifier?.toIntOrNull() ?: intent.getIntExtra(SdkAction.EXTRA_MULTI_APP_ID, AppId.INVALID.value)
-        if (appId == null || appId == AppId.INVALID.value){
+        val appId = intent.identifier?.toIntOrNull()
+            ?: intent.getIntExtra(SdkAction.EXTRA_MULTI_APP_ID, AppId.INVALID.value)
+        if (appId == AppId.INVALID.value){
             e(TAG, "invalid appId appId=$appId !!!")
             return null
         }
@@ -55,13 +56,16 @@ class EventBridgeService : Service() {
         f(TAG, "onUnbind intent=$intent")
         intent?.let {
             if (it.action == SdkAction.ACTION_EVENT) {
-                f(TAG, "onUnbind identifier=${it.identifier}")
-                it.identifier?.let { identifier ->
+                val appId = it.identifier?.toIntOrNull()
+                    ?: it.getIntExtra(SdkAction.EXTRA_MULTI_APP_ID, AppId.INVALID.value)
+                f(TAG, "onUnbind appId=$appId identifier=${it.identifier}")
+                if (appId != AppId.INVALID.value) {
                     try {
-                        f(TAG, "destroy EventInterface for appId=$identifier")
-                        EventServerHolder.deActiveEventInterface(identifier.toInt())
-                    } catch (_: Exception) {}
-                } ?: throw kotlin.IllegalArgumentException("identifier is null")
+                        f(TAG, "destroy EventInterface for appId=$appId")
+                        EventServerHolder.deActiveEventInterface(appId)
+                    } catch (_: Exception) {
+                    }
+                }
             }
         }
         return super.onUnbind(intent)

@@ -33,6 +33,7 @@ object SubscribeManager {
     data class Action(val arg1: Int, val arg2 : Int, val data : String)
 
     private val map = mutableMapOf<SubscribeKey, SubscribeInfo>()
+    private val pendingActions = mutableMapOf<SubscribeKey, MutableList<Action>>()
 
     fun register(subscriber: Any) {
 
@@ -63,7 +64,8 @@ object SubscribeManager {
     fun performAction(key: SubscribeKey, action: Action) {
         val info = map[key]
         if (info == null) {
-            f(TAG, "performAction miss key=$key, registeredKeys=${map.keys}")
+            f(TAG, "performAction miss key=$key, cache action, registeredKeys=${map.keys}")
+            pendingActions.getOrPut(key) { mutableListOf() }.add(action)
             return
         }
         f(TAG, "performAction : $key, $action")
@@ -80,6 +82,11 @@ object SubscribeManager {
             if ((paramCount == 1) && (info.method.parameters[0].type.equals(Action::class.java))){
                 f(TAG, "addToMap : $key info $info")
                 map[key] = info
+                val cachedActions = pendingActions.remove(key)
+                cachedActions?.forEach { cachedAction ->
+                    f(TAG, "dispatch cached action key=$key action=$cachedAction")
+                    info.method.invoke(info.instance, cachedAction)
+                }
             }else{
                 e(TAG, "addToMap : info $info 函数参数签名类型错误")
             }

@@ -110,7 +110,8 @@ object EventClient {
         // 参考源码ActiveServices.java中方法publishServiceLocked中判断逻辑
         // 把 identifier 设置成 appId
         it.identifier = "${appId.value}"
-        // it.putExtra(SdkAction.EXTRA_MULTI_APP_ID, appId.value)
+        // 兼容部分系统对 identifier 透传不稳定
+        it.putExtra(SdkAction.EXTRA_MULTI_APP_ID, appId.value)
     }
 
     // 设置重连机制
@@ -138,12 +139,15 @@ object EventClient {
         f(TAG, "doUnbind")
         serviceManager.stop()
     }
+
+    fun sendEvent(req: EventReq) {
         runnableHelper.post({
             try {
                 if (eventServer == null) {
-                    f(TAG, "sendEvent enqueue: eventServer is null, try rebind. reqType=${req.type}")
+                    f(TAG, "sendEvent enqueue: eventServer is null, reqType=${req.type}, try rebind")
                     pendingReqs.add(req)
                     serviceManager.start()
+                    return@post
                 }
                 f(TAG, "sendEvent ${req}")
                 eventServer?.request(req)
@@ -232,9 +236,10 @@ object EventClient {
                 serviceManager.start()
                 return
             }
-            runnableHelper.post {
-                flushPendingReqs()
-            }
+            // 简化以第一针 COMMAND 发布为准 , 仅回调第一次Connect
+            status = ClientStatus.CONNECTED
+            runnableHelper.post({ flushPendingReqs() })
+            mainHelper.post({
                 connectedStatusListeners.forEach {
                     it.onConnected()
                 }
@@ -289,12 +294,12 @@ object EventClient {
         val req = EventReq(
             type = EventHelper.ReqType.TYPE_COMMAND,
             data = commandId.toString()
+        )
+        sendEvent(req)
     }
 
     private fun flushPendingReqs() {
-        if (pendingReqs.isEmpty()) {
-            return
-        }
+        if (pendingReqs.isEmpty()) return
         val reqs = pendingReqs.toList()
         pendingReqs.clear()
         f(TAG, "flushPendingReqs size=${reqs.size}")
@@ -307,3 +312,4 @@ object EventClient {
             }
         }
     }
+}

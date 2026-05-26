@@ -1,6 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+<!--  。你这边收不到事件的直接原因不是 `Subscribe` 或 `DemoBehavior`，而是 __appview 进程 bindService 一直失败__：日志里反复出现 `handlerDoBind success=false`，且没有 `onServiceConnected`。
+
+和 eid-LFS 的关键差异在于：eid-LFS 主要是同包内（`com.lixiang.eid`）服务绑定；你这个工程拆成了 `com.myheart.core.app` 与 `com.myheart.core.appview` 两个包，且 `targetSdk=35`，需要满足 Android 11+ 的包可见性规则。`dumpsys package com.myheart.core.appview` 里也能看到 `queries via package name` 为空，导致 appview 看不到目标包，`bindService` 返回 false。已修复：在 `appview/src/main/AndroidManifest.xml` 增加 `<queries>`（包含 `com.myheart.core.app` 包名和 `com.myheart.core.sdk.event` action）。
+-->
+
+    <queries>
+        <package android:name="com.myheart.core.app" />
+        <intent>
+            <action android:name="com.myheart.core.sdk.event" />
+        </intent>
+    </queries>
+
     <application
         android:name=".AppViewApp"
         android:allowBackup="true"
