@@ -4,9 +4,8 @@ import android.app.Application
 import android.content.Context
 import android.content.res.Configuration
 import com.myheart.core.app.service.EventServerHolder
+import com.myheart.core.app.tracker.EventTrackHelper
 import com.myheart.core.app.world.World
-import com.myheart.core.sdk.api.DemoApplication
-import com.myheart.core.utils.AppId
 import com.myheart.core.utils.Logger.f
 import java.time.LocalDateTime
 
@@ -27,7 +26,9 @@ open class App : Application() {
         AppSingleton.setApp(this)
         EventServerHolder.initWorld(world)
         world.start()
-        DemoApplication.onCreate(this, AppId.DEMO)
+
+        // 冷启动时间记录，放在方法最后面
+        EventTrackHelper.onAppColdStartPhase1()
     }
 
     override fun onTerminate() {
@@ -39,6 +40,8 @@ open class App : Application() {
 
     override fun attachBaseContext(base: Context) {
         super.attachBaseContext(base)
+        EventTrackHelper.init(base)
+        EventTrackHelper.onAppColdStart()
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
