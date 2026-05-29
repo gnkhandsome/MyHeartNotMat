@@ -34,6 +34,7 @@ class DemoComponent @JvmOverloads constructor(
         )
 
     init {
+        val client = com.myheart.core.sdk.client.MyAidlClient(context)
 
         f(TAG, "init")
         binder.lifecycleOwner = innerLifecycleOwner
@@ -43,5 +44,27 @@ class DemoComponent @JvmOverloads constructor(
             f(TAG, "btnSendChange setOnClickListener")
             EventClient.sendClick(SubscribeConstants.DEMO_CLICK_EVENT)
         }
+
+        binder.btnBindServer.setOnClickListener {
+            val bindOk = client.bind()
+            f(TAG, "bind result=$bindOk")
+            client.registerCallback { resp ->
+                f(TAG,  "onReceive code=${resp.code}, msg=${resp.message}")
+            }
+        }
+
+        binder.btnUnbindServer.setOnClickListener {
+            f(TAG, "btnSendreq unregisterCallback")
+            f(TAG, "btnSendreq unbind")
+            client.unregisterCallback()
+            client.unbind()
+        }
+
+        binder.btnSendreq.setOnClickListener {
+            f(TAG, "btnSendreq request")
+            f(TAG,  "isConnected=${client.isConnected()}")
+            client.request("demo_cmd", "hello_my_aidl")
+        }
+
     }
 }

@@ -44,5 +44,13 @@
             </intent-filter>
         </service>
 
+        <service
+            android:name=".service.MyAidlBridgeService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.myheart.core.sdk.my_aidl" />
+            </intent-filter>
+        </service>
+
     </application>
 </manifest>

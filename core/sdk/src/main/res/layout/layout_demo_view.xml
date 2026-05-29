@@ -41,5 +41,24 @@
             android:text="发送指令更改数据"
             android:layout_height="wrap_content"/>
 
+        <Button
+            android:id="@+id/btn_bindServer"
+            android:layout_width="wrap_content"
+            android:text="绑定服务"
+            android:layout_height="wrap_content"/>
+
+
+        <Button
+            android:id="@+id/btn_unbindServer"
+            android:layout_width="wrap_content"
+            android:text="解除绑定"
+            android:layout_height="wrap_content"/>
+
+
+        <Button
+            android:id="@+id/btn_sendreq"
+            android:layout_width="wrap_content"
+            android:text="发送数据"
+            android:layout_height="wrap_content"/>
     </LinearLayout>
 </layout>
